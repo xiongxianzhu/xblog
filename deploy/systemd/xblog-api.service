@@ -1,0 +1,17 @@
+[Unit]
+Description=xblog FastAPI API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/xblog/backend
+EnvironmentFile=/srv/xblog/backend/.env
+ExecStart=/srv/xblog/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

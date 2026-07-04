@@ -1,0 +1,45 @@
+# =============================================================================
+# xblog API（backend）
+# 完整规则见仓库根目录 ../.gitignore
+# 以下为相对本目录的路径写法（与根目录 backend/ 前缀规则等效）
+# =============================================================================
+
+# Python / 工具缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+.venv/
+venv/
+ENV/
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# 环境与本地数据库
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+
+# 用户上传
+uploads/*
+!uploads/.gitkeep
+
+# 日志 / OS / IDE（根目录已覆盖，此处便于单独浏览 backend 时可见）
+*.log
+logs/
+.DS_Store
+.idea/
+.vscode/
