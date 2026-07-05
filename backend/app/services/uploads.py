@@ -19,9 +19,11 @@ ALLOWED_AVATAR_TYPES = {
 MAX_AVATAR_BYTES = 5 * 1024 * 1024
 MAX_SITE_LOGO_BYTES = 2 * 1024 * 1024
 MAX_POST_COVER_BYTES = 5 * 1024 * 1024
+MAX_FRIEND_LINK_LOGO_BYTES = 5 * 1024 * 1024
 AVATAR_URL_PREFIX = "/api/v1/uploads/avatars/"
 SITE_LOGO_URL_PREFIX = "/api/v1/uploads/site/"
 POST_COVER_URL_PREFIX = "/api/v1/uploads/covers/"
+FRIEND_LINK_LOGO_URL_PREFIX = "/api/v1/uploads/link-logos/"
 
 
 def get_upload_root() -> Path:
@@ -129,6 +131,47 @@ async def save_post_cover(file: UploadFile) -> str:
     filename = f"cover-{uuid4().hex}{extension}"
     (covers_dir / filename).write_bytes(content)
     return f"{POST_COVER_URL_PREFIX}{filename}"
+
+
+def is_managed_friend_link_logo_url(logo_url: str | None) -> bool:
+    return bool(logo_url and logo_url.startswith(FRIEND_LINK_LOGO_URL_PREFIX))
+
+
+def friend_link_logo_url_to_path(logo_url: str | None) -> Path | None:
+    if not logo_url or not logo_url.startswith(FRIEND_LINK_LOGO_URL_PREFIX):
+        return None
+    filename = logo_url.removeprefix(FRIEND_LINK_LOGO_URL_PREFIX)
+    if not filename or ".." in filename or "/" in filename or "\\" in filename:
+        return None
+    if not re.fullmatch(r"[\w.-]+", filename):
+        return None
+    return get_upload_root() / "link-logos" / filename
+
+
+def delete_friend_link_logo_file(logo_url: str | None) -> None:
+    path = friend_link_logo_url_to_path(logo_url)
+    if path is None or not path.is_file():
+        return
+    path.unlink(missing_ok=True)
+
+
+async def save_friend_link_logo(file: UploadFile) -> str:
+    content_type = file.content_type or ""
+    extension = ALLOWED_AVATAR_TYPES.get(content_type)
+    if extension is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported image type")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+    if len(content) > MAX_FRIEND_LINK_LOGO_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File too large")
+
+    logos_dir = get_upload_root() / "link-logos"
+    logos_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"link-{uuid4().hex}{extension}"
+    (logos_dir / filename).write_bytes(content)
+    return f"{FRIEND_LINK_LOGO_URL_PREFIX}{filename}"
 
 
 async def save_user_avatar(username: str, file: UploadFile) -> str:

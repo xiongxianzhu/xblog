@@ -37,6 +37,7 @@ export type FriendLinkPublic = {
   name: string;
   url: string;
   logo_url: string | null;
+  description: string | null;
   sort_order: number;
 };
 

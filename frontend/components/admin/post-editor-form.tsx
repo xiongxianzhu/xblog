@@ -2,7 +2,7 @@
 
 import { Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AiAssistantPanel } from "@/components/admin/ai-assistant-panel";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { discardManagedPostCover } from "@/lib/pending-upload-cleanup";
 
 type PostFormValues = {
   title: string;
@@ -54,6 +55,17 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
   const { collapsed } = useAdminSidebar();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [values, setValues] = useState<PostFormValues>({ ...defaultValues, ...initial });
+  const [savedCoverUrl, setSavedCoverUrl] = useState((initial?.cover_url ?? "").trim());
+  const savedCoverUrlRef = useRef((initial?.cover_url ?? "").trim());
+  const coverUrlRef = useRef((initial?.cover_url ?? "").trim());
+  coverUrlRef.current = values.cover_url;
+  savedCoverUrlRef.current = savedCoverUrl;
+
+  useEffect(() => {
+    return () => {
+      void discardManagedPostCover(coverUrlRef.current, savedCoverUrlRef.current);
+    };
+  }, []);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [tagsInput, setTagsInput] = useState((initial?.tag_slugs ?? []).join(", "));
   const [activeSubmit, setActiveSubmit] = useState<"draft" | "published" | null>(null);
@@ -80,6 +92,8 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
           .map((tag) => tag.trim())
           .filter(Boolean),
       });
+      savedCoverUrlRef.current = values.cover_url.trim();
+      setSavedCoverUrl(values.cover_url.trim());
       setValues((prev) => ({ ...prev, status }));
       const title = values.title.trim() || "未命名";
       toast.success(status === "published" ? tFeedback("published") : tFeedback("draftSaved"), {
@@ -161,6 +175,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
             <div className="grid gap-6 md:grid-cols-2">
               <PostCoverEditor
                 value={values.cover_url}
+                savedCoverUrl={savedCoverUrl}
                 onChange={(coverUrl) => updateField("cover_url", coverUrl)}
                 disabled={submitting}
               />

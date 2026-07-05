@@ -578,7 +578,8 @@ export function listAdminLinks() {
 export function createAdminLink(payload: {
   name: string;
   url: string;
-  logo_url?: string | null;
+  logo_url: string;
+  description?: string | null;
   sort_order?: number;
 }) {
   return fetchAuth<FriendLinkPublic>("/admin/links", {
@@ -589,11 +590,32 @@ export function createAdminLink(payload: {
 
 export function updateAdminLink(
   id: number,
-  payload: { name?: string; url?: string; logo_url?: string | null; sort_order?: number },
+  payload: {
+    name?: string;
+    url?: string;
+    logo_url?: string;
+    description?: string | null;
+    sort_order?: number;
+  },
 ) {
   return fetchAuth<FriendLinkPublic>(`/admin/links/${id}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export function uploadFriendLinkLogo(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return fetchAuth<{ logo_url: string }>("/admin/links/logo", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function deleteFriendLinkLogo(logoUrl: string) {
+  return fetchAuth<{ message: string }>(`/admin/links/logo?logo_url=${encodeURIComponent(logoUrl)}`, {
+    method: "DELETE",
   });
 }
 

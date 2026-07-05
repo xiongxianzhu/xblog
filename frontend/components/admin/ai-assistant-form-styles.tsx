@@ -25,6 +25,10 @@ export const adminBorderlessControlClass =
 export const adminBorderlessFocusClass =
   "outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary/40 data-[state=open]:border-primary/40";
 
+/** 后台按钮：2px 圆角、无阴影扁平风 */
+export const adminFlatButtonClass =
+  "rounded-[2px] shadow-none hover:shadow-none active:shadow-none focus-visible:shadow-none";
+
 /** @deprecated 使用 adminBorderlessControlClass */
 export const aiAssistantControlClass = adminBorderlessControlClass;
 

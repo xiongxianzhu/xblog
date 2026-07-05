@@ -23,3 +23,8 @@ export function resolveAdminAssetPreviewUrl(url: string | null | undefined): str
 export function isManagedPostCoverUrl(url: string | null | undefined): boolean {
   return Boolean(url?.trim().startsWith("/api/v1/uploads/covers/"));
 }
+
+/** 本地上传的友链 LOGO URL（/api/v1/uploads/link-logos/…）。 */
+export function isManagedFriendLinkLogoUrl(url: string | null | undefined): boolean {
+  return Boolean(url?.trim().startsWith("/api/v1/uploads/link-logos/"));
+}

@@ -3,24 +3,26 @@
 import { useRef, useState } from "react";
 import { ImagePlusIcon, Trash2Icon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import {
   adminBorderlessControlClass,
   adminBorderlessFocusClass,
 } from "@/components/admin/ai-assistant-form-styles";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { uploadPostCover } from "@/lib/api";
+import { discardManagedPostCover } from "@/lib/pending-upload-cleanup";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
+import { cn } from "@/lib/utils";
 
 type PostCoverEditorProps = {
   value: string;
+  savedCoverUrl?: string;
   onChange: (coverUrl: string) => void;
   disabled?: boolean;
 };
 
-export function PostCoverEditor({ value, onChange, disabled }: PostCoverEditorProps) {
+export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled }: PostCoverEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -48,7 +50,11 @@ export function PostCoverEditor({ value, onChange, disabled }: PostCoverEditorPr
     setPreviewUrl(localPreview);
 
     try {
+      const previous = value.trim();
       const result = await uploadPostCover(file);
+      if (previous && previous !== result.cover_url) {
+        await discardManagedPostCover(previous, savedCoverUrl);
+      }
       onChange(result.cover_url);
       setPreviewUrl(null);
       URL.revokeObjectURL(localPreview);
@@ -61,7 +67,8 @@ export function PostCoverEditor({ value, onChange, disabled }: PostCoverEditorPr
     }
   }
 
-  function handleRemove() {
+  async function handleRemove() {
+    await discardManagedPostCover(value, savedCoverUrl);
     onChange("");
     setPreviewUrl(null);
     setError("");
@@ -100,7 +107,7 @@ export function PostCoverEditor({ value, onChange, disabled }: PostCoverEditorPr
               {loading ? "上传中…" : "上传封面"}
             </Button>
             {value ? (
-              <Button type="button" variant="ghost" size="sm" disabled={disabled || loading} onClick={handleRemove}>
+              <Button type="button" variant="ghost" size="sm" disabled={disabled || loading} onClick={() => void handleRemove()}>
                 <Trash2Icon data-icon="inline-start" />
                 移除
               </Button>
