@@ -15,6 +15,7 @@ import { AiSelectionToolbar } from "@/components/admin/ai-selection-toolbar";
 import { useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
 import { PostCoverEditor } from "@/components/admin/post-cover-editor";
+import { PostTagInput, POST_TAG_INPUT_MAX_TAGS } from "@/components/admin/post-tag-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -31,7 +32,7 @@ type PostFormValues = {
   excerpt: string;
   cover_url: string;
   status: "draft" | "published";
-  tag_slugs: string[];
+  tags: string[];
 };
 
 type Props = {
@@ -47,7 +48,7 @@ const defaultValues: PostFormValues = {
   excerpt: "",
   cover_url: "",
   status: "draft",
-  tag_slugs: [],
+  tags: [],
 };
 
 export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
@@ -67,19 +68,22 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
     };
   }, []);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [tagsInput, setTagsInput] = useState((initial?.tag_slugs ?? []).join(", "));
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [activeSubmit, setActiveSubmit] = useState<"draft" | "published" | null>(null);
-  const [pendingStatus, setPendingStatus] = useState<"draft" | "published">(initial?.status ?? "draft");
 
   const submitting = activeSubmit !== null;
+
+  function preventEnterSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") return;
+    if (event.target instanceof HTMLTextAreaElement) return;
+    event.preventDefault();
+  }
 
   function updateField<K extends keyof PostFormValues>(key: K, value: PostFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    const status = pendingStatus;
+  async function handleSubmit(status: "draft" | "published") {
     setActiveSubmit(status);
     try {
       await onSubmit({
@@ -87,10 +91,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
         status,
         excerpt: values.excerpt || null,
         cover_url: values.cover_url.trim() || null,
-        tag_slugs: tagsInput
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        tag_slugs: tags,
       });
       savedCoverUrlRef.current = values.cover_url.trim();
       setSavedCoverUrl(values.cover_url.trim());
@@ -153,7 +154,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
         <CardDescription>支持 Markdown 语法，保存后可在前台预览。</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="pb-20">
+        <form onSubmit={(event) => event.preventDefault()} onKeyDown={preventEnterSubmit} className="pb-20">
           <FieldGroup>
             <div className="grid gap-6 md:grid-cols-2">
               <Field>
@@ -180,9 +181,13 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                 disabled={submitting}
               />
               <Field>
-                <FieldLabel htmlFor="tags">标签 slug</FieldLabel>
-                <Input id="tags" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tech, life" className={adminFieldClass} />
-                <FieldDescription>逗号分隔；不存在时会自动创建标签（slug 如 tech、life）</FieldDescription>
+                <FieldLabel htmlFor="tags">标签</FieldLabel>
+                <PostTagInput id="tags" value={tags} onChange={setTags} disabled={submitting} />
+                <FieldDescription>
+                  {tags.length >= POST_TAG_INPUT_MAX_TAGS
+                    ? `已达 ${POST_TAG_INPUT_MAX_TAGS} 个标签上限`
+                    : `还可添加 ${POST_TAG_INPUT_MAX_TAGS - tags.length} 个标签；按 Enter 创建`}
+                </FieldDescription>
               </Field>
             </div>
 
@@ -242,10 +247,10 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
             )}
           >
             <Button
-              type="submit"
+              type="button"
               variant="outline"
               disabled={submitting}
-              onClick={() => setPendingStatus("draft")}
+              onClick={() => void handleSubmit("draft")}
             >
               {activeSubmit === "draft" ? (
                 <>
@@ -256,7 +261,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                 "保存草稿"
               )}
             </Button>
-            <Button type="submit" disabled={submitting} onClick={() => setPendingStatus("published")}>
+            <Button type="button" disabled={submitting} onClick={() => void handleSubmit("published")}>
               {activeSubmit === "published" ? (
                 <>
                   <Loader2Icon className="animate-spin" />

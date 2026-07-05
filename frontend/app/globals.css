@@ -834,14 +834,17 @@
   --tw-prose-td-borders: hsl(var(--border));
   --prose-table-cell-min-width: 6.5rem;
   --prose-table-cell-padding-block: 0.5714286em;
+  --prose-table-cell-padding-inline: 0.6666667em;
 }
 
 .prose.prose-sm {
   --prose-table-cell-padding-block: 0.6666667em;
+  --prose-table-cell-padding-inline: 0.5714286em;
 }
 
 .prose.prose-lg {
   --prose-table-cell-padding-block: 0.8888889em;
+  --prose-table-cell-padding-inline: 0.8888889em;
 }
 
 .prose :not(pre) > code {
@@ -883,12 +886,12 @@
 .prose .prose-table-wrap > table :is(th, td) {
   min-width: var(--prose-table-cell-min-width, 6.5rem);
   overflow-wrap: break-word;
+  padding-inline: var(--prose-table-cell-padding-inline, 0.6666667em);
+  padding-block: var(--prose-table-cell-padding-block, 0.5714286em);
 }
 
 .prose .prose-table-wrap > table thead th {
   vertical-align: middle;
-  padding-top: var(--prose-table-cell-padding-block);
-  padding-bottom: var(--prose-table-cell-padding-block);
 }
 
 .prose .code-block-shell {
@@ -1258,7 +1261,7 @@ body:has([data-admin-shell])[data-scroll-locked] {
 
 /* 后台表单控件：primary/25 细边框（覆盖 Input / SelectTrigger 默认 border-input） */
 [data-admin-shell] :is(
-  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]),
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not(.admin-tag-input-field),
   textarea,
   button[role="combobox"],
   .admin-form-control
@@ -1274,11 +1277,20 @@ body:has([data-admin-shell])[data-scroll-locked] {
   transition: border-color 150ms ease;
 }
 
-[data-admin-shell] :is(input, textarea, button[role="combobox"], .admin-form-control):focus-visible,
+[data-admin-shell] :is(input:not(.admin-tag-input-field), textarea, button[role="combobox"], .admin-form-control):focus-visible,
 [data-admin-shell] button[role="combobox"][data-state="open"],
 [data-admin-shell] .admin-form-control[data-state="open"] {
   outline: none !important;
   border-color: hsl(var(--primary) / 0.4) !important;
+}
+
+[data-admin-shell] .admin-tag-input .admin-tag-input-field,
+[data-admin-shell] .admin-tag-input .admin-tag-input-field:focus,
+[data-admin-shell] .admin-tag-input .admin-tag-input-field:focus-visible {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 [data-admin-shell] h1,

@@ -57,7 +57,7 @@ export default function EditPostPage() {
           excerpt: post.excerpt ?? "",
           cover_url: post.cover_url ?? "",
           status: post.status,
-          tag_slugs: post.tags.map((tag) => tag.slug),
+          tags: post.tags.map((tag) => tag.name),
         }}
         onSubmit={handleSubmit}
         onSuccess={() => void handleSuccess()}

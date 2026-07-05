@@ -19,15 +19,22 @@ _TAG_SLUG_RE = re.compile(r"^[\w\u4e00-\u9fff-]+$", re.UNICODE)
 def normalize_tag_slug(raw: str) -> str:
     slug = raw.strip().lower()
     if not slug:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty tag slug")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty tag")
     if len(slug) > 50:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tag slug too long")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tag too long")
     if not _TAG_SLUG_RE.fullmatch(slug):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tag slug: use letters, numbers, hyphens or CJK characters",
+            detail="Invalid tag: use letters, numbers, hyphens or CJK characters",
         )
     return slug
+
+
+def slugify_tag_label(raw: str) -> str:
+    slug = raw.strip().lower()
+    slug = re.sub(r"\s+", "-", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return normalize_tag_slug(slug)
 
 
 def tag_name_from_slug(slug: str) -> str:
@@ -35,23 +42,34 @@ def tag_name_from_slug(slug: str) -> str:
     return name[:50] if name else slug
 
 
-async def get_or_create_tag(session: AsyncSession, raw_slug: str) -> Tag:
-    slug = normalize_tag_slug(raw_slug)
-    result = await session.exec(select(Tag).where(Tag.slug == slug))
-    existing = result.first()
+async def resolve_tag(session: AsyncSession, raw: str) -> Tag:
+    label = raw.strip()
+    if not label:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty tag")
+    if len(label) > 50:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tag too long")
+
+    by_name = await session.exec(select(Tag).where(Tag.name == label))
+    existing = by_name.first()
     if existing is not None:
         return existing
 
-    name = tag_name_from_slug(slug)
-    name_result = await session.exec(select(Tag).where(Tag.name == name))
-    if name_result.first() is not None:
-        name = slug
+    slug = slugify_tag_label(label)
+    by_slug = await session.exec(select(Tag).where(Tag.slug == slug))
+    existing = by_slug.first()
+    if existing is not None:
+        return existing
 
-    tag = Tag(name=name, slug=slug)
+    tag = Tag(name=label, slug=slug)
     session.add(tag)
     await session.flush()
     await session.refresh(tag)
     return tag
+
+
+async def get_or_create_tag(session: AsyncSession, raw_slug: str) -> Tag:
+    """兼容旧 slug 输入；新代码请用 resolve_tag。"""
+    return await resolve_tag(session, raw_slug)
 
 
 async def load_tags(session: AsyncSession, post_id: int) -> list[Tag]:
@@ -64,16 +82,19 @@ async def sync_tags(session: AsyncSession, post_id: int, tag_slugs: list[str]) -
     if not tag_slugs:
         return
 
-    unique_slugs: list[str] = []
+    unique_labels: list[str] = []
     seen: set[str] = set()
     for raw in tag_slugs:
-        slug = normalize_tag_slug(raw)
-        if slug not in seen:
-            seen.add(slug)
-            unique_slugs.append(slug)
+        label = raw.strip()
+        if not label:
+            continue
+        key = label.casefold()
+        if key not in seen:
+            seen.add(key)
+            unique_labels.append(label)
 
-    for slug in unique_slugs:
-        tag = await get_or_create_tag(session, slug)
+    for label in unique_labels:
+        tag = await resolve_tag(session, label)
         session.add(PostTag(post_id=post_id, tag_id=tag.id or 0))
 
 def apply_publish_state(post: Post, status_value: str) -> None:
