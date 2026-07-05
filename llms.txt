@@ -2,14 +2,14 @@
 
 > 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手（Composer 多 Skill）、Skill、短信/OAuth 登录、Turnstile 防刷、文章封面与友链 LOGO 本地上传、上传孤儿清理 CLI、审计日志、Giscus 评论、备案号与双轨主题，MIT 开源。
 
-本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · next-intl · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENT.md`。
+本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · next-intl · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENTS.md`。
 
 关键约定：`/` → Next.js；`/api/` → FastAPI。公开站路由在 `app/[locale]/`（next-intl）；`/admin` 无 locale 前缀，语言存 cookie。公开站主题与品牌（名称、副标题、LOGO、备案号、7 款 palette）存数据库；后台 UI 主题存 localStorage。本地上传目录：`uploads/covers/`、`uploads/link-logos/`；未保存文件由前端即时 DELETE，服务端 `cleanup-uploads` CLI 按 cron 兜底。勿提交 `.env`、密钥或用户上传文件。
 
 ## Documentation
 
 - [README](README.md): 项目概览、快速开始、技术栈、文档索引与参与贡献
-- [AGENT](AGENT.md): AI 编码助手与贡献者速查（目录、API 分层、主题 ISR、环境变量、Git 规范）
+- [AGENT](AGENTS.md): AI 编码助手与贡献者速查（目录、API 分层、主题 ISR、环境变量、Git 规范）
 - [CONTRIBUTING](CONTRIBUTING.md): 开源贡献入口（分支、Commit、PR、提交前检查）
 - [Git 工作流](docs/git-workflow.md): 详细 Git 协作规范（Fork、Review、Squash merge、禁止事项）
 - [后端 README](backend/README.md): FastAPI API 开发、迁移、`cleanup-uploads` 维护命令、部署与排错

@@ -4,7 +4,7 @@
   <a href="https://github.com/xiongxianzhu/xblog/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT"/></a>
 </p>
 
-<h1 align="center">AGENT.md</h1>
+<h1 align="center">AGENTS.md</h1>
 
 <p align="center">
   <strong>面向 AI 编码助手与仓库贡献者的协作手册</strong><br/>
@@ -128,7 +128,7 @@ cd frontend && pnpm lint && pnpm build
 
 ```text
 xblog/
-├── AGENT.md                 ← 本文件
+├── AGENTS.md                ← 本文件
 ├── docs/superpowers/        # 功能 design spec · implementation plan
 ├── backend/
 │   ├── app/

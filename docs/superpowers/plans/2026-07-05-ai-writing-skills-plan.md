@@ -137,7 +137,7 @@ frontend/
 | P1-34 | 单元 | crypto roundtrip；Skill 校验正反例 |
 | P1-35 | API | 401 未登录；无 provider 400；坏 zip 422 |
 | P1-36 | mock | complete 用 respx/httpx mock 流式 |
-| P1-37 | AGENT | `AGENT.md` 补充 AI 模块、env、勿提交 Key |
+| P1-37 | AGENT | `AGENTS.md` 补充 AI 模块、env、勿提交 Key |
 | P1-38 | 构建 | `ruff` / `mypy` / `pytest` / `pnpm build` 通过 |
 
 **P1 PR 建议拆分**

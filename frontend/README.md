@@ -25,7 +25,7 @@
 <p align="center">
   <a href="../README.md"><b>Monorepo 首页</b></a>
   &nbsp;·&nbsp;
-  <a href="../AGENT.md"><b>AGENT.md</b></a>
+  <a href="../AGENTS.md"><b>AGENTS.md</b></a>
   &nbsp;·&nbsp;
   <a href="../backend/README.md"><b>后端文档</b></a>
   &nbsp;·&nbsp;
@@ -161,7 +161,7 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 1. `lib/themes.ts` 定义
 2. `globals.css` 中 `[data-site-palette=…]` / admin 块
 
-<p align="center">刷新机制 → <a href="../AGENT.md#-主题系统易踩坑"><b>AGENT.md · 主题系统</b></a></p>
+<p align="center">刷新机制 → <a href="../AGENTS.md#-主题系统易踩坑"><b>AGENTS.md · 主题系统</b></a></p>
 
 ---
 

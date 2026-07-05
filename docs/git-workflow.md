@@ -7,7 +7,7 @@
 <p align="center">
   <a href="../CONTRIBUTING.md"><b>CONTRIBUTING.md</b></a>
   &nbsp;·&nbsp;
-  <a href="../AGENT.md"><b>AGENT.md</b></a>
+  <a href="../AGENTS.md"><b>AGENTS.md</b></a>
   &nbsp;·&nbsp;
   <a href="prd-xblog.md"><b>PRD</b></a>
 </p>
@@ -235,7 +235,7 @@ cd frontend && pnpm lint && pnpm build
 | 文档 | 内容 |
 |------|------|
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | 贡献入口 |
-| [AGENT.md](../AGENT.md) | AI 助手与开发者速查 |
+| [AGENTS.md](../AGENTS.md) | AI 助手与开发者速查 |
 | [prd-xblog.md](prd-xblog.md) | 产品需求与验收 |
 
 ---

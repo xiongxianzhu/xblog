@@ -13,7 +13,7 @@
 <p align="center">
   <a href="docs/git-workflow.md"><b>Git 工作流详解</b></a>
   &nbsp;·&nbsp;
-  <a href="AGENT.md"><b>AGENT.md</b></a>
+  <a href="AGENTS.md"><b>AGENTS.md</b></a>
   &nbsp;·&nbsp;
   <a href="docs/prd-xblog.md"><b>PRD</b></a>
 </p>

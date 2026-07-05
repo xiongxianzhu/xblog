@@ -77,7 +77,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | SC-5 | 生产环境：`/api/v1/public/health` 返回 200；HTTPS 可用；仓库无真实密钥与私人文章内容                        | 部署检查清单          |
 | SC-6 | `backend`: `ruff check`、`mypy`、`pytest` 通过；`frontend`: `pnpm lint`、`pnpm build` 通过 | CI 或本地命令        |
 | SC-7 | 管理员在后台修改**公开站主题**后，访客刷新公开页可见新配色（开发即时；生产 **60 秒内**，见 US-7） | 改主题 → 访问 `/` 或 `/blog` 对比 |
-| SC-8 | 仓库含 `AGENT.md`、根/`backend`/`frontend` README、`docs/prd-xblog.md`、`CONTRIBUTING.md`、`llms.txt`；`.gitignore` 覆盖前后端产物 | 克隆后文档可读、无 `.env` 泄漏 |
+| SC-8 | 仓库含 `AGENTS.md`、根/`backend`/`frontend` README、`docs/prd-xblog.md`、`CONTRIBUTING.md`、`llms.txt`；`.gitignore` 覆盖前后端产物 | 克隆后文档可读、无 `.env` 泄漏 |
 | SC-9 | 文章详情页在配置 Giscus 环境变量后显示评论；未配置时有明确引导 | 配置 env → 访问 `/blog/[slug]` |
 
 **Phase 2 — AI 写作**（见 §3、US-AI-*；设计 spec：`docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md`）
@@ -270,7 +270,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] 根目录含 **`README.md`**（Monorepo 概览、shields、快速开始）、**`AGENT.md`**（AI/贡献者约定、主题 ISR、Git 规范）、**`CONTRIBUTING.md`**（贡献流程）、**`llms.txt`**（LLM 仓库导航，[llms.txt 规范](https://llmstxt.org/)）。
+- [ ] 根目录含 **`README.md`**（Monorepo 概览、shields、快速开始）、**`AGENTS.md`**（AI/贡献者约定、主题 ISR、Git 规范）、**`CONTRIBUTING.md`**（贡献流程）、**`llms.txt`**（LLM 仓库导航，[llms.txt 规范](https://llmstxt.org/)）。
 - [ ] **`docs/prd-xblog.md`** 纳入版本库，作为产品与验收的权威来源；**`docs/git-workflow.md`** 说明分支、Commit、PR、Review 文化；**`docs/superpowers/`** 存放功能 design spec 与 implementation plan。
 - [ ] `backend/README.md`、`frontend/README.md` 分别说明本目录开发与部署。
 - [ ] **`.github/`** 含 PR 模板与 Issue 模板（Bug / 功能建议）。
@@ -507,7 +507,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 ```text
 xblog/
-├── AGENT.md          # AI 助手与贡献者协作说明
+├── AGENTS.md          # AI 助手与贡献者协作说明
 ├── CONTRIBUTING.md   # 开源贡献与 Git 工作流入口
 ├── llms.txt          # LLM 仓库导航（llms.txt 规范）
 ├── README.md
@@ -716,7 +716,7 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | -------- | --------------------------------------------------------------------- |
 | **性能**   | 公开文章 ISR；Server Component 内独立 fetch 使用 `Promise.all`；后台编辑器不进公开 bundle |
 | **SEO**  | 公开列表/详情禁止纯 CSR 首屏；须 SSR/ISR 输出完整 HTML                                 |
-| **可维护性** | 根目录 + `backend/` + `frontend/` 各有一份 README；**`AGENT.md`**、**`CONTRIBUTING.md`**、**`llms.txt`**；**`docs/git-workflow.md`**；通过第 1.3 节 SC-6～SC-9 |
+| **可维护性** | 根目录 + `backend/` + `frontend/` 各有一份 README；**`AGENTS.md`**、**`CONTRIBUTING.md`**、**`llms.txt`**；**`docs/git-workflow.md`**；通过第 1.3 节 SC-6～SC-9 |
 
 
 
@@ -787,7 +787,7 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | 同域 Cookie 在开发环境跨端口失效      | 本地 admin 登录失败      | 开发用 `localhost` 统一域名；CORS + `credentials: include` 文档化 |
 | ISR revalidate 遗漏         | 发布后前台不更新           | 发布 API 成功后强制调用 revalidate；纳入 SC-4                      |
 | 公开站主题保存后不生效            | 访客仍见旧配色            | 配置成对 ISR 环境变量；主题走 tag 失效；开发环境 no-store；见 SC-7、US-7   |
-| Next.js Data Cache 与 path revalidate 不同步 | 仅 revalidatePath 不够 | 主题变更同时 revalidateTag + layout；文档写入 AGENT.md              |
+| Next.js Data Cache 与 path revalidate 不同步 | 仅 revalidatePath 不够 | 主题变更同时 revalidateTag + layout；文档写入 AGENTS.md              |
 | PostgreSQL 全文检索中文分词弱      | 搜索体验差              | MVP 接受简单 `to_tsvector`；Phase 2 评估 pg_jieba 等           |
 | Giscus 依赖 GitHub          | 国内访问不稳定            | README 说明；评论为可选配置                                      |
 | 单人维护范围膨胀                  | 延期                 | 严格遵守 2.3 Non-Goals                                     |
@@ -832,7 +832,7 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | 3   | 复制前端环境文件       | `frontend/.env.example` → `frontend/.env`                  |
 | 4   | 提交边界           | **禁止**将 `backend/.env`、`frontend/.env`、私人文章数据、用户上传文件提交到 Git                              |
 | 5   | 忽略规则           | 根 `.gitignore` 覆盖 `.venv`、`.pytest_cache`、`.ruff_cache`、`.mypy_cache`、`node_modules`、`.next`、`backend/uploads/*` 等；见 US-8 |
-| 6   | 文档               | `docs/prd-xblog.md`、`AGENT.md`、各 README **应提交**，供 clone 后阅读 |
+| 6   | 文档               | `docs/prd-xblog.md`、`AGENTS.md`、各 README **应提交**，供 clone 后阅读 |
 
 
 

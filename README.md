@@ -29,7 +29,7 @@
   &nbsp;·&nbsp;
   <a href="CONTRIBUTING.md"><b>参与贡献</b></a>
   &nbsp;·&nbsp;
-  <a href="AGENT.md"><b>AI 协作说明</b></a>
+  <a href="AGENTS.md"><b>AI 协作说明</b></a>
   &nbsp;·&nbsp;
   <a href="backend/README.md"><b>后端文档</b></a>
   &nbsp;·&nbsp;
@@ -191,7 +191,7 @@ pnpm dev
 
 ```text
 xblog/
-├── AGENT.md              ← AI 助手与贡献者速查
+├── AGENTS.md              ← AI 助手与贡献者速查
 ├── llms.txt              ← LLM 仓库导航（llms.txt 规范）
 ├── CONTRIBUTING.md       ← 参与贡献入口
 ├── README.md             ← 你在这里
@@ -208,7 +208,7 @@ xblog/
 
 | 文档 | 适合谁 | 内容 |
 |------|--------|------|
-| [AGENT.md](AGENT.md) | AI / 新贡献者 | 目录约定、环境变量、主题 ISR、Git 规范 |
+| [AGENTS.md](AGENTS.md) | AI / 新贡献者 | 目录约定、环境变量、主题 ISR、Git 规范 |
 | [llms.txt](llms.txt) | LLM / AI 工具 | 仓库导航索引（llms.txt 规范，链到核心文档与入口代码） |
 | [docs/prd-xblog.md](docs/prd-xblog.md) | 产品 / 架构 | 需求、验收标准、技术决策 |
 | [docs/superpowers/](docs/superpowers/specs/) | 功能设计 | AI Composer、登录防护、上传清理等 spec/plan |
@@ -269,7 +269,7 @@ git push -u origin feat/your-feature
 | 后台切换语言无效 | cookie 未写入 | 确认 `locale-switcher` + 刷新页面 |
 | 迁移失败 | PostgreSQL 未就绪 | 检查 `DATABASE_URL` |
 
-<p align="center">主题相关 → <a href="AGENT.md#-主题系统易踩坑"><b>AGENT.md · 主题系统</b></a></p>
+<p align="center">主题相关 → <a href="AGENTS.md#-主题系统易踩坑"><b>AGENTS.md · 主题系统</b></a></p>
 
 ---
 

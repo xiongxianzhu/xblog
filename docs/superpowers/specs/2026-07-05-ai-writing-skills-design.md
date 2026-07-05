@@ -160,7 +160,7 @@ MVP 以 **OpenAI 兼容 Chat Completions** 为主适配层（覆盖 OpenAI、Dee
 ### 4.4 Key 加密
 
 - 使用独立环境变量 `AI_KEY_ENCRYPTION_SECRET`（32+ 字节）；若未设则回退派生自 `SECRET_KEY`（文档中建议生产独立配置）。
-- 算法：Fernet 或 AES-GCM（实现时择一，写入 AGENT.md）。
+- 算法：Fernet 或 AES-GCM（实现时择一，写入 AGENTS.md）。
 
 ---
 

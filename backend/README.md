@@ -26,7 +26,7 @@
 <p align="center">
   <a href="../README.md"><b>Monorepo 首页</b></a>
   &nbsp;·&nbsp;
-  <a href="../AGENT.md"><b>AGENT.md</b></a>
+  <a href="../AGENTS.md"><b>AGENTS.md</b></a>
   &nbsp;·&nbsp;
   <a href="../docs/prd-xblog.md"><b>PRD</b></a>
   &nbsp;·&nbsp;
