@@ -59,14 +59,15 @@
 | | 能力 | 说明 |
 |:---:|:---|:---|
 | ✍️ | **在线写作** | Markdown 编辑；**保存草稿 / 发布** 固定底栏；列表页可一键发布草稿 |
-| 🖼 | **文章封面** | 本地上传或外链 URL；列表/详情 4:3 展示；保存时清理已移除的本地上传 |
-| 📑 | **阅读体验** | 详情页玻璃正文区、固定目录（TOC）、标签归档（支持中文 slug） |
-| 🤖 | **AI 写作助手** | 选区润色/扩写、内嵌对话改稿、全文生成；Agent Skills；SSE 流式 |
+| 🖼 | **文章封面** | 本地上传或外链 URL；列表/详情 4:3 展示；未保存时前端即时清理 + 服务端 cron 兜底 |
+| 🔗 | **友链** | LOGO 外链/本地上传、简介；公开页展示 LOGO，不显示 URL 文本 |
+| 📑 | **阅读体验** | 详情页玻璃正文区、固定目录（TOC）、代码块语言标签、标签归档（中文 slug） |
+| 🤖 | **AI 写作助手** | Composer 多 Skill、`/` 唤起、快捷按钮；选区润色、对话改稿、全文生成；SSE 流式 |
 | 🌐 | **多语言** | 公开站 `zh-CN` / `zh-TW` / `en`（next-intl）；后台文案 cookie 切换 |
 | 🔍 | **SEO 友好** | SSR/ISR、sitemap、RSS、结构化 metadata |
-| 🎨 | **双主题体系** | 公开站 7 款 palette + 站点品牌（后台配置）；后台 UI 主题（本地偏好） |
+| 🎨 | **双主题体系** | 公开站 7 款 palette + 站点品牌（名称/副标题/LOGO/备案号）；后台 UI 主题（localStorage） |
 | 🔐 | **灵活登录** | 用户名密码 · 短信验证码 · GitHub/微信 OAuth；**Turnstile** 人机验证（可开关） |
-| 🖥 | **管理后台** | 可折叠侧栏、毛玻璃顶栏、2px 扁平风、全宽主内容、头像与设置 |
+| 🖥 | **管理后台** | 可折叠侧栏、2px 扁平风、审计日志 API、分页组件、头像与设置 |
 | 💬 | **Giscus 评论** | 文章详情 GitHub Discussions；iframe 外层 wrapper 对齐宽度（env 配置，可选） |
 | 🏠 | **自托管** | nginx + systemd + PostgreSQL，数据在自己手里 |
 | 🤝 | **开源协作** | CONTRIBUTING、Git 工作流、Issue/PR 模板、`llms.txt` |
@@ -197,7 +198,7 @@ xblog/
 ├── backend/              ← FastAPI API
 ├── frontend/             ← Next.js 站点 + /admin
 ├── deploy/               ← nginx · systemd 示例
-├── docs/                 ← PRD · Git 工作流
+├── docs/                 ← PRD · Git 工作流 · superpowers 设计/计划
 └── .github/              ← Issue / PR 模板
 ```
 
@@ -210,7 +211,8 @@ xblog/
 | [AGENT.md](AGENT.md) | AI / 新贡献者 | 目录约定、环境变量、主题 ISR、Git 规范 |
 | [llms.txt](llms.txt) | LLM / AI 工具 | 仓库导航索引（llms.txt 规范，链到核心文档与入口代码） |
 | [docs/prd-xblog.md](docs/prd-xblog.md) | 产品 / 架构 | 需求、验收标准、技术决策 |
-| [backend/README.md](backend/README.md) | 后端开发 | API、迁移、部署、排错 |
+| [docs/superpowers/](docs/superpowers/specs/) | 功能设计 | AI Composer、登录防护、上传清理等 spec/plan |
+| [backend/README.md](backend/README.md) | 后端开发 | API、迁移、`cleanup-uploads`、部署、排错 |
 | [frontend/README.md](frontend/README.md) | 前端开发 | 路由、主题、构建、排错 |
 | [deploy/systemd/README.md](deploy/systemd/README.md) | 运维 | 生产进程守护 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献者 | 分支、Commit、PR 流程 |
@@ -244,6 +246,7 @@ git push -u origin feat/your-feature
 ② uv sync --frozen --no-dev && alembic upgrade head
 ③ pnpm build && next start（systemd）
 ④ nginx：/ → :3000，/api/ → :8000
+⑤ 可选：cron 每小时 `cleanup-uploads`（见 backend/README.md）
 ```
 
 <p align="center">详细步骤 → <a href="deploy/systemd/README.md"><b>deploy/systemd/README.md</b></a></p>
@@ -258,6 +261,8 @@ git push -u origin feat/your-feature
 | 评论不显示 | 未配置 `NEXT_PUBLIC_GISCUS_*` | 复制 `frontend/.env.example` → `.env` 并重启 |
 | 封面/正文更新延迟 | ISR 缓存 | 生产配置 `REVALIDATE_SECRET`；开发环境硬刷新 |
 | 标签页 URL 乱码 | 中文 slug 已编码 | 正常；页面用 `decodeRouteParam` 解码并显示 `tag.name` |
+| 封面/LOGO 预览 404 | 后端未启动或上传目录无权限 | `make dev`；确认 `uploads/covers/`、`uploads/link-logos/` 可写 |
+| 关浏览器后磁盘残留上传 | 未保存的本地上传 | 前端 `pending-upload-cleanup.ts` 即时删；生产配置 `cleanup-uploads` cron（见 backend README） |
 | 登录需人机验证 | Turnstile 已启用 | 配置 `TURNSTILE_*` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY`；后台 **设置 → 登录方式** 可开关 |
 | 前端 API 404 | 后端未启动 / `BACKEND_URL` 错误 | `make dev` + 检查 `frontend/.env` |
 | `/zh-TW/admin` 404 | 后台不应带 locale 前缀 | 访问 `/admin`；`proxy.ts` 会重定向 |

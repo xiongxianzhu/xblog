@@ -60,11 +60,12 @@
 |:-:|:---|:---|
 | 📝 | 内容 | 文章 / 页面 CRUD · **封面上传** · **标签自动创建** |
 | 🔍 | 发现 | 全文搜索 |
-| 🔗 | 友链 | 友链管理 |
-| 📊 | 统计 | 访问计数 |
+| 🔗 | 友链 | 友链 CRUD · **LOGO 本地上传** · 简介字段 |
+| 📊 | 统计 | 访问计数 · **登录/操作审计日志**（分页 API） |
 | 🔐 | 认证 | Cookie + JWT · 短信验证码 · OAuth · **Turnstile / login-guard** |
-| 🤖 | AI | 提供商 CRUD · Skill 管理 · SSE complete |
-| 🎨 | 外观 | 公开站主题 + 站点品牌（名称/副标题/LOGO） |
+| 🤖 | AI | 提供商 CRUD · Skill 管理 · 多 Skill SSE complete |
+| 🎨 | 外观 | 公开站主题 + 站点品牌（名称/副标题/LOGO/**备案号**） |
+| 🧹 | 维护 | **`cleanup-uploads` CLI** · 孤儿封面/LOGO 兜底清理 |
 
 <p align="center"><sub>前端通过同域 <code>/api/v1/*</code> 访问 · 开发时由 Next.js rewrite 到本服务</sub></p>
 
@@ -121,7 +122,7 @@ uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
 | `COOKIE_SECURE` / `COOKIE_DOMAIN` | 生产 | HTTPS 与 Cookie 域 |
 | `REVALIDATE_SECRET` | 生产 | 与 `frontend/.env` 一致 |
 | `REVALIDATE_URL` | 生产 | 如 `http://localhost:3000/api/revalidate` |
-| `UPLOAD_DIR` | | 上传根目录，默认 `uploads`（Skill 包、**文章封面** `covers/`） |
+| `UPLOAD_DIR` | | 上传根目录，默认 `uploads`（Skill 包、**封面** `covers/`、**友链 LOGO** `link-logos/`） |
 | `AI_KEY_ENCRYPTION_SECRET` | | AI 写作 Key 加密；留空则派生自 `SECRET_KEY` |
 | `FRONTEND_URL` | OAuth | 回调跳转目标，如 `http://localhost:3000` |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | | GitHub OAuth（可选） |
@@ -168,11 +169,15 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 | POST | `/admin/ai/complete` | SSE 流式（`delta` / `thinking` / `done`） |
 | POST | `/admin/posts/cover` | 上传文章封面 → `/api/v1/uploads/covers/…` |
 | DELETE | `/admin/posts/cover?cover_url=…` | 删除已上传封面文件（管理用） |
+| POST | `/admin/links/logo` | 上传友链 LOGO → `/api/v1/uploads/link-logos/…` |
+| DELETE | `/admin/links/logo?logo_url=…` | 删除已上传友链 LOGO（管理用） |
+| GET | `/admin/logs/login` | 登录日志（`page` · `page_size`，默认 20） |
+| GET | `/admin/logs/operations` | 操作日志（分页） |
 
 </details>
 
 > **标签**：保存文章时 `tag_slugs` 不存在会自动 `get_or_create_tag`（支持中文 slug）。  
-> **封面**：PATCH 时若 `cover_url` 置空且旧值为本地上传 URL，服务端会删除磁盘文件；编辑页「移除」仅清空表单，保存后才删文件。
+> **封面 / LOGO**：先上传、后保存；PATCH 换图或置空时删旧 managed 文件；未保存孤儿由前端 DELETE + `cleanup-uploads` CLI 兜底（见下方维护小节）。
 
 > **写操作只出现在 admin 路由**，public 路由保持只读。
 
@@ -183,6 +188,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 | 场景 | 命令 |
 |------|------|
 | 📖 帮助 | `make help` |
+| 👤 管理 | `uv run python -m app.cli create-admin` · `reset-password` · `seed-pages` |
 | 🚀 开发 | `make dev` · `uv run fastapi dev` |
 | 🗄 迁移 | `make revision MSG="描述"` → `make migrate` |
 | ✅ 质量 | `make lint` · `make typecheck` · `make test` · `make check` |
@@ -212,17 +218,18 @@ uv run python -m app.cli cleanup-uploads               # 实际删除
 
 ```text
 app/
+├── cli.py               # create-admin · cleanup-uploads 等维护命令
 ├── main.py              # 应用入口 · 静态文件挂载
 ├── api/v1/              # public · admin · auth · ai endpoints
 ├── core/                # config · security · exceptions
 ├── db/                  # session
 ├── models/              # SQLModel 表定义
 ├── schemas/             # Pydantic 入参/出参
-├── services/            # posts · revalidate · site_settings · uploads · login_guard · ai/ …
-├── data/builtin_skills/ # 内置 Agent Skills
-alembic/                 # 001 初始 … 012 audit_logs
+├── services/            # posts · uploads · upload_cleanup · audit_logs · login_guard · ai/ …
+├── data/builtin_skills/ # 内置 Agent Skills（含 format · excerpt）
+alembic/                 # 001 初始 … 013 friend_link_description
 tests/                   # pytest（含 test_post_cover · test_upload_cleanup · test_login_guard）
-uploads/                 # Skill 包与 covers/（gitignore）
+uploads/                 # Skill 包 · covers/ · link-logos/（gitignore）
 Makefile
 ```
 
@@ -263,7 +270,8 @@ make migrate
 | `alembic upgrade` 失败 | 检查 PostgreSQL 运行状态与 `DATABASE_URL` |
 | 主题保存后公开页不变 | 确认 `REVALIDATE_SECRET`、`REVALIDATE_URL`；查日志 Skip ISR revalidate |
 | CORS 错误 | 将前端 origin 加入 `CORS_ORIGINS` |
-| 上传文件 404 | 确认 `uploads/` 目录存在且有写权限；封面 URL 前缀 `/api/v1/uploads/covers/` |
+| 上传文件 404 | 确认 `uploads/` 可写；封面 `/api/v1/uploads/covers/` · LOGO `/api/v1/uploads/link-logos/` |
+| 磁盘残留未保存上传 | 配置 cron 跑 `cleanup-uploads`；开发可用 `--dry-run` 预览 |
 | 封面保存后仍显示旧图 | ISR 缓存 | 生产检查 `REVALIDATE_SECRET`；开发硬刷新 |
 | AI complete 401 | 确认已登录且至少激活一个 AI 提供商 |
 | 短信 dev 模式 | 查看 uvicorn 日志中的验证码；生产需配置 `SMS_PROVIDER=aliyun` |

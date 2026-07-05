@@ -1,10 +1,10 @@
 # xblog
 
-> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手、Skill、短信/OAuth 登录、Turnstile 防刷、文章封面与 Giscus 评论，双轨主题，MIT 开源。
+> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手（Composer 多 Skill）、Skill、短信/OAuth 登录、Turnstile 防刷、文章封面与友链 LOGO 本地上传、上传孤儿清理 CLI、审计日志、Giscus 评论、备案号与双轨主题，MIT 开源。
 
 本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · next-intl · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENT.md`。
 
-关键约定：`/` → Next.js；`/api/` → FastAPI。公开站路由在 `app/[locale]/`（next-intl）；`/admin` 无 locale 前缀，语言存 cookie。公开站主题与品牌（名称、副标题、LOGO、7 款 palette）存数据库；后台 UI 主题存 localStorage。勿提交 `.env`、密钥或用户上传文件。
+关键约定：`/` → Next.js；`/api/` → FastAPI。公开站路由在 `app/[locale]/`（next-intl）；`/admin` 无 locale 前缀，语言存 cookie。公开站主题与品牌（名称、副标题、LOGO、备案号、7 款 palette）存数据库；后台 UI 主题存 localStorage。本地上传目录：`uploads/covers/`、`uploads/link-logos/`；未保存文件由前端即时 DELETE，服务端 `cleanup-uploads` CLI 按 cron 兜底。勿提交 `.env`、密钥或用户上传文件。
 
 ## Documentation
 
@@ -12,7 +12,7 @@
 - [AGENT](AGENT.md): AI 编码助手与贡献者速查（目录、API 分层、主题 ISR、环境变量、Git 规范）
 - [CONTRIBUTING](CONTRIBUTING.md): 开源贡献入口（分支、Commit、PR、提交前检查）
 - [Git 工作流](docs/git-workflow.md): 详细 Git 协作规范（Fork、Review、Squash merge、禁止事项）
-- [后端 README](backend/README.md): FastAPI API 开发、迁移、部署与排错
+- [后端 README](backend/README.md): FastAPI API 开发、迁移、`cleanup-uploads` 维护命令、部署与排错
 - [前端 README](frontend/README.md): Next.js 页面结构、主题系统、i18n 路由与构建
 - [部署说明 systemd](deploy/systemd/README.md): 生产环境 systemd 守护 uvicorn 与 next start
 - [部署说明 nginx](deploy/nginx/README.md): 生产 nginx 同域反代、HTTPS 与 SSE 配置
@@ -22,8 +22,11 @@
 - [产品需求文档 PRD](docs/prd-xblog.md): 功能范围、用户故事、验收标准、数据模型、API 与 Non-Goals（权威来源）
 - [AI 写作 Skill 设计](docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md): AI 助手、Skill 推荐、流式 SSE 与内置 Skill 设计说明
 - [AI 写作 Skill 实施计划](docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md): AI 功能分阶段落地计划与任务拆分
+- [AI 编辑器 Composer 设计](docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md): 多 Skill Chip、`/` 唤起、快捷按钮与模型选择（已实现）
 - [登录限流与 Turnstile 设计](docs/superpowers/specs/2026-07-05-login-captcha-design.md): 密码登录失败渐进验证码、找回密码防刷与 siteverify
 - [登录限流与 Turnstile 实施计划](docs/superpowers/plans/2026-07-05-login-captcha-plan.md): login_guard、Turnstile 组件与测试落地步骤
+- [上传孤儿文件清理设计](docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md): 扫指定目录 + DB 引用、1h TTL、`cleanup-uploads` CLI（已实现）
+- [上传孤儿文件清理实施计划](docs/superpowers/plans/2026-07-05-upload-orphan-cleanup-plan.md): 服务层、CLI、测试与 cron 部署步骤
 - [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md): 提 PR 时的变更说明与测试清单
 - [LICENSE](LICENSE): MIT 许可证
 
@@ -34,29 +37,40 @@
 - [后端依赖与工具链](backend/pyproject.toml): Python 包、ruff、mypy、pytest、FastAPI entrypoint
 - [前端依赖](frontend/package.json): Next.js、React、next-intl、Tailwind、shadcn/ui 脚本与版本
 - [nginx 站点示例](deploy/nginx/xblog.conf): 生产同域反代 `/` 与 `/api/` 的完整 server 块
+- [CLI 维护命令](backend/app/cli.py): `create-admin`、`reset-password`、`seed-pages`、`cleanup-uploads`
 
 ## Code entry points
 
 - [API 路由聚合](backend/app/api/v1/router.py): public / auth / admin 路由注册（含 AI、OAuth、SMS、站点主题、审计日志）
 - [FastAPI 应用入口](backend/app/main.py): 应用实例、静态上传挂载
 - [登录限流与 Turnstile](backend/app/services/login_guard.py): 密码失败计数、siteverify、找回密码 IP 限流
+- [审计日志服务](backend/app/services/audit_logs.py): 登录/操作日志写入与分页查询
+- [管理后台日志 API](backend/app/api/v1/endpoints/admin/logs.py): 登录与操作日志分页列表
 - [文章与标签服务](backend/app/services/posts.py): CRUD、标签 get_or_create、封面 URL 清理
-- [上传与封面存储](backend/app/services/uploads.py): 文章封面上传路径与删除
-- [AI 网关与 SSE](backend/app/services/ai/gateway.py): 流式对话/生成、thinking 事件、Skill 注入
+- [上传与封面/友链 LOGO](backend/app/services/uploads.py): 文章封面与友链 LOGO 本地上传路径与删除
+- [上传孤儿清理](backend/app/services/upload_cleanup.py): 对比 DB 引用集，删除超时未引用 managed 文件
+- [AI 网关与 SSE](backend/app/services/ai/gateway.py): 流式对话/生成、thinking 事件、多 Skill 合并 prompt
 - [AI Skill 读写](backend/app/services/ai/skills_io.py): Skill 上传校验、内置/自定义 Skill 目录
 - [Next.js 配置](frontend/next.config.ts): `/api/*` 代理到 BACKEND_URL
 - [i18n 路由与 locale cookie](frontend/i18n/routing.ts): 公开站 locale 定义；后台语言 cookie 常量
 - [i18n 请求配置](frontend/i18n/request.ts): 服务端 locale 解析（含 `/admin` cookie 优先）
 - [next-intl 中间件](frontend/proxy.ts): 公开站 locale 路由；`/admin` 请求头与错误前缀重定向
 - [路由参数解码](frontend/lib/utils.ts): 标签 slug 等 URL 编码中文路径解码
-- [公开站主题拉取](frontend/lib/site-theme.ts): 服务端主题与 ISR cache tag
+- [公开站主题拉取](frontend/lib/site-theme.ts): 服务端主题、备案号与 ISR cache tag
 - [主题 palette 元数据](frontend/lib/themes.ts): 公开站与后台 7 款配色定义
+- [未保存上传清理](frontend/lib/pending-upload-cleanup.ts): 取消/关闭/卸载时 DELETE 封面与友链 LOGO
+- [正文代码块语言标签](frontend/lib/prose-code-blocks.ts): 从 `data-code-language` 读取语言名
 - [ISR 刷新路由](frontend/app/api/revalidate/route.ts): revalidateTag / revalidatePath 入口
 - [AI 流式 BFF](frontend/app/api/v1/admin/ai/complete/route.ts): 管理后台 AI SSE 代理
 - [文章编辑表单](frontend/components/admin/post-editor-form.tsx): Markdown 编辑、封面、固定底栏保存/发布
 - [文章封面上传](frontend/components/admin/post-cover-editor.tsx): 管理后台封面选择与本地预览
+- [友链 LOGO 上传](frontend/components/admin/friend-link-logo-editor.tsx): 外链或本地上传、必填校验
+- [AI Composer 输入区](frontend/components/admin/ai-composer.tsx): Skill Chip、`/` 列表、快捷按钮与模型选择
+- [编辑器 AI 布局](frontend/components/admin/editor-ai-assistant-layout.tsx): 三栏编辑页右侧 AI 面板容器
+- [后台分页组件](frontend/components/admin/admin-pagination.tsx): 日志等列表页码与页大小切换
 - [Turnstile 组件](frontend/components/admin/admin-turnstile.tsx): 登录与找回密码 Cloudflare 验证码
 - [AI 助手内嵌面板](frontend/components/admin/ai-assistant-panel.tsx): 对话/全文生成、思考过程展示
+- [公开站页脚](frontend/components/site-footer.tsx): 备案号与公安图标展示
 - [Giscus 评论组件](frontend/components/giscus.tsx): 文章详情 GitHub Discussions；iframe 外层 wrapper 布局
 - [文章目录 TOC](frontend/components/article-toc.tsx): 详情页固定侧栏锚点导航
 - [文章卡片](frontend/components/post-card.tsx): 列表 4:3 封面、标签与摘要布局
@@ -75,9 +89,13 @@
 - [短信与 OAuth 迁移](backend/alembic/versions/007_phone_sms_auth.py): 手机验证码与登录方式配置
 - [用户资料迁移](backend/alembic/versions/011_user_profile_fields.py): 昵称、生日等扩展字段
 - [审计日志迁移](backend/alembic/versions/012_audit_logs.py): 登录与操作审计表
+- [友链简介迁移](backend/alembic/versions/013_friend_link_description.py): 友链 `description` 字段
+- [上传清理测试](backend/tests/test_upload_cleanup.py): 孤儿文件 CLI 逻辑单元测试
 - [内置 Skill：对话](backend/app/data/builtin_skills/blog-chat-zh/SKILL.md): 默认中文博客对话 Skill
 - [内置 Skill：润色](backend/app/data/builtin_skills/blog-polish-zh/SKILL.md): 选区改写/扩写 Skill
 - [内置 Skill：生成](backend/app/data/builtin_skills/blog-generate-zh/SKILL.md): 全文生成 Skill
+- [内置 Skill：排版](backend/app/data/builtin_skills/blog-format-zh/SKILL.md): 智能排版 Skill
+- [内置 Skill：摘要](backend/app/data/builtin_skills/blog-excerpt-zh/SKILL.md): 提取摘要 Skill
 - [i18n 文案 zh-CN](frontend/messages/zh-CN.json): 公开站与管理后台简体中文
 - [i18n 文案 zh-TW](frontend/messages/zh-TW.json): 公开站与管理后台繁体中文
 - [i18n 文案 en](frontend/messages/en.json): 公开站与管理后台英文

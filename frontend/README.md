@@ -54,12 +54,12 @@
 | | 区域 | 路径 | 渲染 |
 |:-:|:---|:---|:---|
 | 🏠 | 公开站 | `/[locale]/` · `/blog` · `/search` … | RSC + ISR · next-intl |
-| ⚙️ | 管理后台 | `/admin/*`（无 locale 前缀） | Client Components + SWR + AI 内嵌面板 + **固定底栏保存/发布** |
+| ⚙️ | 管理后台 | `/admin/*`（无 locale 前缀） | Client Components + SWR + **AI Composer** + 固定底栏保存/发布 |
 | 📡 | ISR 回调 | `/api/revalidate` | Route Handler |
-| 🤖 | AI BFF | `/api/v1/admin/ai/complete` | SSE 代理至后端 |
+| 🤖 | AI BFF | `/api/v1/admin/ai/complete` | SSE 代理至后端（支持多 Skill） |
 | 💬 | Giscus | 文章详情 `GiscusComments` | Client 动态加载；iframe wrapper + 公开站主题联动 |
 
-<p align="center"><sub><b>主题</b>：公开站 7 款 palette + 站点品牌（DB）· 后台 UI 主题存 <code>localStorage</code> · 互不干扰</sub></p>
+<p align="center"><sub><b>主题</b>：公开站 7 款 palette + 站点品牌（DB，含<strong>备案号</strong>）· 后台 UI 主题存 <code>localStorage</code> · 互不干扰</sub></p>
 
 ---
 
@@ -122,8 +122,8 @@ app/
 │   └── v1/admin/ai/complete/  # AI SSE BFF
 ├── sitemap.ts · rss.xml/
 components/
-├── site/                   # 公开页组件
-├── admin/                  # 壳层 · post-editor-form · post-cover-editor · ai-assistant-panel
+├── site/                   # 公开页组件 · site-footer（备案号）
+├── admin/                  # 壳层 · post-editor-form · ai-composer · friend-link-logo-editor · admin-pagination
 ├── article-cover.tsx       # 详情页封面
 ├── article-toc.tsx         # 正文目录（桌面 sticky / 移动折叠）
 ├── post-card.tsx           # 列表卡片（4:3 封面 + 标签）
@@ -132,12 +132,15 @@ components/
 i18n/                       # routing.ts · request.ts
 messages/                   # zh-CN.json · zh-TW.json · en.json
 lib/
-├── api.ts · ai-api.ts      # 数据与 AI 请求
-├── themes.ts               # 7 款 palette
+├── api.ts · ai-api.ts      # 数据与 AI 请求（含日志分页 API）
+├── themes.ts               # 7 款 palette · site_icp_number 类型
 ├── site-theme.ts           # 服务端主题 + cache tag
+├── pending-upload-cleanup.ts  # 未保存封面/LOGO 即时 DELETE
+├── prose-code-blocks.ts    # 正文代码块语言标签
 ├── locale-actions.ts       # 后台语言 cookie
 └── admin-nav.ts            # 侧栏导航
 proxy.ts                    # locale 中间件 · /admin 重定向
+public/beian-ghs.png        # 页脚公安备案图标
 ```
 
 ---
@@ -146,7 +149,7 @@ proxy.ts                    # locale 中间件 · /admin 重定向
 
 | 范围 | 配置入口 | DOM |
 |------|----------|-----|
-| 🌐 公开站 | 后台 **设置 → 公开站外观** | `[data-site-shell]` · `data-site-palette` · 7 款配色 + 站点名称/副标题/LOGO |
+| 🌐 公开站 | 后台 **设置 → 公开站外观** | `[data-site-shell]` · 7 款配色 + 站点名称/副标题/LOGO/**备案号** |
 | 🖥 管理后台 | 后台 **设置 → 后台外观** | `[data-admin-shell]` · 同款 7 palette · `localStorage` |
 
 **Palette ID**：`editorial` · `forest` · `slate` · `ink` · `graphite` · `ocean` · `rose`（中英文标签见 `lib/themes.ts`）
@@ -181,11 +184,11 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 | `/` 或 `/[locale]` | ISR | 首页 |
 | `/[locale]/blog` · `/blog/[slug]` | ISR | 文章（封面 · TOC · Giscus） |
 | `/[locale]/search` | ISR | 站内搜索 |
-| `/[locale]/projects` · `/links` · `/about` | ISR | 内容页 |
+| `/[locale]/projects` · `/links` · `/about` | ISR | 内容页（友链展示 LOGO + 简介） |
 | `/[locale]/tags/[slug]` | ISR | 标签归档（`decodeRouteParam` 解码中文 slug） |
 | `/admin` | 动态 | 登录（Turnstile · `GET /auth/login-guard`） |
 | `/admin/posts/new` · `/admin/posts/[id]/edit` | Client | 文章编辑（固定底栏 **保存草稿 / 发布**） |
-| `/admin/dashboard` · `/admin/ai/*` 等 | Client | 后台模块 |
+| `/admin/dashboard` · `/admin/ai/*` · `/admin/links` 等 | Client | 后台模块 |
 | `/rss.xml` · `/sitemap.xml` | 动态 | 订阅 · SEO |
 
 ---
@@ -209,10 +212,33 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 | 文件 | 职责 |
 |------|------|
 | [`components/admin/post-editor-form.tsx`](components/admin/post-editor-form.tsx) | 表单 · AI 助手 · **固定底栏** `.admin-editor-actions` |
-| [`components/admin/post-cover-editor.tsx`](components/admin/post-cover-editor.tsx) | 封面上传 / URL · 「移除」仅清空表单 |
+| [`components/admin/post-cover-editor.tsx`](components/admin/post-cover-editor.tsx) | 封面上传 / URL · 「移除」触发 pending 清理 |
+| [`lib/pending-upload-cleanup.ts`](lib/pending-upload-cleanup.ts) | 取消/卸载/关弹窗时 DELETE 未保存封面或 LOGO |
 | [`lib/public-asset-url.ts`](lib/public-asset-url.ts) | 公开页与后台预览 URL 解析 |
 
-保存或发布时若 `cover_url` 为空，后端会删除旧的本地上传文件（见 backend README）。
+保存或发布时若 `cover_url` 为空，后端 PATCH 会删除旧的本地上传；关浏览器场景由后端 `cleanup-uploads` cron 兜底（见 [backend/README.md](../backend/README.md)）。
+
+---
+
+## 友链 LOGO 编辑
+
+| 文件 | 职责 |
+|------|------|
+| [`components/admin/friend-link-logo-editor.tsx`](components/admin/friend-link-logo-editor.tsx) | LOGO 外链或本地上传（必填）· 2px 细边框表单风 |
+| [`app/admin/(shell)/links/page.tsx`](app/admin/(shell)/links/page.tsx) | 后台列表（LOGO 预览）· 编辑弹窗 |
+| [`app/[locale]/links/page.tsx`](app/[locale]/links/page.tsx) | 公开页：LOGO + 简介，不显示 URL 文本 |
+
+---
+
+## AI Composer
+
+| 文件 | 职责 |
+|------|------|
+| [`components/admin/ai-composer.tsx`](components/admin/ai-composer.tsx) | Skill Chip · `/` 唤起 · 快捷按钮 · 模型选择 |
+| [`components/admin/editor-ai-assistant-layout.tsx`](components/admin/editor-ai-assistant-layout.tsx) | 编辑页三栏布局 · 右侧 Agent 面板 |
+| [`components/admin/ai-assistant-panel.tsx`](components/admin/ai-assistant-panel.tsx) | 对话/生成 Tab · 思考过程展示 |
+
+设计说明 → [`docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md`](../docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md)
 
 ---
 
@@ -227,10 +253,11 @@ AI 流式       ──BFF────→  /api/v1/admin/ai/complete → 后端 S
 
 | 文件 | 职责 |
 |------|------|
-| [`lib/api.ts`](lib/api.ts) | 公开/后台 API 封装 |
+| [`lib/api.ts`](lib/api.ts) | 公开/后台 API 封装（含日志分页） |
 | [`lib/ai-api.ts`](lib/ai-api.ts) | AI SSE 客户端 |
-| [`lib/site-theme.ts`](lib/site-theme.ts) | 根布局主题与品牌拉取 |
-| [`components/admin/ai-assistant-panel.tsx`](components/admin/ai-assistant-panel.tsx) | 内嵌 AI 助手（对话/生成/思考过程） |
+| [`lib/site-theme.ts`](lib/site-theme.ts) | 根布局主题、品牌与备案号拉取 |
+| [`components/admin/admin-pagination.tsx`](components/admin/admin-pagination.tsx) | 后台列表分页（页码跳转 · 页大小） |
+| [`components/site-footer.tsx`](components/site-footer.tsx) | 公开站页脚 · 备案号链接 |
 | [`components/giscus.tsx`](components/giscus.tsx) | Giscus 评论加载与 iframe wrapper |
 | [`app/api/revalidate/route.ts`](app/api/revalidate/route.ts) | ISR 入口 |
 
@@ -246,7 +273,8 @@ AI 流式       ──BFF────→  /api/v1/admin/ai/complete → 后端 S
 | 后台切换语言无效 | 检查 cookie · 刷新页面 · 见 `i18n/request.ts` |
 | AI 无流式输出 | 确认提供商已激活 · 浏览器 Network 看 SSE |
 | Giscus 宽度不齐 | 检查 `globals.css` `.giscus > div`；iframe 内样式需 custom theme CSS |
-| 封面预览 404 | 确认后端已启动 · URL 为 `/api/v1/uploads/covers/…` |
+| 封面/LOGO 预览 404 | 确认后端已启动 · URL 为 `/api/v1/uploads/covers/…` 或 `link-logos/…` |
+| 未保存上传占磁盘 | 开发：取消编辑应即时 DELETE；生产：backend `cleanup-uploads` cron |
 | `pnpm build` 失败 | `pnpm lint` 查看 TS/ESLint 报错 |
 | `.next` 异常 | 删除 `.next/` 后重新 `pnpm dev` |
 

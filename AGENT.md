@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/xiongxianzhu/xblog"><img src="https://img.shields.io/badge/GitHub-xblog-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/></a>
-  <a href="docs/prd-xblog.md"><img src="https://img.shields.io/badge/PRD-v2.9-B54A3A?style=for-the-badge" alt="PRD v2.9"/></a>
+  <a href="docs/prd-xblog.md"><img src="https://img.shields.io/badge/PRD-v2.10-B54A3A?style=for-the-badge" alt="PRD v2.10"/></a>
   <a href="https://github.com/xiongxianzhu/xblog/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT"/></a>
 </p>
 
@@ -129,6 +129,7 @@ cd frontend && pnpm lint && pnpm build
 ```text
 xblog/
 ├── AGENT.md                 ← 本文件
+├── docs/superpowers/        # 功能 design spec · implementation plan
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/          # public · admin · auth · ai
@@ -136,8 +137,8 @@ xblog/
 │   │   ├── db/              # session
 │   │   ├── models/          # SQLModel
 │   │   ├── schemas/         # Pydantic
-│   │   └── services/        # 业务逻辑 · ai/ · revalidate …
-│   ├── alembic/             # 001–012 迁移
+│   │   └── services/        # 业务逻辑 · ai/ · upload_cleanup · revalidate …
+│   ├── alembic/             # 001–013 迁移
 │   └── tests/
 ├── frontend/
 │   ├── app/                 # App Router · [locale]/ · admin/
@@ -145,7 +146,7 @@ xblog/
 │   ├── i18n/                # next-intl 路由与 request
 │   ├── messages/            # zh-CN · zh-TW · en 文案
 │   ├── proxy.ts             # locale 中间件 · admin 重定向
-│   └── lib/                 # api · themes · site-theme · ai-api
+│   └── lib/                 # api · themes · site-theme · ai-api · pending-upload-cleanup
 └── deploy/
 ```
 
@@ -171,7 +172,7 @@ xblog/
 
 | 范围 | 存储 | DOM 作用域 |
 |------|------|-----------|
-| 公开站 | DB `site_settings` + API | `[data-site-shell]` · `data-site-palette` · 站点名称/副标题/LOGO |
+| 公开站 | DB `site_settings` + API | `[data-site-shell]` · `data-site-palette` · 站点名称/副标题/LOGO/**备案号** |
 | 管理后台 | `localStorage` `xblog-admin-theme-v2` | `[data-admin-shell]` · **7 款** palette（与公开站 ID 一致） |
 
 ### 刷新链路
@@ -216,16 +217,27 @@ sequenceDiagram
 
 | 能力 | 后端 | 前端 |
 |------|------|------|
-| 文章封面 | `POST/DELETE /admin/posts/cover` · `services/uploads.py` · PATCH 时删旧文件 | `post-cover-editor.tsx` · `article-cover.tsx` · `post-card.tsx` |
+| 文章封面 | `POST/DELETE /admin/posts/cover` · `services/uploads.py` · PATCH 时删旧文件 | `post-cover-editor.tsx` · `pending-upload-cleanup.ts` |
+| 友链 LOGO | `POST/DELETE /admin/links/logo` · `uploads/link-logos/` | `friend-link-logo-editor.tsx` · 公开页 `links/page.tsx` |
+| 上传兜底 | `services/upload_cleanup.py` · `cli cleanup-uploads` | 前端即时 DELETE；cron 扫 `covers/` + `link-logos/` |
 | 标签 | `services/posts.py` → `get_or_create_tag` / `sync_tags` | `tags/[slug]/page.tsx` · `decodeRouteParam` |
+| 代码块语言 | — | `prose-code-blocks.ts` · 读 `data-code-language` |
 | 文章 TOC | `prepareArticleContent` 解析 heading | `article-toc.tsx` · 详情页 `xl:sticky` 侧栏 |
+| 备案号页脚 | `site_settings` · `site_icp_number` | `site-footer.tsx` · `public/beian-ghs.png` |
 | Giscus | — | `giscus.tsx`（iframe wrapper）· **勿**在父页写 `.gsc-*` 期望生效 |
 | 编辑底栏 | — | `post-editor-form.tsx` · `.admin-editor-actions` 固定底部 |
 | Turnstile | `login_guard.py` · `GET /auth/login-guard` · `auth_settings` 开关 | `admin-login-screen.tsx` · `admin-turnstile.tsx` |
+| 审计日志 | `audit_logs.py` · `GET /admin/logs/login|operations` | `admin-pagination.tsx` · `lib/api.ts` 分页请求 |
 
 **Giscus 注意**：`giscus.app/client.js` 会清空 `.giscus` 子节点再插入 iframe；宽度对齐靠插入后包一层 `div` + `[data-site-shell] .giscus > div`。改 iframe **内部**样式需 custom theme CSS URL。
 
-**封面删除**：编辑页「移除」不调 DELETE API；仅当保存/发布且 `cover_url` 为空时，后端 PATCH 删除 managed URL 对应文件。
+**封面 / LOGO 删除（三层互补）**：
+
+1. **即时**：取消、关弹窗、离开编辑页 → 前端 `pending-upload-cleanup.ts` 调 `DELETE` API  
+2. **保存时**：PATCH 换封面/LOGO 或置空 → 后端删旧 managed 文件（已有）  
+3. **兜底**：关浏览器/崩溃 → `uv run python -m app.cli cleanup-uploads`（cron，默认 1h TTL）
+
+编辑页「移除」仅清空表单；未保存的本地上传靠 1 清理，不靠 PATCH。
 
 ---
 
@@ -353,12 +365,14 @@ docs: 补充 Git 工作流与贡献指南
 </details>
 
 <details>
-<summary><strong>文章封面 / 标签</strong></summary>
+<summary><strong>文章封面 / 标签 / 友链 LOGO</strong></summary>
 
 1. 封面：`models/post.cover_url` · `admin/posts.py` upload/PATCH · `uploads/covers/`
-2. 标签：`sync_tags` 自动创建 · 中文 slug 走 URL 编码 · 标签页解码 `decodeRouteParam`
-3. 公开页：`resolvePublicAssetUrl` · ISR 与 revalidate 同文章发布链路
-4. 测试：`test_post_cover.py` · `test_post_tags.py`
+2. 友链 LOGO：`admin/links/logo` · `uploads/link-logos/` · `friend_link.description`（迁移 013）
+3. 未保存清理：前端 `pending-upload-cleanup.ts` · 后端 `upload_cleanup.py` + CLI
+4. 标签：`sync_tags` 自动创建 · 中文 slug 走 URL 编码 · 标签页解码 `decodeRouteParam`
+5. 公开页：`resolvePublicAssetUrl` · ISR 与 revalidate 同文章发布链路
+6. 测试：`test_post_cover.py` · `test_post_tags.py` · `test_upload_cleanup.py`
 
 </details>
 
@@ -374,10 +388,23 @@ docs: 补充 Git 工作流与贡献指南
 <details>
 <summary><strong>AI 助手相关</strong></summary>
 
-- 后端：`services/ai/gateway.py` · `POST /admin/ai/complete`（SSE：`delta` / `thinking` / `done`）
+- 后端：`services/ai/gateway.py` · `POST /admin/ai/complete`（SSE：`delta` / `thinking` / `done` · 支持 `skill_ids` 多 Skill）
 - 前端 BFF：`app/api/v1/admin/ai/complete/route.ts`
-- UI：`components/admin/ai-assistant-panel.tsx`（文章 / 关于 / 作品集编辑页内嵌）
+- UI：`ai-composer.tsx`（Skill Chip、`/` 列表、快捷按钮、模型选择）· `editor-ai-assistant-layout.tsx` · `ai-assistant-panel.tsx`
+- 内置 Skill：`blog-chat-zh` · `blog-polish-zh` · `blog-generate-zh` · `blog-format-zh` · `blog-excerpt-zh`
+- 设计 spec：[`docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md`](docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md)
 - 改 Skill 默认：`ai_skill_default` 表 + 设置页
+
+</details>
+
+<details>
+<summary><strong>上传孤儿清理</strong></summary>
+
+- 范围：仅 `uploads/covers/`、`uploads/link-logos/`（非全盘扫描）
+- 服务：`services/upload_cleanup.py` · 对比 `posts.cover_url` / `friend_links.logo_url`
+- CLI：`uv run python -m app.cli cleanup-uploads [--max-age 3600] [--dry-run]`
+- 测试：`tests/test_upload_cleanup.py`
+- 设计：[`docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md`](docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md)
 
 </details>
 
@@ -391,6 +418,7 @@ docs: 补充 Git 工作流与贡献指南
 - [ ] HTTPS · `COOKIE_SECURE=true` · 强 `SECRET_KEY`
 - [ ] `REVALIDATE_SECRET` 前后端一致
 - [ ] Turnstile 生产 Key 与后台开关按需配置
+- [ ] 生产 cron：`cleanup-uploads`（见 [backend/README.md](backend/README.md)）
 
 <p align="center">详细流程 → <a href="deploy/systemd/README.md"><b>deploy/systemd/README.md</b></a></p>
 

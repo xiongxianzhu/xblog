@@ -6,7 +6,7 @@
 | 产品   | xblog 个人博客                              |
 | 仓库   | `git@github.com:xiongxianzhu/xblog.git` |
 | 许可证  | MIT                                     |
-| 文档版本 | v2.9 |
+| 文档版本 | v2.10 |
 | 最后更新 | 2026-07-05 |
 
 ## 技术栈速查
@@ -40,7 +40,7 @@
 | 后台 | Client Components · Markdown 编辑器懒加载 · SWR · **无 locale 前缀**（语言存 cookie） |
 | 主题 | 公开站 DB 统一配置（7 款 palette + 站点品牌）· 后台 localStorage · 双轨互不干扰 |
 | 评论 | Giscus |
-| AI 写作 | Phase 2：后端 SSE 网关 · 内嵌 AI 助手 · Agent Skills |
+| AI 写作 | Phase 2：SSE 网关 · **AI Composer**（多 Skill）· Agent Skills |
 | 脚手架 | `pnpm create next-app` |
 
 ### 部署（VPS）
@@ -90,6 +90,16 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | SC-AI-4 | API 响应、日志、DB 不泄露 API Key | 抓包 / 列表接口仅 `has_api_key` |
 | SC-AI-5 | 未激活任何提供商时 AI 入口禁用并引导至设置页 | 空配置 → 设置 → AI 模型 |
 
+**Phase 2 — 内容与运维增强**（设计 spec 见 `docs/superpowers/specs/`）
+
+| # | 指标 | 验收方式 |
+|---|------|----------|
+| SC-UP-1 | 关浏览器后 1 小时内未保存的本地上传最终被清理 | 上传封面/LOGO 后不保存 → `cleanup-uploads` → 文件不存在 |
+| SC-UP-2 | 已保存 DB 引用的 managed 上传不被误删 | 已发布文章/友链引用 URL → CLI 后文件仍在 |
+| SC-UP-3 | 取消/关弹窗/离开编辑页时未保存上传即时 DELETE | 前端走 `pending-upload-cleanup.ts` |
+| SC-LG-1 | 密码登录失败达阈值后要求 Turnstile；找回密码有 IP 限流 | 见 US-1 · `login_guard.py` |
+| SC-FL-1 | 友链公开页展示 LOGO 与简介，不展示 URL 文本 | 访问 `/links` 人工走查 |
+
 
 
 
@@ -109,7 +119,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | 本地运行  | `uv sync`、`uvicorn`；`pnpm dev`                            | §6.7            |
 | 第三方   | Giscus 所需 GitHub Discussions 仓库与前端 env                    | §6.8            |
 | AI 模型  | 在后台 **设置 → AI 模型** 自行添加提供商、填写 API Key 并 **激活**（Phase 2） | §3 · §6.2       |
-| 生产部署  | nginx、systemd、HTTPS（certbot）、生产 env                    | §6.9            |
+| 生产部署  | nginx、systemd、HTTPS（certbot）、生产 env；可选 **cron `cleanup-uploads`** | §6.9            |
 
 
 完整分阶段步骤见 **第 6 章**。
@@ -148,7 +158,9 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - [ ] 未登录访问 `/api/v1/admin/*` 返回 **401**。
 - [ ] `POST /api/v1/auth/logout` 清除 Cookie；`GET /api/v1/auth/me` 返回当前用户。
 - [ ] **可选**：短信验证码登录（`POST /auth/sms/send-code`、`POST /auth/sms/login`）；GitHub / 微信 OAuth（`/auth/oauth/*`）；管理员在 **设置 → 登录方式** 开关各方式；未启用方式不在登录页展示。
+- [ ] **Turnstile / 登录防护**（可选）：`GET /auth/login-guard` 按失败次数决定是否展示验证码；`POST /auth/login` 与找回密码校验 `turnstile_token`；配置 `TURNSTILE_*` 与 `NEXT_PUBLIC_TURNSTILE_SITE_KEY`（设计见 `docs/superpowers/specs/2026-07-05-login-captcha-design.md`）。
 - [ ] 个人资料可绑定手机号（`PATCH /auth/phone`）；OAuth 绑定/解绑见 `/auth/oauth/links`。
+- [ ] 登录尝试写入 **`login_log`**（成功/失败、方式、IP）；见 **US-11**。
 
 
 
@@ -163,6 +175,9 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - [ ] 首次设为 `published` 且 `published_at` 为空时，自动写入当前东八区时间（`Asia/Shanghai`）。
 - [ ] 公开 API 仅返回 `published` 文章；公开详情**不返回** `content_md`。
 - [ ] 发布成功后触发 Next.js ISR revalidate，满足 SC-4。
+- [ ] **文章封面**（可选）：`cover_url` 支持外链或本地上传（`POST/DELETE /admin/posts/cover` → `uploads/covers/`）；列表/详情 **4:3** 展示；保存时若移除 managed 封面则删磁盘文件。
+- [ ] **未保存封面上传**：取消/离开编辑页时前端即时 DELETE；关浏览器场景由 **`cleanup-uploads` CLI** 兜底（见 **US-10**）。
+- [ ] 正文 **代码块**在公开页显示语言标签（`data-code-language`）。
 
 
 
@@ -176,6 +191,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - [ ] 公开页顶栏提供 **语言切换**（next-intl）；后台 `/admin/*` **无** locale 前缀，语言由 cookie 控制。
 - [ ] 文章列表支持分页；标签页展示该标签下已发布文章。
 - [ ] `/about`、`/projects` 由 Page 模型驱动；友链按 `sort_order` 排序展示。
+- [ ] **友链**：公开页展示 **LOGO**（外链或本地上传）与可选 **简介**；**不展示** URL 文本；后台 LOGO **必填**（见 **US-12**）。
 
 
 
@@ -235,7 +251,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **公开站主题（访客统一）**
 
 - [ ] 公开页 **不提供** 访客主题切换控件；全站访客看到 **同一套** 公开站主题。
-- [ ] 管理员在 **设置 → 公开站外观** 选择配色（浅色/深色 + **7 款** preset palette：墨纸 / 深林 / 冷灰 / 夜读 / 石墨 / 海境 / 暮玫）；可配置 **站点名称**、**副标题**（`site_tagline`）、**LOGO**；保存后写入后端 **`site_settings`**（键值存储）。
+- [ ] 管理员在 **设置 → 公开站外观** 选择配色（浅色/深色 + **7 款** preset palette：墨纸 / 深林 / 冷灰 / 夜读 / 石墨 / 海境 / 暮玫）；可配置 **站点名称**、**副标题**（`site_tagline`）、**LOGO**、**备案号**（`site_icp_number`，公开页页脚链至 beian.miit.gov.cn）；保存后写入后端 **`site_settings`**（键值存储）。
 - [ ] 公开 API：`GET /api/v1/public/site-theme`；管理 API：`GET/PATCH /api/v1/admin/site-theme`。
 - [ ] 根布局服务端拉取公开站主题，渲染 `[data-site-shell]`、`data-site-palette` 及必要时 `dark` class；**不使用** 公开页 `localStorage` 存主题。
 - [ ] 保存公开站主题后触发 ISR revalidate（含 cache tag，如 `site-theme`），满足 SC-7；开发环境保存后刷新即可见。
@@ -255,7 +271,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **Acceptance Criteria**
 
 - [ ] 根目录含 **`README.md`**（Monorepo 概览、shields、快速开始）、**`AGENT.md`**（AI/贡献者约定、主题 ISR、Git 规范）、**`CONTRIBUTING.md`**（贡献流程）、**`llms.txt`**（LLM 仓库导航，[llms.txt 规范](https://llmstxt.org/)）。
-- [ ] **`docs/prd-xblog.md`** 纳入版本库，作为产品与验收的权威来源；**`docs/git-workflow.md`** 说明分支、Commit、PR、Review 文化。
+- [ ] **`docs/prd-xblog.md`** 纳入版本库，作为产品与验收的权威来源；**`docs/git-workflow.md`** 说明分支、Commit、PR、Review 文化；**`docs/superpowers/`** 存放功能 design spec 与 implementation plan。
 - [ ] `backend/README.md`、`frontend/README.md` 分别说明本目录开发与部署。
 - [ ] **`.github/`** 含 PR 模板与 Issue 模板（Bug / 功能建议）。
 - [ ] **根 `.gitignore`** 汇总 Monorepo 忽略规则（含 Python 缓存 `.venv` / `.pytest_cache` / `.ruff_cache` / `.mypy_cache`、前端 `node_modules` / `.next`、`backend/uploads/` 用户文件等）；子目录 `.gitignore` 可与根规则等效互补。
@@ -310,7 +326,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **Acceptance Criteria**
 
 - [ ] **P1**：文章 / 关于 / 作品集编辑页选区工具栏支持润色、扩写、缩写、改标题；`POST /api/v1/admin/ai/complete` 返回 **SSE** 流式结果（`delta` / `thinking` / `done` / `error`）；可预览后 **替换选区**。
-- [ ] **P2**：编辑页右侧 **内嵌 AI 助手面板**（非 Sheet）支持多轮对话（`action=chat`），可展示 **思考过程**；可手动选择 Skill 或接受推荐。
+- [ ] **P2**：编辑页右侧 **内嵌 AI 助手面板**（非 Sheet）支持多轮对话（`action=chat`），可展示 **思考过程**；**AI Composer**：Skill Chip、`/` 唤起多 Skill（每 Skill 仅选一次）、快捷按钮、输入区 **模型选择**（设计见 `docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md`）。
+- [ ] 后端 `complete` 支持 **`skill_ids` 多 Skill 合并** system prompt。
 - [ ] 所有 AI 请求经后端网关；前端不持有 Key（SC-AI-4）。
 - [ ] `ai_usage_log` 记录 action、token 用量与延迟，**不存** prompt 与文章正文。
 
@@ -325,6 +342,47 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - [ ] **P3**：AI 助手支持 `action=generate`（主题 + 可选大纲）；**全文生成**输入区足够大以便粘贴长大纲。
 - [ ] 流式预览后可 **插入光标处** 或 **覆盖全文**（需确认）。
 - [ ] 生成内容遵循 Skill 与基础 system 约束（Markdown、不编造外链等）。
+
+
+
+#### US-10：本地上传与孤儿清理
+
+**Story**：As a 管理员, I want to 先上传封面/LOGO 再保存表单, so that 编辑体验流畅；As a 运维者, I want to 自动清理未引用文件, so that 磁盘不会无限增长。
+
+**Acceptance Criteria**
+
+- [ ] Managed 上传目录：`uploads/covers/`（文章封面）、`uploads/link-logos/`（友链 LOGO）；URL 前缀 `/api/v1/uploads/covers/`、`/api/v1/uploads/link-logos/`。
+- [ ] **即时清理**：取消、关弹窗、移除、重传、离开编辑页时，前端 `pending-upload-cleanup.ts` 调用对应 `DELETE` API（SC-UP-3）。
+- [ ] **保存时清理**：PATCH 换图或置空时，后端删除旧 managed 文件（已有）。
+- [ ] **兜底清理**：`uv run python -m app.cli cleanup-uploads [--max-age 3600] [--dry-run]` 仅扫描上述两目录 + 对比 DB 引用；非全盘扫描（SC-UP-1/2）。
+- [ ] 生产建议 cron 每小时执行；设计见 `docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md`。
+
+
+
+#### US-11：登录与操作审计
+
+**Story**：As a 管理员, I want to 查看登录与后台操作记录, so that 我能追溯异常访问与变更。
+
+**Acceptance Criteria**
+
+- [ ] 表 **`login_log`**：记录登录方式、成功/失败、IP、User-Agent；密码/OAuth/短信登录路径均写入。
+- [ ] 表 **`operation_log`**：记录管理端关键写操作（action、resource、IP）。
+- [ ] `GET /api/v1/admin/logs/login`、`GET /api/v1/admin/logs/operations` 支持 **`page` / `page_size`** 分页（默认 20）。
+- [ ] 前端 **`AdminPagination`** 组件与 API 客户端就绪；侧栏含日志入口（列表页 UI 可后续迭代）。
+
+
+
+#### US-12：友链 LOGO 与简介
+
+**Story**：As a 管理员, I want to 为友链配置 LOGO 与简介, so that 公开页更美观且信息完整。
+
+**Acceptance Criteria**
+
+- [ ] **`FriendLink`** 含 `logo_url`（必填）、`description`（可选，迁移 013）。
+- [ ] `POST/DELETE /admin/links/logo` 本地上传至 `uploads/link-logos/`；外链 LOGO URL 亦允许。
+- [ ] 后台列表展示 LOGO 缩略图；编辑表单 **2px 扁平** 风格，LOGO 上限 **5MB**。
+- [ ] 公开 `/links` 展示 LOGO + 简介，**隐藏** URL 文本（SC-FL-1）。
+- [ ] 未保存 LOGO 走 **US-10** 三层清理逻辑。
 
 
 
@@ -358,8 +416,14 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | 访客 AI | 否 | 否 |
 | 仓库 **`llms.txt`** | 是（外部 LLM 文档索引，[llms.txt 规范](https://llmstxt.org/)） | 保持 |
 
-**权威设计**：`docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md`  
-**实现计划**：`docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md`
+**权威设计**：
+
+| 主题 | Spec | Plan |
+|------|------|------|
+| AI 写作 Skill | `docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md` | `docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md` |
+| AI Composer | `docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md` | —（随 Composer 实现归档） |
+| 登录 Turnstile | `docs/superpowers/specs/2026-07-05-login-captcha-design.md` | `docs/superpowers/plans/2026-07-05-login-captcha-plan.md` |
+| 上传孤儿清理 | `docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md` | `docs/superpowers/plans/2026-07-05-upload-orphan-cleanup-plan.md` |
 
 ### 3.2 架构原则
 
@@ -378,7 +442,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 - 目录包符合 [agentskills.io](https://agentskills.io/specification)：`SKILL.md` + 可选 `scripts/`、`references/`、`assets/`。
 - 存储：`backend/uploads/skills/{name}/`；管理端上传 zip / 新建 / 编辑 / 删除。
-- 选用策略：**场景默认**（polish / chat / generate）+ **description 关键词推荐** + **用户手动改选**。
+- 选用策略：**场景默认**（polish / chat / generate）+ **description 关键词推荐** + **Composer 手动多选**（`skill_ids`）。
+- 内置 Skill 含：`blog-chat-zh`、`blog-polish-zh`、`blog-generate-zh`、`blog-format-zh`（排版）、`blog-excerpt-zh`（摘要）。
 - MVP 不执行 `scripts/`，仅注入 `SKILL.md` body 至 system prompt。
 
 ### 3.5 写作能力与分阶段
@@ -386,7 +451,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | 阶段 | 能力 | 关联 US |
 |------|------|---------|
 | **P1** | 提供商 + Skill + 选区润色/扩写/缩写/改标题 + SSE | US-AI-1、US-AI-2、US-AI-3 |
-| **P2** | 侧边栏多轮对话 | US-AI-3 |
+| **P2** | 侧边栏多轮对话 + **AI Composer** | US-AI-3 |
 | **P3** | 主题/大纲 → 全文生成 | US-AI-4 |
 
 ### 3.6 数据与安全
@@ -532,10 +597,12 @@ SQLModel 定义（`table=True`）；多对多通过 `post_tags` 关联表。
 | **Post**       | `title`, `slug`†, `content_md`, `content_html`, `excerpt`, `cover_url`, `status` (`draft`|`published`), `published_at`, 时间戳；M2M → Tag |
 | **Tag**        | `name`†, `slug`†                                                                                                                      |
 | **Page**       | `slug`† (`about`, `projects`), `title`, `content_md`, `content_html`, `updated_at`                                                    |
-| **FriendLink** | `name`, `url`, `logo_url?`, `sort_order`                                                                                              |
+| **FriendLink** | `name`, `url`, `logo_url`, `description?`, `sort_order`                                                                                              |
 | **PageView**   | `path`, `referrer?`, `visited_at`                                                                                                     |
+| **LoginLog**   | `username`, `method`, `success`, `failure_reason?`, `ip_address?`, `user_agent?`, `created_at`                                       |
+| **OperationLog** | `username`, `action`, `resource_type?`, `resource_id?`, `detail?`, `ip_address?`, `created_at`                                     |
 | **User**       | `username`†, `password_hash`, `phone?`, `avatar_url?`, `created_at`                                                                                            |
-| **SiteSetting** | `key`†, `value`（JSON 字符串）；含 `site.theme.mode` / `site.theme.palette`、`site.brand.name` / `site.brand.tagline` / `site.brand.logo_url` 等 |
+| **SiteSetting** | `key`†, `value`（JSON 字符串）；含 `site.theme.*`、`site.brand.name` / `tagline` / `logo_url` / **`icp_number`** 等 |
 
 
 † 表示唯一约束。
@@ -558,7 +625,8 @@ SQLModel 定义（`table=True`）；多对多通过 `post_tags` 关联表。
 | GET       | `/public/search`            | 否      | 全文搜索     |
 | POST      | `/public/pageviews`         | 否      | 记录访问     |
 | GET       | `/public/site-theme`        | 否      | 公开站主题（mode + palette + 站点品牌） |
-| POST      | `/auth/login`               | 否      | 用户名密码登录       |
+| POST      | `/auth/login`               | 否      | 用户名密码登录（含 Turnstile token）       |
+| GET       | `/auth/login-guard`         | 否      | 登录页是否必填 Turnstile       |
 | GET       | `/auth/login-methods`       | 否      | 已启用的登录方式     |
 | POST      | `/auth/sms/send-code`       | 否      | 发送短信验证码       |
 | POST      | `/auth/sms/login`           | 否      | 短信验证码登录       |
@@ -568,7 +636,11 @@ SQLModel 定义（`table=True`）；多对多通过 `post_tags` 关联表。
 | POST      | `/auth/refresh`             | Cookie | 刷新 token |
 | GET       | `/auth/me`                  | 是      | 当前用户     |
 | PATCH     | `/auth/phone`               | 是      | 绑定手机号   |
-| *         | `/admin/posts`…             | 是      | 文章 CRUD  |
+| *         | `/admin/posts`…             | 是      | 文章 CRUD · 封面上传     |
+| POST/DELETE | `/admin/posts/cover`      | 是      | 文章封面上传/删除        |
+| POST/DELETE | `/admin/links/logo`       | 是      | 友链 LOGO 上传/删除      |
+| GET       | `/admin/logs/login`         | 是      | 登录审计（分页）         |
+| GET       | `/admin/logs/operations`    | 是      | 操作审计（分页）         |
 | GET/PATCH | `/admin/auth-settings`      | 是      | 登录方式开关 |
 | *         | `/admin/ai/providers`…      | 是      | AI 提供商 / Skill / SSE complete |
 | GET/PATCH | `/admin/pages/{slug}`       | 是      | 固定页编辑    |
@@ -601,9 +673,7 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 | `NEXT_PUBLIC_GISCUS_MAPPING` | 可选，默认 `pathname` |
 | `NEXT_PUBLIC_GISCUS_THEME` | 可选，Giscus 主题名（覆盖公开站联动时） |
 | `NEXT_PUBLIC_GISCUS_INPUT_POSITION` | 可选，`top` / `bottom` |
-
-
-**后端环境变量（补充）**
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile 站点 Key（与 backend 一致） |
 
 | 变量 | 用途 |
 |------|------|
@@ -612,6 +682,9 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 | `AI_KEY_ENCRYPTION_SECRET` | AI 提供商 Key 加密（留空则派生自 `SECRET_KEY`） |
 | `GITHUB_*` / `WECHAT_*` | OAuth 客户端凭据（可选） |
 | `SMS_PROVIDER` 等 | 短信验证码（开发默认 `dev`，验证码写日志） |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile（与 frontend 公钥一致） |
+| `LOGIN_CAPTCHA_AFTER_FAILURES` 等 | 登录失败触发验证码 · 限流 |
+| `UPLOAD_DIR` | 上传根目录（`covers/`、`link-logos/`、Skill 包等） |
 
 占位与说明见 `backend/.env.example`；**禁止**在 PRD 中填写真实密钥、数据库密码或 API Key。
 
@@ -621,7 +694,7 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 ```text
 https://<domain>/              → Next.js :3000
 https://<domain>/api/          → FastAPI  :8000
-https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
+https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · link-logos/ · skills/）
 ```
 
 
@@ -669,7 +742,7 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 
 **公开站 preset palette**：**7 款**统一 ID（`editorial` / `forest` / `slate` / `ink` / `graphite` / `ocean` / `rose`），公开站与后台各提供相同 7 款选项；每套含 light/dark 模式。CSS 变量在 `globals.css` 与 `frontend/lib/themes.ts` 维护。
 
-**站点品牌**：`site_name`、`site_tagline`（副标题，如默认「Ink & Paper」）、`site_logo_url` 经 `GET/PATCH /admin/site-theme` 与公开 API 下发。
+**站点品牌**：`site_name`、`site_tagline`（副标题）、`site_logo_url`、**`site_icp_number`**（备案号，公开页页脚）经 `GET/PATCH /admin/site-theme` 与公开 API 下发。
 
 **后台壳层 UI**：侧边栏导航（文章、页面、友链、用户、设置等）、顶栏（折叠侧栏、毛玻璃、标题区、**头像**菜单）、主内容区 **全宽**；设置页分区展示「公开站外观」与「后台外观」，避免混淆。
 
@@ -694,13 +767,16 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | **M3**           | 内容与发现  | Page、FriendLink、搜索、RSS、sitemap、PageView                                    |
 | **M4**           | 部署与开源  | `deploy/`、文档体系（README / AGENT / CONTRIBUTING / llms.txt / git-workflow）、`.github` 模板、VPS + HTTPS 跑通 SC-5～SC-9 |
 | **M5 — Phase 2a** | AI 写作 P1 | 提供商 CRUD + 激活 + test；Skill 管理 + 校验；选区 AI + SSE；SC-AI-1/2/4/5 · **已实现** |
-| **M6 — Phase 2b** | AI 写作 P2/P3 + 增强 | 内嵌 AI 助手 + 思考流；全文生成；i18n；短信/OAuth；7 款主题与站点品牌 · **已实现** |
-| **M7 — Phase 2c** | 其它增强 | openapi-typescript、标签 CRUD 页、封面上传、Umami、Docker Compose、Demo 站 |
+| **M6 — Phase 2b** | AI 写作 P2/P3 + 增强 | 内嵌 AI 助手 + Composer + 思考流；全文生成；i18n；短信/OAuth/Turnstile；7 款主题与站点品牌 · **已实现** |
+| **M7 — Phase 2c** | 内容与运维 | 封面上传 · 友链 LOGO/简介 · 上传孤儿清理 · 审计日志 API · 备案号 · **已实现（部分）** |
+| **M8 — 待定** | 后续 | 审计日志列表 UI · openapi-typescript · 标签 CRUD 页 · Umami · Docker Compose · Demo 站 |
 
 
 **MVP Done**：满足第 1.3 节 SC-1～SC-9 与第 2.2 节 US-1～US-8 Acceptance Criteria。
 
 **Phase 2 AI Done**：满足 SC-AI-1～SC-AI-5 与 US-AI-1～US-AI-4（按 P1→P3 分阶段验收）。
+
+**Phase 2 增强 Done（v2.10）**：满足 SC-UP-*、SC-LG-1、SC-FL-1 与 US-10～US-12（审计日志 **列表 UI** 见 M8）。
 
 ### 5.2 Technical Risks
 
@@ -717,6 +793,8 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | 单人维护范围膨胀                  | 延期                 | 严格遵守 2.3 Non-Goals                                     |
 | LLM 厂商 API 变更 / 限流        | AI 写作不可用         | OpenAI 兼容层 + 用户自配多提供商；test 端点；usage 日志 |
 | API Key 泄漏                    | 费用与安全风险          | 加密存储、响应脱敏、禁止前端 Key；见 SC-AI-4                  |
+| 上传孤儿文件残留              | 磁盘占满              | 前端 pending DELETE + `cleanup-uploads` cron；见 US-10、SC-UP-* |
+| Turnstile 配置不一致          | 无法登录              | 对齐前后端 Key 与后台登录方式开关；见 SC-LG-1                    |
 
 
 ---
@@ -874,7 +952,8 @@ pnpm dev
 | 7   | 配置 **systemd**                                | 守护 uvicorn 与 `next start`                       |
 | 8   | **HTTPS**                                        | certbot / Let's Encrypt；设置 `COOKIE_SECURE=true` |
 | 9   | **ISR 回调**                                     | 前后端配置成对的 revalidate 密钥与 URL（值由作者生成，不写进 PRD） |
-| 10  | 冒烟测试                                             | 满足 §1.3 SC-5～SC-8                               |
+| 10  | **上传清理 cron**（推荐）                         | 每小时 `uv run python -m app.cli cleanup-uploads`（见 backend README） |
+| 11  | 冒烟测试                                             | 满足 §1.3 SC-5～SC-8                               |
 
 
 
@@ -1238,6 +1317,7 @@ psql -U xblog -d xblog -h localhost -c "SELECT 1;"
 
 | 版本   | 日期         | 说明                                                                |
 | ---- | ---------- | ----------------------------------------------------------------- |
+| v2.10 | 2026-07-05 | **US-10～12**（上传三层清理、审计日志、友链 LOGO/简介）；**SC-UP/LG/FL**；**US-7** 备案号；**US-AI-3** AI Composer；数据模型 **LoginLog/OperationLog**；API 路由与 **M7/M8** 路线图；关联 superpowers spec 索引 |
 | v2.9 | 2026-07-05 | 同步实现：**US-9** i18n（公开站 `[locale]`、后台 cookie）；**US-1** 短信/OAuth；**US-7** 7 款 palette + 站点品牌；**US-AI-3** 内嵌 AI 面板 + thinking SSE；关于/作品集 AI；Non-Goals 调整内容多语言 |
 | v2.8 | 2026-07-05 | **Phase 2 AI 写作**：§3 AI System Requirements；**US-AI-1～4**、**SC-AI-1～5**；路线图 **M5/M6/M7**；关联 design spec 与 implementation plan |
 | v2.7 | 2026-07-05 | 同步 **Giscus** 实现细节与 env 清单；**US-8** 扩展 CONTRIBUTING / git-workflow / llms.txt / `.github` 模板；**SC-9**；§3 明确 llms.txt 定位 |
