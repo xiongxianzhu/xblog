@@ -110,6 +110,7 @@ const MarkdownProse = memo(function MarkdownProse({
   );
 
   const mermaidCleanupRef = useRef<(() => void) | undefined>();
+  const mermaidRenderGenerationRef = useRef(0);
 
   // Mermaid 会命令式替换 pre；在 React 提交 DOM 变更前先还原，避免 removeChild 报错。
   useInsertionEffect(() => {
@@ -123,13 +124,17 @@ const MarkdownProse = memo(function MarkdownProse({
     const root = rootRef.current;
     if (!root) return;
 
-    let disposed = false;
+    const generation = ++mermaidRenderGenerationRef.current;
+    let cancelled = false;
     const mode = resolveColorMode(root, colorMode);
+    const isStale = () => cancelled || mermaidRenderGenerationRef.current !== generation;
 
     void (async () => {
       try {
-        const cleanup = await renderMermaidDiagrams(root, mode, mermaidLabelsRef.current);
-        if (disposed) {
+        const cleanup = await renderMermaidDiagrams(root, mode, mermaidLabelsRef.current, {
+          isCancelled: isStale,
+        });
+        if (isStale()) {
           cleanup();
           return;
         }
@@ -140,7 +145,9 @@ const MarkdownProse = memo(function MarkdownProse({
     })();
 
     return () => {
-      disposed = true;
+      cancelled = true;
+      mermaidCleanupRef.current?.();
+      mermaidCleanupRef.current = undefined;
     };
   }, [content, colorMode, mermaidLabelsRef, rootRef]);
 

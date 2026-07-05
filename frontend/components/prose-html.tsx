@@ -61,6 +61,7 @@ export function ProseHtml({ html, className, colorMode }: ProseHtmlProps) {
 
   const enhanceCleanupRef = useRef<(() => void) | undefined>();
   const mermaidCleanupRef = useRef<(() => void) | undefined>();
+  const mermaidRenderGenerationRef = useRef(0);
 
   useInsertionEffect(() => {
     return () => {
@@ -75,8 +76,10 @@ export function ProseHtml({ html, className, colorMode }: ProseHtmlProps) {
     const root = ref.current;
     if (!root) return;
 
-    let disposed = false;
+    const generation = ++mermaidRenderGenerationRef.current;
+    let cancelled = false;
     const mode = resolveColorMode(root, colorMode);
+    const isStale = () => cancelled || mermaidRenderGenerationRef.current !== generation;
 
     const removeTableEnhance = enhanceProseTables(root);
     const removeCodeEnhance = enhanceProseCodeBlocks(root, labels);
@@ -87,8 +90,10 @@ export function ProseHtml({ html, className, colorMode }: ProseHtmlProps) {
 
     void (async () => {
       try {
-        const cleanup = await renderMermaidDiagrams(root, mode, mermaidLabels);
-        if (disposed) {
+        const cleanup = await renderMermaidDiagrams(root, mode, mermaidLabels, {
+          isCancelled: isStale,
+        });
+        if (isStale()) {
           cleanup();
           return;
         }
@@ -99,7 +104,9 @@ export function ProseHtml({ html, className, colorMode }: ProseHtmlProps) {
     })();
 
     return () => {
-      disposed = true;
+      cancelled = true;
+      mermaidCleanupRef.current?.();
+      mermaidCleanupRef.current = undefined;
     };
   }, [
     html,

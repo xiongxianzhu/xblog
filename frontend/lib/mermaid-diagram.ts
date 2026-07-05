@@ -22,6 +22,23 @@ const MAX_SCALE = 3;
 const SCALE_STEP = 0.15;
 const PAN_STEP = 48;
 
+type RenderMermaidOptions = {
+  /** 返回 true 时中止渲染并还原已改动的 DOM（用于竞态/卸载） */
+  isCancelled?: () => boolean;
+};
+
+let mermaidImportPromise: Promise<typeof import("mermaid")> | undefined;
+
+/** 预加载 mermaid  chunk，缩短首次渲染等待并避免 DOM 改动后 chunk 才到的竞态 */
+export function preloadMermaid() {
+  mermaidImportPromise ??= import("mermaid");
+  return mermaidImportPromise;
+}
+
+if (typeof window !== "undefined") {
+  preloadMermaid();
+}
+
 type ViewState = {
   scale: number;
   panX: number;
@@ -50,6 +67,26 @@ function getCodeBlockSource(block: Element): string {
   if (!pre) return "";
   const code = pre.querySelector("code");
   return (code ?? pre).textContent?.trim() ?? "";
+}
+
+/** Escape `[` / `]` inside Mermaid quoted labels so `/[locale]` renders literally. */
+function escapeBracketsInMermaidQuotedStrings(source: string): string {
+  const escapeInner = (inner: string) =>
+    inner
+      .replace(/#91;/g, "\u0000O\u0000")
+      .replace(/#93;/g, "\u0000C\u0000")
+      .replace(/\[/g, "#91;")
+      .replace(/\]/g, "#93;")
+      .replace(/\u0000O\u0000/g, "#91;")
+      .replace(/\u0000C\u0000/g, "#93;");
+
+  return source
+    .replace(/"((?:[^"\\]|\\.)*)"/g, (_match, inner: string) => `"${escapeInner(inner)}"`)
+    .replace(/'((?:[^'\\]|\\.)*)'/g, (_match, inner: string) => `'${escapeInner(inner)}'`);
+}
+
+function prepareMermaidSourceForRender(source: string): string {
+  return escapeBracketsInMermaidQuotedStrings(source);
 }
 
 function getSvg(canvas: HTMLElement): SVGSVGElement | null {
@@ -348,7 +385,10 @@ export async function renderMermaidDiagrams(
   root: HTMLElement,
   colorMode: SitePublicColorMode,
   labels: MermaidDiagramLabels,
+  options?: RenderMermaidOptions,
 ): Promise<() => void> {
+  const isCancelled = options?.isCancelled ?? (() => false);
+
   const blocks: Element[] = [];
   root.querySelectorAll("pre").forEach((pre) => {
     const block = pre.closest(".highlight") ?? pre;
@@ -358,7 +398,17 @@ export async function renderMermaidDiagrams(
 
   if (blocks.length === 0) return () => {};
 
-  const mermaid = (await import("mermaid")).default;
+  const pending = blocks.flatMap((block) => {
+    const source = getCodeBlockSource(block);
+    if (!source) return [];
+    return [{ block, source, renderSource: prepareMermaidSourceForRender(source) }];
+  });
+
+  if (pending.length === 0) return () => {};
+
+  const { default: mermaid } = await preloadMermaid();
+  if (isCancelled()) return () => {};
+
   mermaid.initialize({
     startOnLoad: false,
     theme: colorMode === "dark" ? "dark" : "default",
@@ -367,14 +417,21 @@ export async function renderMermaidDiagrams(
     flowchart: { useMaxWidth: false },
   });
 
-  const nodes: HTMLElement[] = [];
+  if (isCancelled()) return () => {};
+
   const sources = new Map<HTMLElement, string>();
+  const renderTargets: Array<{
+    shell: HTMLDivElement;
+    canvas: HTMLElement;
+    viewport: HTMLElement;
+    source: string;
+    renderSource: string;
+  }> = [];
   const cleanups: Array<() => void> = [];
   const restorations: Array<{ shell: HTMLElement; block: Element }> = [];
 
-  blocks.forEach((block) => {
-    const source = getCodeBlockSource(block);
-    if (!source) return;
+  pending.forEach(({ block, source, renderSource }) => {
+    if (isCancelled()) return;
 
     const shell = document.createElement("div");
     shell.className = "mermaid-diagram";
@@ -386,31 +443,59 @@ export async function renderMermaidDiagrams(
     const canvas = document.createElement("div");
     canvas.className = "mermaid-canvas";
 
-    const diagram = document.createElement("pre");
-    diagram.className = "mermaid";
-    diagram.textContent = source;
-
-    canvas.appendChild(diagram);
     viewport.appendChild(canvas);
     shell.appendChild(viewport);
     restorations.push({ shell, block });
     block.replaceWith(shell);
-    nodes.push(diagram);
     sources.set(shell, source);
+    renderTargets.push({ shell, canvas, viewport, source, renderSource });
   });
 
-  if (nodes.length > 0) {
-    await mermaid.run({ nodes });
+  if (isCancelled()) {
+    for (const { shell, block } of restorations) {
+      if (!shell.isConnected) continue;
+      shell.replaceWith(block);
+    }
+    return () => {};
   }
 
-  root.querySelectorAll(".mermaid-diagram").forEach((element) => {
-    const shell = element as HTMLDivElement;
-    const canvas = shell.querySelector(".mermaid-canvas") as HTMLElement | null;
-    const viewport = shell.querySelector(".mermaid-viewport") as HTMLElement | null;
-    const source = sources.get(shell) ?? "";
-    if (!canvas || !viewport) return;
-    cleanups.push(mountDiagramControls(shell, canvas, viewport, source, labels));
-  });
+  let diagramIndex = 0;
+  for (const target of renderTargets) {
+    if (isCancelled()) break;
+
+    try {
+      const id = `xblog-mermaid-${diagramIndex++}`;
+      const { svg, bindFunctions } = await mermaid.render(id, target.renderSource);
+      if (isCancelled()) break;
+
+      target.canvas.innerHTML = svg;
+      bindFunctions?.(target.canvas);
+      cleanups.push(
+        mountDiagramControls(target.shell, target.canvas, target.viewport, target.source, labels),
+      );
+    } catch {
+      if (isCancelled()) break;
+
+      const fallback = document.createElement("pre");
+      fallback.className = "mermaid";
+      fallback.textContent = target.source;
+      target.canvas.appendChild(fallback);
+    }
+  }
+
+  if (isCancelled()) {
+    cleanups.forEach((cleanup) => cleanup());
+    document.body.classList.remove("mermaid-fullscreen-open");
+    for (const { shell, block } of restorations) {
+      if (!shell.isConnected) continue;
+      try {
+        shell.replaceWith(block);
+      } catch {
+        // React 可能已替换该子树，忽略即可。
+      }
+    }
+    return () => {};
+  }
 
   return () => {
     cleanups.forEach((cleanup) => cleanup());
@@ -426,4 +511,4 @@ export async function renderMermaidDiagrams(
   };
 }
 
-export { MERMAID_LANG, extractCodeLanguage };
+export { MERMAID_LANG, extractCodeLanguage, escapeBracketsInMermaidQuotedStrings, prepareMermaidSourceForRender };
