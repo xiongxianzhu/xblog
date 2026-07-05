@@ -12,6 +12,7 @@ from app.api.v1.endpoints.admin import ai_providers as admin_ai_providers
 from app.api.v1.endpoints.admin import ai_skills as admin_ai_skills
 from app.api.v1.endpoints.admin import auth_settings as admin_auth_settings
 from app.api.v1.endpoints.admin import links as admin_links
+from app.api.v1.endpoints.admin import logs as admin_logs
 from app.api.v1.endpoints.admin import pages as admin_pages
 from app.api.v1.endpoints.admin import pageviews as admin_pageviews
 from app.api.v1.endpoints.admin import posts as admin_posts
@@ -41,6 +42,7 @@ api_router.include_router(admin_pages.router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_links.router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_pageviews.router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_users.router, prefix="/admin", tags=["admin"])
+api_router.include_router(admin_logs.router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_site_theme.router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_auth_settings.router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_ai_providers.router, prefix="/admin/ai", tags=["admin-ai"])

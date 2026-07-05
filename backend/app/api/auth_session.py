@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.auth_cookies import set_auth_cookies
 from app.core.security import decode_token
 from app.models.user import User
+from app.services.users import ensure_user_can_authenticate
 
 
 async def _load_user(session: AsyncSession, username: str | None) -> User | None:
@@ -30,7 +31,7 @@ async def resolve_current_user(
             payload = decode_token(access_token)
             if payload.get("type") == "access":
                 user = await _load_user(session, payload.get("sub"))
-                if user:
+                if user and user.is_active:
                     return user
         except InvalidTokenError:
             pass
@@ -41,7 +42,7 @@ async def resolve_current_user(
             if payload.get("type") != "refresh":
                 return None
             user = await _load_user(session, payload.get("sub"))
-            if user:
+            if user and user.is_active:
                 set_auth_cookies(response, user.username)
                 return user
         except InvalidTokenError:

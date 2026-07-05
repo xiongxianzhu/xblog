@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { Loader2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
-import { AdminFeedbackDialog, type AdminFeedbackVariant } from "@/components/admin/admin-feedback-dialog";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,12 +66,6 @@ export function AiProviderSettings() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AiProvider | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [feedback, setFeedback] = useState<{
-    open: boolean;
-    variant: AdminFeedbackVariant;
-    title: string;
-    message?: string;
-  }>({ open: false, variant: "success", title: "" });
 
   const filtered = useMemo(
     () =>
@@ -145,18 +139,12 @@ export function AiProviderSettings() {
       }
       setOpen(false);
       await mutate();
-      setFeedback({
-        open: true,
-        variant: "success",
-        title: editing ? "保存成功" : "创建成功",
-        message: `提供商「${form.name.trim()}」已${editing ? "更新" : "添加"}。`,
+      toast.success(editing ? "保存成功" : "创建成功", {
+        description: `提供商「${form.name.trim()}」已${editing ? "更新" : "添加"}。`,
       });
     } catch (err) {
-      setFeedback({
-        open: true,
-        variant: "error",
-        title: "保存失败",
-        message: err instanceof Error ? err.message : "请稍后重试",
+      toast.error("保存失败", {
+        description: err instanceof Error ? err.message : "请稍后重试",
       });
     } finally {
       setSaving(false);
@@ -179,19 +167,11 @@ export function AiProviderSettings() {
     try {
       await deleteAiProvider(deleteTarget.id);
       await mutate();
-      setFeedback({
-        open: true,
-        variant: "success",
-        title: "删除成功",
-        message: `提供商「${deleteTarget.name}」已移除。`,
-      });
+      toast.success("删除成功", { description: `提供商「${deleteTarget.name}」已移除。` });
       setDeleteTarget(null);
     } catch (err) {
-      setFeedback({
-        open: true,
-        variant: "error",
-        title: "删除失败",
-        message: err instanceof Error ? err.message : "请稍后重试",
+      toast.error("删除失败", {
+        description: err instanceof Error ? err.message : "请稍后重试",
       });
     } finally {
       setDeleting(false);
@@ -202,18 +182,16 @@ export function AiProviderSettings() {
     setTestingId(provider.id);
     try {
       const result = await testAiProvider(provider.id);
-      setFeedback({
-        open: true,
-        variant: result.ok ? "success" : "error",
-        title: result.ok ? "连接测试成功" : "连接测试失败",
-        message: result.ok ? `延迟 ${result.latency_ms}ms · ${provider.name}` : result.message,
-      });
+      if (result.ok) {
+        toast.success("连接测试成功", {
+          description: `延迟 ${result.latency_ms}ms · ${provider.name}`,
+        });
+      } else {
+        toast.error("连接测试失败", { description: result.message });
+      }
     } catch (err) {
-      setFeedback({
-        open: true,
-        variant: "error",
-        title: "连接测试失败",
-        message: err instanceof Error ? err.message : "请稍后重试",
+      toast.error("连接测试失败", {
+        description: err instanceof Error ? err.message : "请稍后重试",
       });
     } finally {
       setTestingId(null);
@@ -417,14 +395,6 @@ export function AiProviderSettings() {
         variant="destructive"
         loading={deleting}
         onConfirm={confirmDelete}
-      />
-
-      <AdminFeedbackDialog
-        open={feedback.open}
-        onOpenChange={(open) => setFeedback((prev) => ({ ...prev, open }))}
-        variant={feedback.variant}
-        title={feedback.title}
-        message={feedback.message}
       />
     </div>
   );

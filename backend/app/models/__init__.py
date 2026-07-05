@@ -6,6 +6,8 @@ from app.models.ai_provider import AiProvider, AiProviderType
 from app.models.ai_skill import AiSkill, AiSkillDefault
 from app.models.ai_usage_log import AiUsageLog
 from app.models.base import TimestampMixin
+from app.models.login_log import LoginLog
+from app.models.operation_log import OperationLog
 from app.models.friend_link import FriendLink
 from app.models.page import Page
 from app.models.page_view import PageView
@@ -23,6 +25,8 @@ __all__ = [
     "AiSkillDefault",
     "AiUsageLog",
     "TimestampMixin",
+    "LoginLog",
+    "OperationLog",
     "FriendLink",
     "Page",
     "PageView",

@@ -56,9 +56,14 @@ export function AdminHeader() {
   const [loggingOut, setLoggingOut] = useState(false);
   const { data: user } = useSWR("admin-me", getMe);
   const { data: siteTheme } = useSWR("public-site-theme-brand", getPublicSiteThemeClient);
-  const { mode, palette, setMode, setPalette } = useAdminTheme();
+  const { mode, palette, resolvedMode, setMode, setPalette } = useAdminTheme();
   const { modeLabel, paletteLabel } = useAdminThemeLabels();
   const userMenuItemClass = "min-h-10 py-2.5";
+  const displayName = user?.nickname?.trim() || user?.username || "加载中";
+  const showUsernameHint = Boolean(user?.nickname?.trim() && user.username);
+  const siteName = siteTheme?.site_name ?? DEFAULT_SITE_THEME.site_name;
+  const siteTagline = siteTheme?.site_tagline ?? DEFAULT_SITE_THEME.site_tagline;
+  const siteLogoUrl = siteTheme?.site_logo_url;
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -85,13 +90,28 @@ export function AdminHeader() {
             <MenuIcon className="size-4" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="fixed left-0 top-0 h-full max-w-xs translate-x-0 translate-y-0 rounded-none border-r p-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-xs">
-          <DialogHeader className="border-b border-border px-4 py-3 text-left">
-            <DialogTitle className="font-serif text-lg">xblog 后台</DialogTitle>
+        <DialogContent
+          data-admin-shell
+          data-admin-palette={palette}
+          className={cn(
+            "admin-sidebar-drawer fixed left-0 top-0 flex h-[100dvh] max-w-xs translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 border-r border-border/70 bg-[hsl(var(--admin-sidebar))] p-0 text-foreground shadow-none",
+            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100",
+            resolvedMode === "dark" && "dark",
+          )}
+        >
+          <DialogHeader className="border-b border-border/70 bg-[hsl(var(--admin-sidebar))] px-4 py-3 text-left">
+            <DialogTitle className="sr-only">{siteName}</DialogTitle>
+            <SiteBrand
+              admin
+              siteName={siteName}
+              siteTagline={siteTagline}
+              siteLogoUrl={siteLogoUrl}
+              onNavigate={() => setMobileOpen(false)}
+            />
           </DialogHeader>
           <AdminSidebar
             variant="drawer"
-            className="min-h-[calc(100dvh-3.5rem)] border-0"
+            className="min-h-0 flex-1 border-0 bg-transparent"
             onNavigate={() => setMobileOpen(false)}
           />
         </DialogContent>
@@ -99,9 +119,9 @@ export function AdminHeader() {
 
       <SiteBrand
         admin
-        siteName={siteTheme?.site_name ?? DEFAULT_SITE_THEME.site_name}
-        siteTagline={siteTheme?.site_tagline ?? DEFAULT_SITE_THEME.site_tagline}
-        siteLogoUrl={siteTheme?.site_logo_url}
+        siteName={siteName}
+        siteTagline={siteTagline}
+        siteLogoUrl={siteLogoUrl}
         className="shrink-0"
       />
 
@@ -111,15 +131,26 @@ export function AdminHeader() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative size-9 rounded-full p-0" aria-label="用户菜单">
+          <Button
+            variant="ghost"
+            className="h-9 max-w-[12rem] gap-2 rounded-full px-1.5 sm:pr-3"
+            aria-label="用户菜单"
+          >
             <UserAvatar username={user?.username ?? ".."} avatarUrl={user?.avatar_url} size="md" />
+            <span className="hidden min-w-0 truncate text-sm font-medium sm:inline">{displayName}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52 p-1.5">
           <DropdownMenuLabel className="px-2.5 py-2 font-normal">
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">{user?.username ?? "加载中"}</span>
-              <span className="text-xs text-muted-foreground">管理员</span>
+              <span className="truncate text-sm font-medium">{displayName}</span>
+              {showUsernameHint ? (
+                <span className="truncate text-xs text-muted-foreground">
+                  @{user?.username} · 管理员
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">管理员</span>
+              )}
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="my-1.5" />

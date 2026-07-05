@@ -14,7 +14,7 @@ export function AuthSettingsPanel() {
   const [message, setMessage] = useState<string | null>(null);
 
   async function toggle(
-    key: "sms_enabled" | "github_enabled" | "wechat_enabled",
+    key: "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled",
     value: boolean,
   ) {
     if (!data || saving) return;
@@ -92,12 +92,29 @@ export function AuthSettingsPanel() {
             onCheckedChange={(checked) => void toggle("wechat_enabled", checked)}
           />
         </Field>
+
+        <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="turnstile-enabled">Turnstile 人机验证</FieldLabel>
+            <FieldDescription>
+              {data.turnstile_configured
+                ? "开启后，密码登录连续失败时将要求验证；找回密码始终要求验证。"
+                : "请先在 backend/.env 与 frontend/.env 配置 TURNSTILE_SITE_KEY、TURNSTILE_SECRET_KEY 与 NEXT_PUBLIC_TURNSTILE_SITE_KEY。"}
+            </FieldDescription>
+          </div>
+          <Switch
+            id="turnstile-enabled"
+            checked={data.turnstile_enabled}
+            disabled={!data.turnstile_configured || saving === "turnstile_enabled"}
+            onCheckedChange={(checked) => void toggle("turnstile_enabled", checked)}
+          />
+        </Field>
       </FieldGroup>
 
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        默认仅开放账号密码登录。第三方登录需先在个人资料中绑定对应账号；手机登录需绑定手机号并在开发环境查看 backend 日志获取验证码。
+        默认仅开放账号密码登录。Turnstile 需在环境变量中配置密钥后，再在此开启；关闭后仅保留登录限流，不显示验证码。
       </p>
     </div>
   );

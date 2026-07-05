@@ -22,7 +22,7 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="text-base">登录方式</CardTitle>
             <CardDescription>
-              控制管理后台登录页可用的方式。GitHub / 微信默认关闭，需在此开启；手机验证码需先在 .env 配置 SMS 并在个人资料绑定手机号。
+              控制管理后台登录页可用的方式。Turnstile 需先在 .env 配置密钥后再开启；GitHub / 微信默认关闭；手机验证码需配置 SMS 并在个人资料绑定手机号。
             </CardDescription>
           </CardHeader>
           <CardContent>

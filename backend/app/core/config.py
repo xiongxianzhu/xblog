@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     aliyun_sms_access_key_secret: str = ""
     aliyun_sms_sign_name: str = ""
     aliyun_sms_template_code: str = ""
+    turnstile_site_key: str = ""
+    turnstile_secret_key: str = ""
+    login_captcha_after_failures: int = 3
+    login_max_failures_per_window: int = 10
+    login_failure_window_minutes: int = 15
+    forgot_password_max_per_window: int = 3
+    forgot_password_window_minutes: int = 15
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -23,6 +23,24 @@ def unwrap_api_response(response: Response) -> Any:
     return body
 
 
+@pytest.fixture(autouse=True)
+def reset_login_guard_state() -> None:
+    from sqlalchemy import delete
+
+    from app.db.session import async_session_factory
+    from app.models.login_log import LoginLog
+    from app.services import login_guard
+
+    login_guard._forgot_password_buckets.clear()
+
+    async def clear_logs() -> None:
+        async with async_session_factory() as session:
+            await session.exec(delete(LoginLog))
+            await session.commit()
+
+    asyncio.run(clear_logs())
+
+
 @pytest.fixture
 def client() -> TestClient:
     from app.main import app

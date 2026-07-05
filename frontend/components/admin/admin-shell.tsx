@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminLoginSuccessToast } from "@/components/admin/admin-login-success-toast";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminSidebarProvider, useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] min-w-0 flex-col overflow-x-clip">
+      <AdminLoginSuccessToast />
       <AdminHeader />
       <div className="flex min-w-0 flex-1 pt-14">
         <AdminSidebar

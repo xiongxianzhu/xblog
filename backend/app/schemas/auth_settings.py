@@ -14,12 +14,15 @@ class AuthSettingsAdmin(SQLModel):
     github_configured: bool
     wechat_enabled: bool
     wechat_configured: bool
+    turnstile_enabled: bool
+    turnstile_configured: bool
 
 
 class AuthSettingsUpdate(SQLModel):
     sms_enabled: bool | None = None
     github_enabled: bool | None = None
     wechat_enabled: bool | None = None
+    turnstile_enabled: bool | None = None
 
 
 class SmsSendCodeRequest(SQLModel):

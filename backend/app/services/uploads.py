@@ -16,7 +16,7 @@ ALLOWED_AVATAR_TYPES = {
     "image/webp": ".webp",
     "image/gif": ".gif",
 }
-MAX_AVATAR_BYTES = 2 * 1024 * 1024
+MAX_AVATAR_BYTES = 5 * 1024 * 1024
 MAX_SITE_LOGO_BYTES = 2 * 1024 * 1024
 AVATAR_URL_PREFIX = "/api/v1/uploads/avatars/"
 SITE_LOGO_URL_PREFIX = "/api/v1/uploads/site/"

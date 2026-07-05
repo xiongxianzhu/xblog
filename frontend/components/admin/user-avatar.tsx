@@ -5,6 +5,7 @@ const sizeClass = {
   sm: "size-8 text-xs",
   md: "size-9 text-xs",
   lg: "size-14 text-base",
+  xl: "size-24 text-xl",
 } as const;
 
 type UserAvatarProps = {

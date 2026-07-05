@@ -31,4 +31,4 @@ Monorepo 生产环境用 **systemd** 守护 API 与 Next.js 进程（不用 supe
    sudo journalctl -u xblog-web -f
    ```
 
-nginx 反向代理配置见 `backend/deploy/nginx/backend.conf`（按 Monorepo 路径调整 `proxy_pass`）。
+nginx 反向代理配置见 [`deploy/nginx/`](../nginx/README.md)（示例文件 `xblog.conf`）。

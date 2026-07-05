@@ -1,9 +1,10 @@
-"""认证 API。"""
-
 from __future__ import annotations
 
-from fastapi import APIRouter, Cookie, File, HTTPException, Response, UploadFile, status
+from datetime import date
+
+from fastapi import APIRouter, Cookie, File, HTTPException, Request, Response, UploadFile, status
 from jwt import InvalidTokenError
+from sqlalchemy import func
 from sqlmodel import select
 
 from app.api.auth_cookies import clear_auth_cookies, set_auth_cookies
@@ -13,26 +14,84 @@ from app.core.timezone import now
 from app.models.user import User
 from app.schemas.auth import (
     AvatarUploadResponse,
+    BindEmailRequest,
     BindPhoneRequest,
     ChangePasswordRequest,
+    LoginGuardResponse,
     LoginRequest,
+    ProfileUpdateRequest,
     TokenResponse,
     UserPublic,
 )
-from app.services import sms_service
+from app.services import audit_logs, login_guard, sms_service
 from app.services.uploads import delete_avatar_file, save_user_avatar
+from app.services.users import ensure_user_can_authenticate, get_user_by_login_identifier, user_to_public
 
 router = APIRouter()
 
 
+@router.get("/login-guard", response_model=LoginGuardResponse)
+async def get_login_guard(
+    request: Request,
+    session: SessionDep,
+    username: str | None = None,
+) -> LoginGuardResponse:
+    return await login_guard.login_guard_status(session, request, username=username)
+
+
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, response: Response, session: SessionDep) -> TokenResponse:
-    result = await session.exec(select(User).where(User.username == payload.username))
-    user = result.first()
+async def login(payload: LoginRequest, response: Response, session: SessionDep, request: Request) -> TokenResponse:
+    await login_guard.enforce_login_guard(
+        session,
+        request,
+        username=payload.username,
+        turnstile_token=payload.turnstile_token,
+    )
+
+    user = await get_user_by_login_identifier(session, payload.username)
     if user is None or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        await audit_logs.record_login(
+            session,
+            request=request,
+            username=payload.username.strip(),
+            method="password",
+            success=False,
+            failure_reason="invalid_credentials",
+        )
+        await session.commit()
+        failures = await login_guard.count_recent_login_failures(
+            session,
+            ip=audit_logs.client_ip(request),
+            username=payload.username,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=login_guard.login_invalid_credentials_detail(failures),
+        )
+    try:
+        ensure_user_can_authenticate(user)
+    except HTTPException as exc:
+        await audit_logs.record_login(
+            session,
+            request=request,
+            username=user.username,
+            method="password",
+            success=False,
+            user=user,
+            failure_reason="user_disabled",
+        )
+        await session.commit()
+        raise exc
     user.last_login_at = now()
     session.add(user)
+    await audit_logs.record_login(
+        session,
+        request=request,
+        username=user.username,
+        method="password",
+        success=True,
+        user=user,
+    )
     await session.commit()
     set_auth_cookies(response, user.username)
     return TokenResponse(username=user.username)
@@ -64,17 +123,14 @@ async def refresh(
     user = result.first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    ensure_user_can_authenticate(user)
     set_auth_cookies(response, user.username)
     return TokenResponse(username=user.username)
 
 
 @router.get("/me", response_model=UserPublic)
 async def me(current_user: CurrentUserDep) -> UserPublic:
-    return UserPublic(
-        username=current_user.username,
-        avatar_url=current_user.avatar_url,
-        phone=current_user.phone,
-    )
+    return user_to_public(current_user)
 
 
 @router.patch("/phone", response_model=UserPublic)
@@ -92,11 +148,43 @@ async def bind_phone(
     session.add(current_user)
     await session.commit()
     await session.refresh(current_user)
-    return UserPublic(
-        username=current_user.username,
-        avatar_url=current_user.avatar_url,
-        phone=current_user.phone,
-    )
+    return user_to_public(current_user)
+
+
+@router.patch("/email", response_model=UserPublic)
+async def bind_email(
+    payload: BindEmailRequest,
+    current_user: CurrentUserDep,
+    session: SessionDep,
+) -> UserPublic:
+    normalized = payload.email.strip().lower()
+    result = await session.exec(select(User).where(func.lower(User.email) == normalized))
+    existing = result.first()
+    if existing is not None and existing.id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already linked")
+    current_user.email = normalized
+    session.add(current_user)
+    await session.commit()
+    await session.refresh(current_user)
+    return user_to_public(current_user)
+
+
+@router.patch("/profile", response_model=UserPublic)
+async def update_profile(
+    payload: ProfileUpdateRequest,
+    current_user: CurrentUserDep,
+    session: SessionDep,
+) -> UserPublic:
+    if payload.birth_date is not None and payload.birth_date > date.today():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Birth date cannot be in the future")
+
+    current_user.nickname = payload.nickname
+    current_user.birth_date = payload.birth_date
+    current_user.gender = payload.gender
+    session.add(current_user)
+    await session.commit()
+    await session.refresh(current_user)
+    return user_to_public(current_user)
 
 
 @router.post("/avatar", response_model=AvatarUploadResponse)

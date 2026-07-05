@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { EyeIcon, FileTextIcon, PenLineIcon, PlusIcon } from "lucide-react";
+import { EyeIcon, FileTextIcon, PlusIcon } from "lucide-react";
 
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminPanel } from "@/components/admin/admin-panel";
@@ -40,10 +40,9 @@ export default function AdminDashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {loading ? (
           <>
-            <Skeleton className="h-28" />
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
@@ -80,20 +79,6 @@ export default function AdminDashboardPage() {
               <CardContent>
                 <p className="font-mono text-3xl font-semibold">{(pageviews ?? []).length}</p>
                 <p className="mt-1 text-xs text-muted-foreground">已记录的不同页面</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">快捷入口</CardTitle>
-                <PenLineIcon className="size-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/admin/posts">管理文章</Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/admin/logs">查看日志</Link>
-                </Button>
               </CardContent>
             </Card>
           </>

@@ -61,6 +61,12 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
 
 function formatEnvelopeError(body: ApiEnvelope<unknown>): string {
   const { msg, data } = body;
+  if (typeof data === "object" && data !== null && !Array.isArray(data)) {
+    const record = data as { message?: string };
+    if (typeof record.message === "string" && record.message !== msg) {
+      return record.message;
+    }
+  }
   if (Array.isArray(data)) {
     const parts = data.map((item) => {
       if (typeof item === "string") return item;
@@ -76,6 +82,22 @@ function formatEnvelopeError(body: ApiEnvelope<unknown>): string {
     if (parts.length) return parts.join("；");
   }
   return msg || "请求失败";
+}
+
+export class ApiError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(message: string, status: number, data: unknown = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
+function getEnvelopeData(body: ApiEnvelope<unknown>): unknown {
+  return body.data;
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -103,7 +125,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
   if (isApiEnvelope(body)) {
     if (body.code !== 0) {
-      throw new Error(formatEnvelopeError(body as ApiEnvelope<unknown>));
+      throw new ApiError(formatEnvelopeError(body as ApiEnvelope<unknown>), response.status, getEnvelopeData(body));
     }
     return body.data as T;
   }
@@ -160,6 +182,7 @@ export async function fetchAuth<T>(path: string, init?: RequestInit, retried = f
     path !== "/auth/reset-password" &&
     path !== "/auth/oauth/providers" &&
     path !== "/auth/login-methods" &&
+    path !== "/auth/login-guard" &&
     path !== "/auth/sms/send-code" &&
     path !== "/auth/sms/login";
 
@@ -236,10 +259,30 @@ export function recordPageView(path: string, referrer?: string) {
   });
 }
 
-export function login(username: string, password: string) {
+export type LoginGuard = {
+  captcha_required: boolean;
+  captcha_enabled: boolean;
+  site_key: string | null;
+  locked: boolean;
+  retry_after_seconds: number | null;
+  failure_count: number;
+};
+
+export function getLoginGuard(username?: string) {
+  const path = username
+    ? `/auth/login-guard?username=${encodeURIComponent(username)}`
+    : "/auth/login-guard";
+  return fetchAuth<LoginGuard>(path);
+}
+
+export function login(username: string, password: string, turnstileToken?: string) {
   return fetchAuth<{ username: string }>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({
+      username,
+      password,
+      ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+    }),
   });
 }
 
@@ -260,6 +303,8 @@ export type AuthSettingsAdmin = {
   github_configured: boolean;
   wechat_enabled: boolean;
   wechat_configured: boolean;
+  turnstile_enabled: boolean;
+  turnstile_configured: boolean;
 };
 
 export function getLoginMethods() {
@@ -270,7 +315,11 @@ export function getAdminAuthSettings() {
   return fetchAuth<AuthSettingsAdmin>("/admin/auth-settings");
 }
 
-export function updateAdminAuthSettings(payload: Partial<Pick<AuthSettingsAdmin, "sms_enabled" | "github_enabled" | "wechat_enabled">>) {
+export function updateAdminAuthSettings(
+  payload: Partial<
+    Pick<AuthSettingsAdmin, "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled">
+  >,
+) {
   return fetchAuth<AuthSettingsAdmin>("/admin/auth-settings", {
     method: "PATCH",
     body: JSON.stringify(payload),
@@ -304,10 +353,13 @@ export function getOAuthLinks() {
   return fetchAuth<OAuthProviders>("/auth/oauth/links");
 }
 
-export function forgotPassword(username: string) {
+export function forgotPassword(username: string, turnstileToken?: string) {
   return fetchAuth<{ message: string }>("/auth/forgot-password", {
     method: "POST",
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({
+      username,
+      ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+    }),
   });
 }
 
@@ -329,15 +381,33 @@ export function oauthBindUrl(provider: "github" | "wechat") {
 export type AdminUser = {
   id: number;
   username: string;
+  nickname: string | null;
+  email: string | null;
+  phone: string | null;
+  birth_date: string | null;
+  gender: ProfileGender | null;
   avatar_url: string | null;
+  is_active: boolean;
   created_at: string | null;
   last_login_at: string | null;
 };
 
+export type ProfileGender = "male" | "female" | "other";
+
 export type AdminUserMe = {
   username: string;
+  nickname: string | null;
   avatar_url: string | null;
   phone: string | null;
+  email: string | null;
+  birth_date: string | null;
+  gender: ProfileGender | null;
+};
+
+export type ProfileUpdatePayload = {
+  nickname?: string | null;
+  birth_date?: string | null;
+  gender?: ProfileGender | null;
 };
 
 export function getMe() {
@@ -348,6 +418,20 @@ export function bindPhone(phone: string) {
   return fetchAuth<AdminUserMe>("/auth/phone", {
     method: "PATCH",
     body: JSON.stringify({ phone }),
+  });
+}
+
+export function bindEmail(email: string) {
+  return fetchAuth<AdminUserMe>("/auth/email", {
+    method: "PATCH",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function updateProfile(payload: ProfileUpdatePayload) {
+  return fetchAuth<AdminUserMe>("/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -380,6 +464,49 @@ export function listPageViewStats() {
 
 export function listAdminUsers() {
   return fetchAuth<AdminUser[]>("/admin/users");
+}
+
+export function updateAdminUserActive(id: number, is_active: boolean) {
+  return fetchAuth<AdminUser>(`/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_active }),
+  });
+}
+
+export function deleteAdminUser(id: number) {
+  return fetchAuth<void>(`/admin/users/${id}`, { method: "DELETE" });
+}
+
+export type LoginLogAdmin = {
+  id: number;
+  user_id: number | null;
+  username: string;
+  method: string;
+  success: boolean;
+  failure_reason: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string | null;
+};
+
+export type OperationLogAdmin = {
+  id: number;
+  user_id: number | null;
+  username: string;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  detail: string | null;
+  ip_address: string | null;
+  created_at: string | null;
+};
+
+export function listLoginLogs() {
+  return fetchAuth<LoginLogAdmin[]>("/admin/logs/login");
+}
+
+export function listOperationLogs() {
+  return fetchAuth<OperationLogAdmin[]>("/admin/logs/operations");
 }
 
 export function listAdminPosts() {

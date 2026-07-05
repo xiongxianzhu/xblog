@@ -15,6 +15,7 @@ from app.core.config import get_settings
 from app.core.security import create_token, decode_token
 from app.core.timezone import now
 from app.models.user import User
+from app.services.users import ensure_user_can_authenticate
 
 settings = get_settings()
 
@@ -161,6 +162,7 @@ async def login_with_github(session: AsyncSession, code: str) -> User:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="GitHub account is not linked to an admin user",
         )
+    ensure_user_can_authenticate(user)
     user.last_login_at = now()
     session.add(user)
     await session.commit()
@@ -195,6 +197,7 @@ async def login_with_wechat(session: AsyncSession, code: str) -> User:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="WeChat account is not linked to an admin user",
         )
+    ensure_user_can_authenticate(user)
     user.last_login_at = now()
     session.add(user)
     await session.commit()

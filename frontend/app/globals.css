@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "react-day-picker/style.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -1010,11 +1011,148 @@
   transition: width 200ms ease-out;
 }
 
+[data-admin-shell] .admin-sidebar-flyout {
+  background: hsl(var(--admin-sidebar));
+  color: hsl(var(--foreground));
+  box-shadow: 0 8px 24px hsl(var(--foreground) / 0.1);
+}
+
+.dark [data-admin-shell] .admin-sidebar-flyout,
+[data-admin-shell].dark .admin-sidebar-flyout {
+  box-shadow: 0 12px 32px hsl(0 0% 0% / 0.4);
+}
+
+[data-admin-shell].admin-sidebar-drawer {
+  color: hsl(var(--foreground));
+}
+
+[data-admin-shell].admin-sidebar-drawer > .admin-sidebar {
+  background: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-admin-shell] .admin-sidebar-rail,
   [data-admin-shell] main {
     transition: none;
   }
+}
+
+/* Admin profile */
+.admin-profile-page {
+  max-width: 72rem;
+}
+
+.admin-profile-hero {
+  background-image:
+    radial-gradient(ellipse 120% 80% at 100% 0%, hsl(var(--primary) / 0.06), transparent 55%),
+    linear-gradient(180deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.55));
+}
+
+.admin-profile-hero .admin-user-avatar {
+  box-shadow:
+    0 0 0 4px hsl(var(--primary) / 0.16),
+    0 0 0 1px hsl(var(--border) / 0.55);
+}
+
+.admin-profile-section {
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.admin-profile-section:hover {
+  border-color: hsl(var(--border));
+  background: hsl(var(--card) / 0.78);
+}
+
+@keyframes admin-profile-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-profile-layout > * {
+  animation: admin-profile-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-profile-layout > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.admin-profile-sections > * {
+  animation: admin-profile-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-profile-sections > *:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.admin-profile-sections > *:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.admin-profile-sections > *:nth-child(3) {
+  animation-delay: 0.22s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-profile-layout > *,
+  .admin-profile-sections > * {
+    animation: none;
+  }
+}
+
+/* Admin calendar (react-day-picker) */
+[data-admin-shell] .rdp-admin-calendar {
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-accent-background-color: hsl(var(--accent));
+  --rdp-selected-border: none;
+  --rdp-today-color: inherit;
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-day_button {
+  border: none;
+  color: hsl(var(--foreground));
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-day_button:hover:not(:disabled) {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-selected .rdp-day_button {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-selected .rdp-day_button:hover:not(:disabled) {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-today:not(.rdp-selected):not(.rdp-outside) .rdp-day_button {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.45);
+  font-weight: 600;
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-today.rdp-selected .rdp-day_button {
+  box-shadow: inset 0 0 0 2px hsl(var(--primary-foreground) / 0.35);
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-disabled:not(.rdp-selected) .rdp-day_button {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.45;
+}
+
+[data-admin-shell] .rdp-admin-calendar .rdp-outside .rdp-day_button {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.45;
 }
 
 /* Admin login */
@@ -1154,6 +1292,29 @@
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+[data-admin-shell] .admin-turnstile {
+  min-height: 65px;
+  min-width: 0;
+  width: 100%;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+[data-admin-shell] .admin-turnstile > div {
+  width: calc(100% - 3px) !important;
+  max-width: calc(100% - 3px);
+  min-width: 0 !important;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+[data-admin-shell] .admin-turnstile iframe {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -17,6 +17,7 @@ from app.core.timezone import CHINA_TZ, now
 from app.models.sms_verification_code import SmsVerificationCode
 from app.models.user import User
 from app.services import auth_settings
+from app.services.users import ensure_user_can_authenticate
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -125,6 +126,7 @@ async def verify_login_code(session: AsyncSession, phone: str, code: str) -> Use
     user = user_result.first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
+    ensure_user_can_authenticate(user)
 
     record.used_at = now()
     user.last_login_at = now()

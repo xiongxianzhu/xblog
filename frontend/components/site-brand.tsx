@@ -15,6 +15,7 @@ type SiteBrandProps = {
   showTagline?: boolean;
   /** 后台顶栏：链到 dashboard */
   admin?: boolean;
+  onNavigate?: () => void;
 };
 
 export function SiteBrand({
@@ -26,13 +27,14 @@ export function SiteBrand({
   taglineClassName,
   showTagline = true,
   admin = false,
+  onNavigate,
 }: SiteBrandProps) {
   const tagline = siteTagline?.trim();
   const LinkComponent = admin ? NextLink : LocaleLink;
   const href = admin ? "/admin/dashboard" : "/";
 
   return (
-    <LinkComponent href={href} className={cn("group flex min-w-0 items-center gap-2.5", className)}>
+    <LinkComponent href={href} onClick={onNavigate} className={cn("group flex min-w-0 items-center gap-2.5", className)}>
       {siteLogoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
