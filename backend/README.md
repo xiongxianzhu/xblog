@@ -62,8 +62,9 @@
 | 🔍 | 发现 | 全文搜索 |
 | 🔗 | 友链 | 友链管理 |
 | 📊 | 统计 | 访问计数 |
-| 🔐 | 认证 | Cookie + JWT |
-| 🎨 | 外观 | 公开站主题（站点设置） |
+| 🔐 | 认证 | Cookie + JWT · 短信验证码 · OAuth |
+| 🤖 | AI | 提供商 CRUD · Skill 管理 · SSE complete |
+| 🎨 | 外观 | 公开站主题 + 站点品牌（名称/副标题/LOGO） |
 
 <p align="center"><sub>前端通过同域 <code>/api/v1/*</code> 访问 · 开发时由 Next.js rewrite 到本服务</sub></p>
 
@@ -120,8 +121,14 @@ uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
 | `COOKIE_SECURE` / `COOKIE_DOMAIN` | 生产 | HTTPS 与 Cookie 域 |
 | `REVALIDATE_SECRET` | 生产 | 与 `frontend/.env` 一致 |
 | `REVALIDATE_URL` | 生产 | 如 `http://localhost:3000/api/revalidate` |
-| `UPLOAD_DIR` | | 上传根目录，默认 `uploads` |
+| `UPLOAD_DIR` | | 上传根目录，默认 `uploads`（Skill 包等） |
 | `AI_KEY_ENCRYPTION_SECRET` | | AI 写作 Key 加密；留空则派生自 `SECRET_KEY` |
+| `FRONTEND_URL` | OAuth | 回调跳转目标，如 `http://localhost:3000` |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | | GitHub OAuth（可选） |
+| `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | | 微信 OAuth（可选） |
+| `SMS_PROVIDER` | | 短信：`dev`（开发，验证码写日志）或 `aliyun` |
+| `SMS_CODE_EXPIRE_MINUTES` | | 验证码有效期 |
+| `SMS_SEND_INTERVAL_SECONDS` | | 同号发送间隔 |
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -137,9 +144,25 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 | 前缀 | 认证 | 示例 |
 |------|:----:|------|
-| `/api/v1/public/*` | — | 文章列表、搜索、`/public/site-theme` |
-| `/api/v1/auth/*` | 登录流 | 登录、刷新、登出 |
-| `/api/v1/admin/*` | 管理员 Cookie | CRUD、用户、站点主题 |
+| `/api/v1/public/*` | — | 文章、搜索、`/public/site-theme`（含品牌字段） |
+| `/api/v1/auth/*` | 登录流 | 登录、刷新、登出、短信、OAuth、资料 |
+| `/api/v1/admin/*` | 管理员 Cookie | CRUD、用户、`/admin/auth-settings`、站点主题 |
+| `/api/v1/admin/ai/*` | 管理员 Cookie | 提供商、Skill、`POST …/complete`（SSE） |
+
+<details>
+<summary><strong>auth 与 AI 路由摘要</strong></summary>
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/auth/login-methods` | 已启用登录方式 |
+| POST | `/auth/sms/send-code` · `/auth/sms/login` | 短信验证码 |
+| GET/POST | `/auth/oauth/*` | GitHub / 微信 OAuth 与绑定 |
+| GET/PATCH | `/admin/auth-settings` | 登录方式开关 |
+| * | `/admin/ai/providers` | AI 提供商 CRUD + test |
+| * | `/admin/ai/skills` | Skill 上传与管理 |
+| POST | `/admin/ai/complete` | SSE 流式（`delta` / `thinking` / `done`） |
+
+</details>
 
 > **写操作只出现在 admin 路由**，public 路由保持只读。
 
@@ -164,15 +187,16 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```text
 app/
 ├── main.py              # 应用入口 · 静态文件挂载
-├── api/v1/              # public · admin · auth
+├── api/v1/              # public · admin · auth · ai endpoints
 ├── core/                # config · security · exceptions
 ├── db/                  # session
 ├── models/              # SQLModel 表定义
 ├── schemas/             # Pydantic 入参/出参
-└── services/            # posts · revalidate · site_settings …
-alembic/                 # 数据库迁移
+├── services/            # posts · revalidate · site_settings · ai/ …
+├── data/builtin_skills/ # 内置 Agent Skills
+alembic/                 # 001 初始 · 004 site_settings · 005 AI · 006 OAuth · 007 SMS · 008 …
 tests/                   # pytest
-uploads/                 # 用户上传（avatars，gitignore）
+uploads/                 # Skill 包与用户上传（gitignore）
 Makefile
 ```
 
@@ -214,6 +238,8 @@ make migrate
 | 主题保存后公开页不变 | 确认 `REVALIDATE_SECRET`、`REVALIDATE_URL`；查日志 Skip ISR revalidate |
 | CORS 错误 | 将前端 origin 加入 `CORS_ORIGINS` |
 | 上传文件 404 | 确认 `uploads/` 目录存在且有写权限 |
+| AI complete 401 | 确认已登录且至少激活一个 AI 提供商 |
+| 短信 dev 模式 | 查看 uvicorn 日志中的验证码；生产需配置 `SMS_PROVIDER=aliyun` |
 
 ---
 

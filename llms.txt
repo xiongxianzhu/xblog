@@ -1,10 +1,10 @@
 # xblog
 
-> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，MIT 开源。
+> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手、Skill、短信/OAuth 登录与双轨主题，MIT 开源。
 
-本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENT.md`。
+本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · next-intl · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENT.md`。
 
-关键约定：`/` → Next.js；`/api/` → FastAPI。公开站主题存数据库；后台主题存 localStorage。勿提交 `.env`、密钥或用户上传文件。
+关键约定：`/` → Next.js；`/api/` → FastAPI。公开站路由在 `app/[locale]/`（next-intl）；`/admin` 无 locale 前缀，语言存 cookie。公开站主题与品牌（名称、副标题、LOGO、7 款 palette）存数据库；后台 UI 主题存 localStorage。勿提交 `.env`、密钥或用户上传文件。
 
 ## Documentation
 
@@ -13,29 +13,39 @@
 - [CONTRIBUTING](CONTRIBUTING.md): 开源贡献入口（分支、Commit、PR、提交前检查）
 - [Git 工作流](docs/git-workflow.md): 详细 Git 协作规范（Fork、Review、Squash merge、禁止事项）
 - [后端 README](backend/README.md): FastAPI API 开发、迁移、部署与排错
-- [前端 README](frontend/README.md): Next.js 页面结构、主题系统、路由与构建
+- [前端 README](frontend/README.md): Next.js 页面结构、主题系统、i18n 路由与构建
 - [部署说明](deploy/systemd/README.md): 生产环境 systemd 守护 uvicorn 与 next start
 
 ## Specifications
 
 - [产品需求文档 PRD](docs/prd-xblog.md): 功能范围、用户故事、验收标准、数据模型、API 与 Non-Goals（权威来源）
+- [AI 写作 Skill 设计](docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md): AI 助手、Skill 推荐、流式 SSE 与内置 Skill 设计说明
+- [AI 写作 Skill 实施计划](docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md): AI 功能分阶段落地计划与任务拆分
 - [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md): 提 PR 时的变更说明与测试清单
 - [LICENSE](LICENSE): MIT 许可证
 
 ## Configuration
 
-- [后端环境变量示例](backend/.env.example): SECRET_KEY、DATABASE_URL、CORS、ISR revalidate 等占位配置
+- [后端环境变量示例](backend/.env.example): SECRET_KEY、DATABASE_URL、CORS、AI 提供商、短信/OAuth、ISR revalidate 等占位配置
 - [前端环境变量示例](frontend/.env.example): 复制为 `frontend/.env`；含 BACKEND_URL、站点 URL、Giscus、REVALIDATE_SECRET
 - [后端依赖与工具链](backend/pyproject.toml): Python 包、ruff、mypy、pytest、FastAPI entrypoint
-- [前端依赖](frontend/package.json): Next.js、React、Tailwind、shadcn/ui 脚本与版本
+- [前端依赖](frontend/package.json): Next.js、React、next-intl、Tailwind、shadcn/ui 脚本与版本
 
 ## Code entry points
 
-- [API 路由聚合](backend/app/api/v1/router.py): public / auth / admin 路由注册
+- [API 路由聚合](backend/app/api/v1/router.py): public / auth / admin 路由注册（含 AI、OAuth、SMS、站点主题）
 - [FastAPI 应用入口](backend/app/main.py): 应用实例、静态上传挂载
+- [AI 网关与 SSE](backend/app/services/ai/gateway.py): 流式对话/生成、thinking 事件、Skill 注入
+- [AI Skill 读写](backend/app/services/ai/skills_io.py): Skill 上传校验、内置/自定义 Skill 目录
 - [Next.js 配置](frontend/next.config.ts): `/api/*` 代理到 BACKEND_URL
+- [i18n 路由与 locale cookie](frontend/i18n/routing.ts): 公开站 locale 定义；后台语言 cookie 常量
+- [i18n 请求配置](frontend/i18n/request.ts): 服务端 locale 解析（含 `/admin` cookie 优先）
+- [next-intl 中间件](frontend/proxy.ts): 公开站 locale 路由；`/admin` 请求头与错误前缀重定向
 - [公开站主题拉取](frontend/lib/site-theme.ts): 服务端主题与 ISR cache tag
+- [主题 palette 元数据](frontend/lib/themes.ts): 公开站与后台 7 款配色定义
 - [ISR 刷新路由](frontend/app/api/revalidate/route.ts): revalidateTag / revalidatePath 入口
+- [AI 流式 BFF](frontend/app/api/v1/admin/ai/complete/route.ts): 管理后台 AI SSE 代理
+- [AI 助手内嵌面板](frontend/components/admin/ai-assistant-panel.tsx): 对话/全文生成、思考过程展示
 - [Giscus 评论组件](frontend/components/giscus.tsx): 文章详情页 GitHub Discussions 评论
 
 ## Optional
@@ -46,5 +56,12 @@
 - [systemd API 单元](deploy/systemd/xblog-api.service): uvicorn 进程示例
 - [systemd Web 单元](deploy/systemd/xblog-web.service): next start 进程示例
 - [Alembic 初始迁移](backend/alembic/versions/001_xblog_initial.py): 数据库表结构起点
-- [主题定义](frontend/lib/themes.ts): 公开站与后台 palette 元数据
-- [全局样式与主题变量](frontend/app/globals.css): CSS 变量与 palette 块
+- [AI 表迁移](backend/alembic/versions/005_ai_tables.py): AI 提供商、Skill、用量日志
+- [短信与 OAuth 迁移](backend/alembic/versions/007_phone_sms_auth.py): 手机验证码与登录方式配置
+- [内置 Skill：对话](backend/app/data/builtin_skills/blog-chat-zh/SKILL.md): 默认中文博客对话 Skill
+- [内置 Skill：润色](backend/app/data/builtin_skills/blog-polish-zh/SKILL.md): 选区改写/扩写 Skill
+- [内置 Skill：生成](backend/app/data/builtin_skills/blog-generate-zh/SKILL.md): 全文生成 Skill
+- [i18n 文案 zh-CN](frontend/messages/zh-CN.json): 公开站与管理后台简体中文
+- [i18n 文案 zh-TW](frontend/messages/zh-TW.json): 公开站与管理后台繁体中文
+- [i18n 文案 en](frontend/messages/en.json): 公开站与管理后台英文
+- [全局样式与主题变量](frontend/app/globals.css): CSS 变量与 7 款 palette 块

@@ -6,7 +6,7 @@
 | 产品   | xblog 个人博客                              |
 | 仓库   | `git@github.com:xiongxianzhu/xblog.git` |
 | 许可证  | MIT                                     |
-| 文档版本 | v2.8 |
+| 文档版本 | v2.9 |
 | 最后更新 | 2026-07-05 |
 
 ## 技术栈速查
@@ -36,10 +36,11 @@
 | 包管理 | pnpm |
 | 框架 | Next.js App Router · React · TypeScript |
 | 样式 / UI | Tailwind CSS · **[shadcn/ui](https://ui.shadcn.com/)**（全站：公开页 + `/admin`） |
-| 公开页 | React Server Components + ISR |
-| 后台 | Client Components · Markdown 编辑器懒加载 · SWR（M2+） |
-| 主题 | 公开站 DB 统一配置 · 后台 localStorage · 双轨互不干扰 |
+| 公开页 | React Server Components + ISR · **next-intl**（`app/[locale]/`） |
+| 后台 | Client Components · Markdown 编辑器懒加载 · SWR · **无 locale 前缀**（语言存 cookie） |
+| 主题 | 公开站 DB 统一配置（7 款 palette + 站点品牌）· 后台 localStorage · 双轨互不干扰 |
 | 评论 | Giscus |
+| AI 写作 | Phase 2：后端 SSE 网关 · 内嵌 AI 助手 · Agent Skills |
 | 脚手架 | `pnpm create next-app` |
 
 ### 部署（VPS）
@@ -146,6 +147,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - [ ] `POST /api/v1/auth/login` 成功后在 HttpOnly Cookie 中写入 access + refresh token。
 - [ ] 未登录访问 `/api/v1/admin/*` 返回 **401**。
 - [ ] `POST /api/v1/auth/logout` 清除 Cookie；`GET /api/v1/auth/me` 返回当前用户。
+- [ ] **可选**：短信验证码登录（`POST /auth/sms/send-code`、`POST /auth/sms/login`）；GitHub / 微信 OAuth（`/auth/oauth/*`）；管理员在 **设置 → 登录方式** 开关各方式；未启用方式不在登录页展示。
+- [ ] 个人资料可绑定手机号（`PATCH /auth/phone`）；OAuth 绑定/解绑见 `/auth/oauth/links`。
 
 
 
@@ -169,7 +172,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] 前台路由可用：`/`、`/blog`、`/blog/[slug]`、`/tags/[slug]`、`/about`、`/projects`、`/links`、`/search`。
+- [ ] 前台路由可用（含 locale 前缀，如 `/zh-CN/blog`）：`/`、`/blog`、`/blog/[slug]`、`/tags/[slug]`、`/about`、`/projects`、`/links`、`/search`；默认 locale 可无前缀重定向。
+- [ ] 公开页顶栏提供 **语言切换**（next-intl）；后台 `/admin/*` **无** locale 前缀，语言由 cookie 控制。
 - [ ] 文章列表支持分页；标签页展示该标签下已发布文章。
 - [ ] `/about`、`/projects` 由 Page 模型驱动；友链按 `sort_order` 排序展示。
 
@@ -231,7 +235,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **公开站主题（访客统一）**
 
 - [ ] 公开页 **不提供** 访客主题切换控件；全站访客看到 **同一套** 公开站主题。
-- [ ] 管理员在 **设置 → 公开站外观** 选择配色（浅色/深色 + 预设 palette，如墨纸/深林/冷灰/墨夜等）；保存后写入后端 **`site_settings`**（键值存储）。
+- [ ] 管理员在 **设置 → 公开站外观** 选择配色（浅色/深色 + **7 款** preset palette：墨纸 / 深林 / 冷灰 / 夜读 / 石墨 / 海境 / 暮玫）；可配置 **站点名称**、**副标题**（`site_tagline`）、**LOGO**；保存后写入后端 **`site_settings`**（键值存储）。
 - [ ] 公开 API：`GET /api/v1/public/site-theme`；管理 API：`GET/PATCH /api/v1/admin/site-theme`。
 - [ ] 根布局服务端拉取公开站主题，渲染 `[data-site-shell]`、`data-site-palette` 及必要时 `dark` class；**不使用** 公开页 `localStorage` 存主题。
 - [ ] 保存公开站主题后触发 ISR revalidate（含 cache tag，如 `site-theme`），满足 SC-7；开发环境保存后刷新即可见。
@@ -256,6 +260,18 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - [ ] **`.github/`** 含 PR 模板与 Issue 模板（Bug / 功能建议）。
 - [ ] **根 `.gitignore`** 汇总 Monorepo 忽略规则（含 Python 缓存 `.venv` / `.pytest_cache` / `.ruff_cache` / `.mypy_cache`、前端 `node_modules` / `.next`、`backend/uploads/` 用户文件等）；子目录 `.gitignore` 可与根规则等效互补。
 - [ ] 环境模板仅用 `backend/.env.example`、`frontend/.env.example` 占位，**禁止**提交真实 `backend/.env`、`frontend/.env` 及用户上传内容。
+
+
+
+#### US-9：国际化与后台文案（Phase 2+）
+
+**Story**：As a 访客, I want to 切换公开页语言, so that 我能用熟悉的语言阅读；As a 管理员, I want to 后台界面与公开站使用一致的语言选项, so that 写作与配置更顺手。
+
+**Acceptance Criteria**
+
+- [ ] 公开站支持 **zh-CN**、**zh-TW**、**en**（`frontend/messages/*.json`）；路由在 `app/[locale]/` 下，由 `proxy.ts` + next-intl 处理。
+- [ ] 后台 `/admin/*` **不使用** URL locale 前缀；访问 `/{locale}/admin/*` 应重定向至 `/admin/*`；后台语言存 **`NEXT_LOCALE` cookie**，切换后刷新生效。
+- [ ] 顶栏 **语言切换** 组件在公开站与后台均可用；后台按钮宽度与文案完整显示。
 
 
 
@@ -293,8 +309,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] **P1**：文章编辑页选区工具栏支持润色、扩写、缩写、改标题；`POST /api/v1/admin/ai/complete` 返回 **SSE** 流式结果；可预览后 **替换选区**。
-- [ ] **P2**：右侧 **AI 助手** Sheet 支持多轮对话（`action=chat`），可手动选择 Skill 或接受推荐。
+- [ ] **P1**：文章 / 关于 / 作品集编辑页选区工具栏支持润色、扩写、缩写、改标题；`POST /api/v1/admin/ai/complete` 返回 **SSE** 流式结果（`delta` / `thinking` / `done` / `error`）；可预览后 **替换选区**。
+- [ ] **P2**：编辑页右侧 **内嵌 AI 助手面板**（非 Sheet）支持多轮对话（`action=chat`），可展示 **思考过程**；可手动选择 Skill 或接受推荐。
 - [ ] 所有 AI 请求经后端网关；前端不持有 Key（SC-AI-4）。
 - [ ] `ai_usage_log` 记录 action、token 用量与延迟，**不存** prompt 与文章正文。
 
@@ -306,7 +322,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] **P3**：AI 助手支持 `action=generate`（主题 + 可选大纲）。
+- [ ] **P3**：AI 助手支持 `action=generate`（主题 + 可选大纲）；**全文生成**输入区足够大以便粘贴长大纲。
 - [ ] 流式预览后可 **插入光标处** 或 **覆盖全文**（需确认）。
 - [ ] 生成内容遵循 Skill 与基础 system 约束（Markdown、不编造外链等）。
 
@@ -324,7 +340,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - 移动端 App / 小程序
 - Agent 或脚本**代生成** `backend/`、`frontend/` 基础脚手架
 - 演示站、Docker 一键包（Phase 2 可选）
-- UI 多语言 i18n（MVP 不强制）
+- 内容多语言（同一篇文章多 locale 版本并存；CMS 级翻译工作流）
 - 访客侧 AI、公开 AI API、Skill 内 **scripts 服务端执行**（Phase 2 AI 亦不做）
 - 多租户 / 多管理员独立 Key、自动发布、批量 SEO 生成
 
@@ -348,7 +364,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 ### 3.2 架构原则
 
 - **后端 AI 网关**：FastAPI 模块统一调用 LLM；前端经 Cookie 会话访问 `/api/v1/admin/ai/*`。
-- **SSE 流式**：`POST /api/v1/admin/ai/complete` 返回 `text/event-stream`（`delta` / `done` / `error`）。
+- **SSE 流式**：`POST /api/v1/admin/ai/complete` 返回 `text/event-stream`（`delta` / `thinking` / `done` / `error`）。
 - **Key 隔离**：API Key 加密存 PostgreSQL；禁止出现在前端 env、Git、PRD、日志与 usage 表正文。
 - **OpenAI 兼容为主**：Chat Completions 适配层覆盖 OpenAI、DeepSeek、智谱 GLM、MiniMax 及自定义 `base_url`。
 
@@ -518,8 +534,8 @@ SQLModel 定义（`table=True`）；多对多通过 `post_tags` 关联表。
 | **Page**       | `slug`† (`about`, `projects`), `title`, `content_md`, `content_html`, `updated_at`                                                    |
 | **FriendLink** | `name`, `url`, `logo_url?`, `sort_order`                                                                                              |
 | **PageView**   | `path`, `referrer?`, `visited_at`                                                                                                     |
-| **User**       | `username`†, `password_hash`, `avatar_url?`, `created_at`                                                                                            |
-| **SiteSetting** | `key`†, `value`（JSON 字符串）；MVP 用于 `site.theme.mode` / `site.theme.palette` 等站点级配置 |
+| **User**       | `username`†, `password_hash`, `phone?`, `avatar_url?`, `created_at`                                                                                            |
+| **SiteSetting** | `key`†, `value`（JSON 字符串）；含 `site.theme.mode` / `site.theme.palette`、`site.brand.name` / `site.brand.tagline` / `site.brand.logo_url` 等 |
 
 
 † 表示唯一约束。
@@ -541,12 +557,20 @@ SQLModel 定义（`table=True`）；多对多通过 `post_tags` 关联表。
 | GET       | `/public/links`             | 否      | 友链列表     |
 | GET       | `/public/search`            | 否      | 全文搜索     |
 | POST      | `/public/pageviews`         | 否      | 记录访问     |
-| GET       | `/public/site-theme`        | 否      | 公开站主题（mode + palette） |
-| POST      | `/auth/login`               | 否      | 登录       |
+| GET       | `/public/site-theme`        | 否      | 公开站主题（mode + palette + 站点品牌） |
+| POST      | `/auth/login`               | 否      | 用户名密码登录       |
+| GET       | `/auth/login-methods`       | 否      | 已启用的登录方式     |
+| POST      | `/auth/sms/send-code`       | 否      | 发送短信验证码       |
+| POST      | `/auth/sms/login`           | 否      | 短信验证码登录       |
+| GET       | `/auth/oauth/providers`     | 否      | OAuth 提供商列表     |
+| GET/POST  | `/auth/oauth/*`             | 否/是   | GitHub / 微信 OAuth 与绑定 |
 | POST      | `/auth/logout`              | 是      | 登出       |
 | POST      | `/auth/refresh`             | Cookie | 刷新 token |
 | GET       | `/auth/me`                  | 是      | 当前用户     |
+| PATCH     | `/auth/phone`               | 是      | 绑定手机号   |
 | *         | `/admin/posts`…             | 是      | 文章 CRUD  |
+| GET/PATCH | `/admin/auth-settings`      | 是      | 登录方式开关 |
+| *         | `/admin/ai/providers`…      | 是      | AI 提供商 / Skill / SSE complete |
 | GET/PATCH | `/admin/pages/{slug}`       | 是      | 固定页编辑    |
 | *         | `/admin/links`…             | 是      | 友链 CRUD  |
 | GET/PATCH | `/admin/site-theme`         | 是      | 公开站主题读写；保存后触发 ISR |
@@ -585,6 +609,9 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 |------|------|
 | `REVALIDATE_URL` | 前端 revalidate 路由完整 URL（如本机或生产域名下的 `/api/revalidate`） |
 | `REVALIDATE_SECRET` | 与 frontend 相同密钥，供后端触发 ISR 时使用 |
+| `AI_KEY_ENCRYPTION_SECRET` | AI 提供商 Key 加密（留空则派生自 `SECRET_KEY`） |
+| `GITHUB_*` / `WECHAT_*` | OAuth 客户端凭据（可选） |
+| `SMS_PROVIDER` 等 | 短信验证码（开发默认 `dev`，验证码写日志） |
 
 占位与说明见 `backend/.env.example`；**禁止**在 PRD 中填写真实密钥、数据库密码或 API Key。
 
@@ -640,7 +667,9 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | DOM 作用域 | `[data-site-shell]` · `data-site-palette` | `[data-admin-shell]` |
 | 访客可见 | 是，全站一致 | 否（仅登录后 admin 区域） |
 
-**公开站 preset palette（MVP）**：至少支持 4 套命名预设（如墨纸、深林、冷灰、墨夜），每套含 light/dark 模式；具体 CSS 变量在 `globals.css` 与前端主题定义中维护。
+**公开站 preset palette**：**7 款**统一 ID（`editorial` / `forest` / `slate` / `ink` / `graphite` / `ocean` / `rose`），公开站与后台各提供相同 7 款选项；每套含 light/dark 模式。CSS 变量在 `globals.css` 与 `frontend/lib/themes.ts` 维护。
+
+**站点品牌**：`site_name`、`site_tagline`（副标题，如默认「Ink & Paper」）、`site_logo_url` 经 `GET/PATCH /admin/site-theme` 与公开 API 下发。
 
 **后台壳层 UI**：侧边栏导航（文章、页面、友链、用户、设置等）、顶栏（折叠侧栏、毛玻璃、标题区、**头像**菜单）、主内容区 **全宽**；设置页分区展示「公开站外观」与「后台外观」，避免混淆。
 
@@ -664,8 +693,8 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | **M2**           | 前端 MVP | 作者初始化 `frontend/`；公开页 ISR、admin 登录与文章 CRUD                                 |
 | **M3**           | 内容与发现  | Page、FriendLink、搜索、RSS、sitemap、PageView                                    |
 | **M4**           | 部署与开源  | `deploy/`、文档体系（README / AGENT / CONTRIBUTING / llms.txt / git-workflow）、`.github` 模板、VPS + HTTPS 跑通 SC-5～SC-9 |
-| **M5 — Phase 2a** | AI 写作 P1 | 提供商 CRUD + 激活 + test；Skill 管理 + 校验；选区 AI + SSE；SC-AI-1/2/4/5 |
-| **M6 — Phase 2b** | AI 写作 P2/P3 | 对话改稿；全文生成；SC-AI-3 |
+| **M5 — Phase 2a** | AI 写作 P1 | 提供商 CRUD + 激活 + test；Skill 管理 + 校验；选区 AI + SSE；SC-AI-1/2/4/5 · **已实现** |
+| **M6 — Phase 2b** | AI 写作 P2/P3 + 增强 | 内嵌 AI 助手 + 思考流；全文生成；i18n；短信/OAuth；7 款主题与站点品牌 · **已实现** |
 | **M7 — Phase 2c** | 其它增强 | openapi-typescript、标签 CRUD 页、封面上传、Umami、Docker Compose、Demo 站 |
 
 
@@ -1209,6 +1238,7 @@ psql -U xblog -d xblog -h localhost -c "SELECT 1;"
 
 | 版本   | 日期         | 说明                                                                |
 | ---- | ---------- | ----------------------------------------------------------------- |
+| v2.9 | 2026-07-05 | 同步实现：**US-9** i18n（公开站 `[locale]`、后台 cookie）；**US-1** 短信/OAuth；**US-7** 7 款 palette + 站点品牌；**US-AI-3** 内嵌 AI 面板 + thinking SSE；关于/作品集 AI；Non-Goals 调整内容多语言 |
 | v2.8 | 2026-07-05 | **Phase 2 AI 写作**：§3 AI System Requirements；**US-AI-1～4**、**SC-AI-1～5**；路线图 **M5/M6/M7**；关联 design spec 与 implementation plan |
 | v2.7 | 2026-07-05 | 同步 **Giscus** 实现细节与 env 清单；**US-8** 扩展 CONTRIBUTING / git-workflow / llms.txt / `.github` 模板；**SC-9**；§3 明确 llms.txt 定位 |
 | v2.6 | 2026-07-05 | 新增 **US-7** 后台壳层与双轨主题、**US-8** 文档与 `.gitignore`；**SC-7/SC-8**；`SiteSetting` 与 site-theme API；ISR 主题缓存与 env 说明（不含敏感值） |

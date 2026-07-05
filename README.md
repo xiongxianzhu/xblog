@@ -7,7 +7,7 @@
 
 <p align="center">
   <strong>可自托管的个人博客 Monorepo</strong><br/>
-  <sub>FastAPI 后端 · Next.js 前端 · Markdown 写作 · Giscus 评论 · MIT 开源</sub>
+  <sub>FastAPI 后端 · Next.js 前端 · Markdown 写作 · AI 助手 · Giscus 评论 · MIT 开源</sub>
 </p>
 
 <p align="center">
@@ -59,8 +59,11 @@
 | | 能力 | 说明 |
 |:---:|:---|:---|
 | ✍️ | **在线写作** | 浏览器 Markdown 编辑，发布即前台可见 |
+| 🤖 | **AI 写作助手** | 选区润色/扩写、内嵌对话改稿、全文生成；Agent Skills；SSE 流式 |
+| 🌐 | **多语言** | 公开站 `zh-CN` / `zh-TW` / `en`（next-intl）；后台文案 cookie 切换 |
 | 🔍 | **SEO 友好** | SSR/ISR、sitemap、RSS、结构化 metadata |
-| 🎨 | **双主题体系** | 公开站主题（后台统一配置）与后台主题（本地偏好）分离 |
+| 🎨 | **双主题体系** | 公开站 7 款 palette + 站点品牌（后台配置）；后台 UI 主题（本地偏好） |
+| 🔐 | **灵活登录** | 用户名密码 · 短信验证码 · GitHub/微信 OAuth（后台可开关） |
 | 🖥 | **管理后台** | 可折叠侧栏、毛玻璃顶栏、2px 扁平风、全宽主内容、头像与设置 |
 | 💬 | **Giscus 评论** | 文章详情页 GitHub Discussions 评论（env 配置，可选） |
 | 🏠 | **自托管** | nginx + systemd + PostgreSQL，数据在自己手里 |
@@ -74,7 +77,7 @@
 ```mermaid
 flowchart LR
   subgraph Browser["浏览器"]
-    P["公开页 /"]
+    P["公开页 /[locale]"]
     A["后台 /admin"]
   end
 
@@ -132,8 +135,9 @@ pnpm install && pnpm dev
 
 | 地址 | 用途 |
 |------|------|
-| <http://localhost:3000> | 公开站 |
-| <http://localhost:3000/admin> | 管理后台 |
+| <http://localhost:3000> | 公开站（默认 locale） |
+| <http://localhost:3000/zh-TW/blog> | 公开站（指定语言） |
+| <http://localhost:3000/admin> | 管理后台（无 locale 前缀） |
 
 > 💡 后端端口非 `8000` 时，在 `frontend/.env` 设置 `BACKEND_URL`。
 
@@ -159,7 +163,7 @@ pnpm dev
 | 语言 | Python 3.14 |
 | 框架 | FastAPI |
 | ORM | SQLModel · Alembic |
-| 认证 | Cookie + JWT · bcrypt |
+| 认证 | Cookie + JWT · bcrypt · 短信 · OAuth |
 | 数据库 | PostgreSQL |
 | 工具链 | uv · ruff · mypy · pytest |
 
@@ -170,9 +174,10 @@ pnpm dev
 | 类别 | 技术 |
 |------|------|
 | 框架 | Next.js 16 · React 19 · TS |
+| 国际化 | next-intl · `app/[locale]/` · `messages/*.json` |
 | 样式 | Tailwind CSS 4 · shadcn/ui |
 | 公开页 | RSC + ISR |
-| 后台 | Client Components · SWR |
+| 后台 | Client Components · SWR · AI 内嵌面板 |
 | 评论 | Giscus（GitHub Discussions） |
 
 <p align="center"><sub><b>部署</b>：nginx · uvicorn · next start · systemd</sub></p>
@@ -250,6 +255,8 @@ git push -u origin feat/your-feature
 | 公开页主题不生效 | `REVALIDATE_SECRET` 未配或缓存 | 对齐前后端密钥；开发环境硬刷新 |
 | 评论不显示 | 未配置 `NEXT_PUBLIC_GISCUS_*` | 复制 `frontend/.env.example` → `.env` 并重启 |
 | 前端 API 404 | 后端未启动 / `BACKEND_URL` 错误 | `make dev` + 检查 `frontend/.env` |
+| `/zh-TW/admin` 404 | 后台不应带 locale 前缀 | 访问 `/admin`；`proxy.ts` 会重定向 |
+| 后台切换语言无效 | cookie 未写入 | 确认 `locale-switcher` + 刷新页面 |
 | 迁移失败 | PostgreSQL 未就绪 | 检查 `DATABASE_URL` |
 
 <p align="center">主题相关 → <a href="AGENT.md#-主题系统易踩坑"><b>AGENT.md · 主题系统</b></a></p>

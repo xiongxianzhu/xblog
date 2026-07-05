@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/xiongxianzhu/xblog"><img src="https://img.shields.io/badge/GitHub-xblog-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/></a>
-  <a href="docs/prd-xblog.md"><img src="https://img.shields.io/badge/PRD-v2.6-B54A3A?style=for-the-badge" alt="PRD v2.6"/></a>
+  <a href="docs/prd-xblog.md"><img src="https://img.shields.io/badge/PRD-v2.9-B54A3A?style=for-the-badge" alt="PRD v2.9"/></a>
   <a href="https://github.com/xiongxianzhu/xblog/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT"/></a>
 </p>
 
@@ -59,7 +59,7 @@
 | | 部分 | 路径 | 职责 |
 |:-:|:---|:---|:---|
 | 🔧 | 后端 API | `backend/` | FastAPI · PostgreSQL · JWT Cookie · Markdown |
-| 🌐 | 前端站点 | `frontend/` | Next.js 公开页（RSC + ISR）+ `/admin` |
+| 🌐 | 前端站点 | `frontend/` | Next.js 公开页（`app/[locale]/` + ISR）+ `/admin`（无 locale） |
 | 🚀 | 部署 | `deploy/` | nginx · systemd 示例 |
 | 📋 | 需求文档 | `docs/prd-xblog.md` | 产品与技术决策的**权威来源** |
 
@@ -130,18 +130,21 @@ xblog/
 ├── AGENT.md                 ← 本文件
 ├── backend/
 │   ├── app/
-│   │   ├── api/v1/          # public · admin · auth
+│   │   ├── api/v1/          # public · admin · auth · ai
 │   │   ├── core/            # config · security
 │   │   ├── db/              # session
 │   │   ├── models/          # SQLModel
 │   │   ├── schemas/         # Pydantic
-│   │   └── services/        # 业务逻辑
-│   ├── alembic/
+│   │   └── services/        # 业务逻辑 · ai/ · revalidate …
+│   ├── alembic/             # 001–008 迁移
 │   └── tests/
 ├── frontend/
-│   ├── app/                 # App Router
+│   ├── app/                 # App Router · [locale]/ · admin/
 │   ├── components/          # site/ · admin/ · ui/
-│   └── lib/                 # api · themes · site-theme
+│   ├── i18n/                # next-intl 路由与 request
+│   ├── messages/            # zh-CN · zh-TW · en 文案
+│   ├── proxy.ts             # locale 中间件 · admin 重定向
+│   └── lib/                 # api · themes · site-theme · ai-api
 └── deploy/
 ```
 
@@ -153,9 +156,9 @@ xblog/
 
 | 前缀 | 认证 | 用途 |
 |------|:----:|------|
-| `/api/v1/public/*` | 无 | 文章、搜索、友链、公开站主题 |
-| `/api/v1/auth/*` | 登录流 | Cookie + JWT 签发/刷新 |
-| `/api/v1/admin/*` | 管理员 Cookie | CRUD、用户、站点设置 |
+| `/api/v1/public/*` | 无 | 文章、搜索、友链、公开站主题与品牌 |
+| `/api/v1/auth/*` | 登录流 | Cookie + JWT · 短信 · OAuth · 资料 |
+| `/api/v1/admin/*` | 管理员 Cookie | CRUD、用户、站点设置、AI 网关 |
 
 > ⚠️ **写操作只放 admin**。不要在 public 路由暴露 POST/PATCH/DELETE。
 
@@ -167,8 +170,8 @@ xblog/
 
 | 范围 | 存储 | DOM 作用域 |
 |------|------|-----------|
-| 公开站 | DB `site_settings` + API | `[data-site-shell]` · `data-site-palette` |
-| 管理后台 | `localStorage` `xblog-admin-theme-v2` | `[data-admin-shell]` |
+| 公开站 | DB `site_settings` + API | `[data-site-shell]` · `data-site-palette` · 站点名称/副标题/LOGO |
+| 管理后台 | `localStorage` `xblog-admin-theme-v2` | `[data-admin-shell]` · **7 款** palette（与公开站 ID 一致） |
 
 ### 刷新链路
 
@@ -201,7 +204,21 @@ sequenceDiagram
 | [`frontend/lib/site-theme.ts`](frontend/lib/site-theme.ts) | 服务端拉取 + 缓存 tag |
 | [`frontend/app/api/revalidate/route.ts`](frontend/app/api/revalidate/route.ts) | ISR 回调 |
 | [`backend/app/services/revalidate.py`](backend/app/services/revalidate.py) | 触发 revalidate |
-| [`backend/app/services/site_settings.py`](backend/app/services/site_settings.py) | 读写主题 |
+| [`frontend/lib/themes.ts`](frontend/lib/themes.ts) | 7 款 palette 元数据 |
+| [`backend/app/services/site_settings.py`](backend/app/services/site_settings.py) | 读写主题与站点品牌 |
+
+---
+
+## 🌍 国际化（i18n）
+
+| 区域 | 路由 | 语言解析 |
+|------|------|----------|
+| 公开站 | `app/[locale]/…` | URL locale + next-intl |
+| 管理后台 | `/admin/*`（**无** locale 前缀） | `NEXT_LOCALE` cookie · `i18n/request.ts` |
+
+- `proxy.ts`：将 `/{locale}/admin/*` **重定向**至 `/admin/*`；admin 请求注入 `x-pathname`。
+- 文案：`frontend/messages/{zh-CN,zh-TW,en}.json`；切换见 `locale-switcher.tsx` + `locale-actions.ts`。
+- **勿**在 admin 路由下加 `[locale]` 段。
 
 ---
 
@@ -217,6 +234,9 @@ sequenceDiagram
 | `CORS_ORIGINS` | 开发默认 `http://localhost:3000` |
 | `REVALIDATE_SECRET` | 与 frontend 一致 |
 | `REVALIDATE_URL` | 如 `http://localhost:3000/api/revalidate` |
+| `AI_KEY_ENCRYPTION_SECRET` | AI Key 加密（可选） |
+| `GITHUB_CLIENT_*` / `WECHAT_*` | OAuth（可选） |
+| `SMS_PROVIDER` | 短信验证码；开发用 `dev`（验证码打日志） |
 
 模板 → [`backend/.env.example`](backend/.env.example)
 
@@ -293,18 +313,29 @@ docs: 补充 Git 工作流与贡献指南
 <details>
 <summary><strong>新增公开页路由</strong></summary>
 
-1. `frontend/app/<route>/page.tsx`
+1. `frontend/app/[locale]/<route>/page.tsx`
 2. SEO：metadata + sitemap 联动
-3. 样式走 `globals.css` site 变量，避免硬编码颜色
+3. 文案加入 `messages/*.json`
+4. 样式走 `globals.css` site 变量，避免硬编码颜色
 
 </details>
 
 <details>
 <summary><strong>新增后台菜单</strong></summary>
 
-1. `components/admin/admin-shell.tsx` 导航项
+1. `lib/admin-nav.ts` 导航项
 2. `app/admin/(shell)/<page>/page.tsx`
 3. 对应 admin API + Cookie 权限
+
+</details>
+
+<details>
+<summary><strong>AI 助手相关</strong></summary>
+
+- 后端：`services/ai/gateway.py` · `POST /admin/ai/complete`（SSE：`delta` / `thinking` / `done`）
+- 前端 BFF：`app/api/v1/admin/ai/complete/route.ts`
+- UI：`components/admin/ai-assistant-panel.tsx`（文章 / 关于 / 作品集编辑页内嵌）
+- 改 Skill 默认：`ai_skill_default` 表 + 设置页
 
 </details>
 

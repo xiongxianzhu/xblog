@@ -6,8 +6,8 @@
 <h1 align="center">xblog Web</h1>
 
 <p align="center">
-  <strong>Next.js 公开站 + <code>/admin</code> 写作后台</strong><br/>
-  <sub>RSC · ISR · Tailwind CSS 4 · shadcn/ui</sub>
+  <strong>Next.js 公开站（i18n）+ <code>/admin</code> 写作后台</strong><br/>
+  <sub>RSC · ISR · next-intl · Tailwind CSS 4 · shadcn/ui</sub>
 </p>
 
 <p align="center">
@@ -53,11 +53,12 @@
 
 | | 区域 | 路径 | 渲染 |
 |:-:|:---|:---|:---|
-| 🏠 | 公开站 | `/` · `/blog` · `/search` … | RSC + ISR |
-| ⚙️ | 管理后台 | `/admin/*` | Client Components + SWR |
+| 🏠 | 公开站 | `/[locale]/` · `/blog` · `/search` … | RSC + ISR · next-intl |
+| ⚙️ | 管理后台 | `/admin/*`（无 locale 前缀） | Client Components + SWR + AI 内嵌面板 |
 | 📡 | ISR 回调 | `/api/revalidate` | Route Handler |
+| 🤖 | AI BFF | `/api/v1/admin/ai/complete` | SSE 代理至后端 |
 
-<p align="center"><sub><b>主题</b>：公开站由后台统一配置 · 后台 UI 主题存 <code>localStorage</code> · 互不干扰</sub></p>
+<p align="center"><sub><b>主题</b>：公开站 7 款 palette + 站点品牌（DB）· 后台 UI 主题存 <code>localStorage</code> · 互不干扰</sub></p>
 
 ---
 
@@ -107,22 +108,30 @@ pnpm lint && pnpm build && pnpm start
 
 ```text
 app/
-├── layout.tsx              # 根布局 · 拉取公开站主题
-├── page.tsx                # 首页
-├── blog/                   # 列表 + [slug] 详情
+├── [locale]/               # 公开站（next-intl）
+│   ├── layout.tsx          # locale 布局 · 语言切换
+│   ├── page.tsx            # 首页
+│   └── blog/ · search/ …
 ├── admin/
 │   ├── (public)/           # 登录页
-│   └── (shell)/            # 后台主界面
-├── api/revalidate/         # ISR 刷新
+│   └── (shell)/            # 后台主界面 · AI 模型/Skill
+├── api/
+│   ├── revalidate/         # ISR 刷新
+│   └── v1/admin/ai/complete/  # AI SSE BFF
 ├── sitemap.ts · rss.xml/
 components/
 ├── site/                   # 公开页组件
-├── admin/                  # 壳层 · 面板 · 主题设置
+├── admin/                  # 壳层 · ai-assistant-panel · 主题设置
 └── ui/                     # shadcn/ui
+i18n/                       # routing.ts · request.ts
+messages/                   # zh-CN.json · zh-TW.json · en.json
 lib/
-├── api.ts                  # 数据请求
-├── themes.ts               # 主题定义
-└── site-theme.ts           # 服务端主题 + cache tag
+├── api.ts · ai-api.ts      # 数据与 AI 请求
+├── themes.ts               # 7 款 palette
+├── site-theme.ts           # 服务端主题 + cache tag
+├── locale-actions.ts       # 后台语言 cookie
+└── admin-nav.ts            # 侧栏导航
+proxy.ts                    # locale 中间件 · /admin 重定向
 ```
 
 ---
@@ -131,8 +140,10 @@ lib/
 
 | 范围 | 配置入口 | DOM |
 |------|----------|-----|
-| 🌐 公开站 | 后台 **设置 → 公开站外观** | `[data-site-shell]` · `data-site-palette` |
-| 🖥 管理后台 | 后台 **设置 → 后台外观** | `[data-admin-shell]` · `localStorage` |
+| 🌐 公开站 | 后台 **设置 → 公开站外观** | `[data-site-shell]` · `data-site-palette` · 7 款配色 + 站点名称/副标题/LOGO |
+| 🖥 管理后台 | 后台 **设置 → 后台外观** | `[data-admin-shell]` · 同款 7 palette · `localStorage` |
+
+**Palette ID**：`editorial` · `forest` · `slate` · `ink` · `graphite` · `ocean` · `rose`（中英文标签见 `lib/themes.ts`）
 
 CSS 变量 → [`app/globals.css`](app/globals.css)
 
@@ -145,17 +156,29 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 
 ---
 
+## 国际化（i18n）
+
+| 区域 | 约定 |
+|------|------|
+| 公开站 | 路由 `app/[locale]/…`；locale 来自 URL；文案 `messages/*.json` |
+| 管理后台 | 路径 **不含** locale；语言存 `NEXT_LOCALE` cookie |
+| 中间件 | `proxy.ts` 处理 locale 前缀；`/{locale}/admin/*` → `/admin/*` |
+
+顶栏 **语言切换**：公开站走 next-intl router；后台写 cookie 后 `router.refresh()`。
+
+---
+
 ## 主要路由
 
 | 路径 | 类型 | 说明 |
 |------|:----:|------|
-| `/` | ISR | 首页 |
-| `/blog` · `/blog/[slug]` | ISR | 文章 |
-| `/search` | ISR | 站内搜索 |
-| `/projects` · `/links` · `/about` | ISR | 内容页 |
-| `/tags/[slug]` | ISR | 标签归档 |
+| `/` 或 `/[locale]` | ISR | 首页 |
+| `/[locale]/blog` · `/blog/[slug]` | ISR | 文章 |
+| `/[locale]/search` | ISR | 站内搜索 |
+| `/[locale]/projects` · `/links` · `/about` | ISR | 内容页 |
+| `/[locale]/tags/[slug]` | ISR | 标签归档 |
 | `/admin` | 动态 | 登录 |
-| `/admin/dashboard` 等 | Client | 后台模块 |
+| `/admin/dashboard` · `/admin/ai/*` 等 | Client | 后台模块 |
 | `/rss.xml` · `/sitemap.xml` | 动态 | 订阅 · SEO |
 
 ---
@@ -165,13 +188,16 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 ```text
 公开页（RSC）  ──fetch──→  /api/v1/public/*
 后台（Client） ──SWR───→  /api/v1/admin/*   （Cookie 自动携带）
+AI 流式       ──BFF────→  /api/v1/admin/ai/complete → 后端 SSE
 内容发布/主题  ──后端───→  POST /api/revalidate → revalidateTag
 ```
 
 | 文件 | 职责 |
 |------|------|
 | [`lib/api.ts`](lib/api.ts) | 公开/后台 API 封装 |
-| [`lib/site-theme.ts`](lib/site-theme.ts) | 根布局主题拉取 |
+| [`lib/ai-api.ts`](lib/ai-api.ts) | AI SSE 客户端 |
+| [`lib/site-theme.ts`](lib/site-theme.ts) | 根布局主题与品牌拉取 |
+| [`components/admin/ai-assistant-panel.tsx`](components/admin/ai-assistant-panel.tsx) | 内嵌 AI 助手（对话/生成/思考过程） |
 | [`app/api/revalidate/route.ts`](app/api/revalidate/route.ts) | ISR 入口 |
 
 ---
@@ -182,6 +208,9 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 |------|------|
 | API 请求失败 | 确认 `make dev` 运行中 + `BACKEND_URL` 正确 |
 | 公开页主题不变 | 开发：硬刷新；生产：检查 `REVALIDATE_SECRET` |
+| `/zh-TW/admin` 404 | 应访问 `/admin`；勿在 admin 路径加 locale |
+| 后台切换语言无效 | 检查 cookie · 刷新页面 · 见 `i18n/request.ts` |
+| AI 无流式输出 | 确认提供商已激活 · 浏览器 Network 看 SSE |
 | `pnpm build` 失败 | `pnpm lint` 查看 TS/ESLint 报错 |
 | `.next` 异常 | 删除 `.next/` 后重新 `pnpm dev` |
 
