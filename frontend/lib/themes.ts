@@ -2,9 +2,11 @@ export type ColorMode = "light" | "dark" | "system";
 
 export type ResolvedColorMode = "light" | "dark";
 
-export type SitePaletteId = "editorial" | "forest" | "slate" | "ink";
+export type ThemePaletteId = "editorial" | "forest" | "slate" | "ink" | "graphite" | "ocean" | "rose";
 
-export type AdminPaletteId = "editorial" | "slate" | "forest" | "graphite";
+export type SitePaletteId = ThemePaletteId;
+
+export type AdminPaletteId = ThemePaletteId;
 
 export type ThemeSettings<P extends string> = {
   mode: ColorMode;
@@ -23,14 +25,30 @@ export type SitePublicColorMode = "light" | "dark";
 export type SitePublicTheme = {
   mode: SitePublicColorMode;
   palette: SitePaletteId;
+  site_name: string;
+  site_tagline: string;
+  site_logo_url: string | null;
 };
 
 export const DEFAULT_SITE_THEME: SitePublicTheme = {
   mode: "light",
   palette: "editorial",
+  site_name: "xblog",
+  site_tagline: "Ink & Paper",
+  site_logo_url: null,
 };
 
 export const ADMIN_THEME_STORAGE_KEY = "xblog-admin-theme-v2";
+
+export const THEME_PALETTE_IDS: ThemePaletteId[] = [
+  "editorial",
+  "forest",
+  "slate",
+  "ink",
+  "graphite",
+  "ocean",
+  "rose",
+];
 
 export const SITE_PALETTES: PaletteMeta<SitePaletteId>[] = [
   {
@@ -57,32 +75,68 @@ export const SITE_PALETTES: PaletteMeta<SitePaletteId>[] = [
     description: "近单色与墨黑强调，偏编辑刊物感。",
     swatch: ["#fafafa", "#262626", "#0a0a0a"],
   },
+  {
+    id: "graphite",
+    label: "石墨",
+    description: "中性灰搭配琥珀强调，信息层次清晰。",
+    swatch: ["#f5f5f6", "#ea580c", "#18181b"],
+  },
+  {
+    id: "ocean",
+    label: "海境",
+    description: "青蓝与雾白，清爽通透的阅读感。",
+    swatch: ["#f0f8fa", "#1d8a8a", "#12343b"],
+  },
+  {
+    id: "rose",
+    label: "暮玫",
+    description: "灰底与玫红强调，偏文艺与杂志感。",
+    swatch: ["#faf5f6", "#b84a62", "#2a1418"],
+  },
 ];
 
 export const ADMIN_PALETTES: PaletteMeta<AdminPaletteId>[] = [
   {
     id: "editorial",
-    label: "墨纸工作台",
+    label: "墨纸",
     description: "与公开站一致的暖色编辑风格。",
     swatch: ["#f7f3eb", "#b54a3a", "#2a211c"],
   },
   {
     id: "slate",
-    label: "冷灰科技",
+    label: "冷灰",
     description: "偏 Linear 的冷灰界面，默认推荐。",
     swatch: ["#f4f6fa", "#3b82f6", "#0f172a"],
   },
   {
     id: "forest",
-    label: "森绿",
+    label: "深林",
     description: "低饱和绿色，长时间使用更护眼。",
     swatch: ["#f2f6f3", "#3d8b6a", "#14241c"],
+  },
+  {
+    id: "ink",
+    label: "夜读",
+    description: "近单色界面，减少色彩干扰。",
+    swatch: ["#fafafa", "#262626", "#0a0a0a"],
   },
   {
     id: "graphite",
     label: "石墨",
     description: "中性灰搭配琥珀强调，信息层次清晰。",
     swatch: ["#f5f5f6", "#ea580c", "#18181b"],
+  },
+  {
+    id: "ocean",
+    label: "海境",
+    description: "青蓝工作台，清爽不刺眼。",
+    swatch: ["#f0f8fa", "#1d8a8a", "#12343b"],
+  },
+  {
+    id: "rose",
+    label: "暮玫",
+    description: "灰底玫红强调，偏编辑与内容创作。",
+    swatch: ["#faf5f6", "#b84a62", "#2a1418"],
   },
 ];
 
@@ -161,4 +215,8 @@ export function isSitePaletteId(value: string): value is SitePaletteId {
 
 export function isAdminPaletteId(value: string): value is AdminPaletteId {
   return ADMIN_PALETTE_IDS.has(value);
+}
+
+export function isThemePaletteId(value: string): value is ThemePaletteId {
+  return SITE_PALETTE_IDS.has(value);
 }

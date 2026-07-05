@@ -15,6 +15,7 @@ settings = get_settings()
 ALGORITHM = "HS256"
 ACCESS_COOKIE = "xblog_access"
 REFRESH_COOKIE = "xblog_refresh"
+OAUTH_STATE_COOKIE = "xblog_oauth_state"
 
 
 def hash_password(password: str) -> str:

@@ -62,7 +62,7 @@ export function GiscusComments({ theme = "light" }: GiscusCommentsProps) {
   if (!isGiscusConfigured()) {
     return (
       <p className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-        评论尚未启用。在 <code className="text-foreground">frontend/.env.local</code> 配置 Giscus 环境变量后重启开发服务器。
+        评论尚未启用。在 <code className="text-foreground">frontend/.env</code> 配置 Giscus 环境变量后重启开发服务器。
         <br />
         <span className="mt-2 inline-block text-xs">
           配置指南见{" "}

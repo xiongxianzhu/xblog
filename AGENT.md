@@ -19,6 +19,10 @@
 </p>
 
 <p align="center">
+  <a href="CONTRIBUTING.md"><b>贡献指南</b></a>
+  &nbsp;·&nbsp;
+  <a href="docs/git-workflow.md"><b>Git 工作流</b></a>
+  &nbsp;·&nbsp;
   <a href="README.md"><b>根 README</b></a>
   &nbsp;·&nbsp;
   <a href="docs/prd-xblog.md"><b>PRD</b></a>
@@ -73,7 +77,7 @@
 
 | 🚫 禁止提交 | 说明 |
 |------------|------|
-| `.env`、`.env.local` | 含密钥与连接串 |
+| `backend/.env`、`frontend/.env` | 含密钥与连接串 |
 | `uploads/` 用户文件 | 仅保留 `.gitkeep` |
 | 真实用户数据 | 隐私与合规 |
 
@@ -219,14 +223,14 @@ sequenceDiagram
 </details>
 
 <details>
-<summary><strong>frontend/.env.local</strong>（可选）</summary>
+<summary><strong>frontend/.env</strong>（复制 <code>.env.example</code>）</summary>
 
 | 变量 | 说明 |
 |------|------|
 | `BACKEND_URL` | 服务端 fetch 与 rewrite 目标 |
 | `REVALIDATE_SECRET` | 与 backend 一致 |
 | `NEXT_PUBLIC_SITE_URL` | sitemap、RSS 绝对 URL |
-| `NEXT_PUBLIC_GISCUS_*` | Giscus 评论（可选） |
+| `NEXT_PUBLIC_GISCUS_*` | Giscus 评论（可选，见 `.env.example` 完整字段） |
 
 </details>
 
@@ -234,19 +238,25 @@ sequenceDiagram
 
 ## 🌿 Git 规范
 
+> 完整流程见 [CONTRIBUTING.md](CONTRIBUTING.md) · [docs/git-workflow.md](docs/git-workflow.md)
+
 | 类型 | 分支示例 |
 |------|----------|
 | 新功能 | `feat/<功能名>` |
 | 修复 | `fix/<问题描述>` |
 | 文档 | `docs/<主题>` |
+| 重构 | `refactor/<描述>` |
+| 其他 | `chore/` · `test/` · `ci/` · `build/` |
 
-**Commit**：Conventional Commits，**描述用简体中文**。
+**Commit**：Conventional Commits，**描述用简体中文**；可选范围如 `feat(backend):`、`fix(frontend):`。
 
 ```text
 feat: 支持公开站主题预设
-fix: 修复保存主题后 ISR 未刷新
-docs: 完善 AGENT.md 与 README
+fix(frontend): 修复 Giscus 环境变量未生效
+docs: 补充 Git 工作流与贡献指南
 ```
+
+**PR**：从 `main` 切分支 → 本地检查 → 开 PR → Squash merge。使用 [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md)。
 
 ### Agent 行为准则
 

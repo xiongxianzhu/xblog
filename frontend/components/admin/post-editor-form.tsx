@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
+import { AiAssistantPanel } from "@/components/admin/ai-assistant-panel";
+import { AiSelectionToolbar } from "@/components/admin/ai-selection-toolbar";
+import { MarkdownEditor } from "@/components/admin/markdown-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type PostFormValues = {
   title: string;
@@ -22,6 +29,7 @@ type PostFormValues = {
 type Props = {
   initial?: Partial<PostFormValues>;
   onSubmit: (values: Record<string, unknown>) => Promise<void>;
+  onSuccess?: (status: "draft" | "published") => void;
 };
 
 const defaultValues: PostFormValues = {
@@ -34,11 +42,16 @@ const defaultValues: PostFormValues = {
   tag_slugs: [],
 };
 
-export function PostEditorForm({ initial, onSubmit }: Props) {
+export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
+  const tFeedback = useTranslations("admin.feedback");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [values, setValues] = useState<PostFormValues>({ ...defaultValues, ...initial });
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [tagsInput, setTagsInput] = useState((initial?.tag_slugs ?? []).join(", "));
-  const [loading, setLoading] = useState(false);
+  const [activeSubmit, setActiveSubmit] = useState<"draft" | "published" | null>(null);
   const [pendingStatus, setPendingStatus] = useState<"draft" | "published">(initial?.status ?? "draft");
+
+  const submitting = activeSubmit !== null;
 
   function updateField<K extends keyof PostFormValues>(key: K, value: PostFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -46,11 +59,12 @@ export function PostEditorForm({ initial, onSubmit }: Props) {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setLoading(true);
+    const status = pendingStatus;
+    setActiveSubmit(status);
     try {
       await onSubmit({
         ...values,
-        status: pendingStatus,
+        status,
         excerpt: values.excerpt || null,
         cover_url: values.cover_url || null,
         tag_slugs: tagsInput
@@ -58,9 +72,54 @@ export function PostEditorForm({ initial, onSubmit }: Props) {
           .map((tag) => tag.trim())
           .filter(Boolean),
       });
+      setValues((prev) => ({ ...prev, status }));
+      const title = values.title.trim() || "未命名";
+      toast.success(status === "published" ? tFeedback("published") : tFeedback("draftSaved"), {
+        description:
+          status === "published" ? `文章「${title}」已发布。` : `文章「${title}」已保存为草稿。`,
+      });
+      onSuccess?.(status);
+    } catch (err) {
+      toast.error(status === "published" ? tFeedback("publishFailed") : tFeedback("saveFailed"), {
+        description: err instanceof Error ? err.message : "请稍后重试",
+      });
     } finally {
-      setLoading(false);
+      setActiveSubmit(null);
     }
+  }
+
+  function applyAiSelection(next: string, range: { start: number; end: number }) {
+    const current = values.content_md;
+    const updated = current.slice(0, range.start) + next + current.slice(range.end);
+    updateField("content_md", updated);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      const cursor = range.start + next.length;
+      el.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  function insertAtCursor(text: string) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const current = values.content_md;
+    const insert = text.endsWith("\n") ? text : `${text}\n`;
+    const updated = current.slice(0, start) + insert + current.slice(end);
+    updateField("content_md", updated);
+    requestAnimationFrame(() => {
+      el.focus();
+      const cursor = start + insert.length;
+      el.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  function replaceContent(text: string) {
+    updateField("content_md", text);
+    requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
   return (
@@ -104,22 +163,76 @@ export function PostEditorForm({ initial, onSubmit }: Props) {
             <Separator />
 
             <Field>
-              <FieldLabel htmlFor="content_md">Markdown 正文</FieldLabel>
-              <Textarea
-                id="content_md"
-                value={values.content_md}
-                onChange={(e) => updateField("content_md", e.target.value)}
-                className="min-h-[420px] font-mono text-sm leading-relaxed"
-                required
-              />
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor="content_md">Markdown 正文</FieldLabel>
+                <Button
+                  type="button"
+                  variant={assistantOpen ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setAssistantOpen((open) => !open)}
+                >
+                  {assistantOpen ? "收起 AI 助手" : "AI 助手"}
+                </Button>
+              </div>
+              <div
+                className={cn(
+                  "grid gap-4",
+                  assistantOpen && "lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-stretch",
+                )}
+              >
+                <div className="min-w-0">
+                  <AiSelectionToolbar
+                    textareaRef={textareaRef}
+                    content={values.content_md}
+                    title={values.title}
+                    onApply={applyAiSelection}
+                  />
+                  <MarkdownEditor
+                    id="content_md"
+                    textareaRef={textareaRef}
+                    value={values.content_md}
+                    onChange={(next) => updateField("content_md", next)}
+                    required
+                    placeholder={"# 标题\n\n正文段落…\n\n- 列表项\n\n> 引用"}
+                  />
+                </div>
+                {assistantOpen ? (
+                  <AiAssistantPanel
+                    title={values.title}
+                    content={values.content_md}
+                    onClose={() => setAssistantOpen(false)}
+                    onInsertAtCursor={insertAtCursor}
+                    onReplaceContent={replaceContent}
+                  />
+                ) : null}
+              </div>
             </Field>
 
-            <div className="flex flex-wrap gap-3">
-              <Button type="submit" disabled={loading} onClick={() => setPendingStatus("draft")}>
-                保存草稿
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => setPendingStatus("draft")}
+              >
+                {activeSubmit === "draft" ? (
+                  <>
+                    <Loader2Icon className="animate-spin" />
+                    保存中…
+                  </>
+                ) : (
+                  "保存草稿"
+                )}
               </Button>
-              <Button type="submit" variant="secondary" disabled={loading} onClick={() => setPendingStatus("published")}>
-                发布
+              <Button type="submit" disabled={submitting} onClick={() => setPendingStatus("published")}>
+                {activeSubmit === "published" ? (
+                  <>
+                    <Loader2Icon className="animate-spin" />
+                    发布中…
+                  </>
+                ) : (
+                  "发布"
+                )}
               </Button>
             </div>
           </FieldGroup>

@@ -8,7 +8,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/srv/xblog/frontend
 Environment=NODE_ENV=production
-EnvironmentFile=-/srv/xblog/frontend/.env.local
+EnvironmentFile=-/srv/xblog/frontend/.env
 ExecStart=/srv/xblog/frontend/node_modules/.bin/next start -H 127.0.0.1 -p 3000
 Restart=on-failure
 RestartSec=5

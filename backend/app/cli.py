@@ -14,17 +14,32 @@ from app.models.page import Page
 from app.models.user import User
 
 
-async def create_admin(username: str, password: str | None) -> None:
+async def create_admin(username: str, password: str | None, phone: str | None = None) -> None:
     if not password:
         password = getpass.getpass("Password: ")
         confirm = getpass.getpass("Confirm password: ")
         if password != confirm:
             raise SystemExit("Passwords do not match")
+    normalized_phone = None
+    if phone:
+        from app.services import sms_service
+
+        normalized_phone = sms_service.normalize_phone(phone)
     async with async_session_factory() as session:
         result = await session.exec(select(User).where(User.username == username))
         if result.first():
             raise SystemExit(f"User '{username}' already exists")
-        session.add(User(username=username, password_hash=hash_password(password)))
+        if normalized_phone:
+            phone_result = await session.exec(select(User).where(User.phone == normalized_phone))
+            if phone_result.first():
+                raise SystemExit(f"Phone '{normalized_phone}' is already linked")
+        session.add(
+            User(
+                username=username,
+                password_hash=hash_password(password),
+                phone=normalized_phone,
+            )
+        )
         await session.commit()
         print(f"Admin user '{username}' created")
 
@@ -67,6 +82,7 @@ def main() -> None:
     create_parser = subparsers.add_parser("create-admin", help="Create an admin user")
     create_parser.add_argument("--username", required=True)
     create_parser.add_argument("--password", default=None)
+    create_parser.add_argument("--phone", default=None, help="Optional phone for SMS login")
 
     reset_parser = subparsers.add_parser("reset-password", help="Reset an admin user's password")
     reset_parser.add_argument("--username", required=True)
@@ -76,7 +92,7 @@ def main() -> None:
 
     args = parser.parse_args()
     if args.command == "create-admin":
-        asyncio.run(create_admin(args.username, args.password))
+        asyncio.run(create_admin(args.username, args.password, args.phone))
     elif args.command == "reset-password":
         asyncio.run(reset_password(args.username, args.password))
     elif args.command == "seed-pages":

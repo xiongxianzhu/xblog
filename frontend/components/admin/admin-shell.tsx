@@ -9,9 +9,9 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const { collapsed } = useAdminSidebar();
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="flex min-h-[100dvh] min-w-0 flex-col overflow-x-clip">
       <AdminHeader />
-      <div className="flex flex-1 pt-14">
+      <div className="flex min-w-0 flex-1 pt-14">
         <AdminSidebar
           className={cn(
             "admin-sidebar-rail fixed bottom-0 left-0 top-14 z-30 hidden w-56 lg:flex",
@@ -20,7 +20,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         />
         <main
           className={cn(
-            "admin-main-canvas min-w-0 flex-1 p-4 transition-[margin-left] duration-200 ease-out lg:ml-56 lg:p-6",
+            "admin-main-canvas min-w-0 max-w-full flex-1 p-4 transition-[margin-left] duration-200 ease-out sm:p-5 lg:ml-56 lg:p-6",
             collapsed && "lg:ml-16",
           )}
         >

@@ -29,24 +29,90 @@ function buildUrl(path: string, params?: Record<string, string | number | undefi
   return url.toString();
 }
 
+/** AI SSE 等场景使用（不经过 fetchAuth JSON 解析）。 */
+export function buildUrlForAi(path: string): string {
+  return buildUrl(path);
+}
+
 function parseApiError(text: string, statusText: string): string {
   try {
-    const body = JSON.parse(text) as { message?: string; detail?: string };
-    return body.message ?? body.detail ?? statusText;
+    const body = JSON.parse(text) as { msg?: string; message?: string; detail?: string };
+    return body.msg ?? body.message ?? (typeof body.detail === "string" ? body.detail : undefined) ?? statusText;
   } catch {
     return text || statusText;
   }
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(parseApiError(text, response.statusText));
+type ApiEnvelope<T = unknown> = {
+  code: number;
+  msg: string;
+  data: T;
+};
+
+function isApiEnvelope(value: unknown): value is ApiEnvelope {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "code" in value &&
+    "msg" in value &&
+    "data" in value
+  );
+}
+
+function formatEnvelopeError(body: ApiEnvelope<unknown>): string {
+  const { msg, data } = body;
+  if (Array.isArray(data)) {
+    const parts = data.map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const record = item as { msg?: string; loc?: unknown[] };
+        if (typeof record.msg === "string") {
+          const loc = Array.isArray(record.loc) ? record.loc.filter((part) => part !== "body").join(".") : "";
+          return loc ? `${loc}: ${record.msg}` : record.msg;
+        }
+      }
+      return null;
+    }).filter((part): part is string => Boolean(part));
+    if (parts.length) return parts.join("；");
   }
+  return msg || "请求失败";
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
-  return response.json() as Promise<T>;
+
+  const text = await response.text();
+  if (!text) {
+    if (!response.ok) {
+      throw new Error(response.statusText || "请求失败");
+    }
+    return undefined as T;
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    if (!response.ok) {
+      throw new Error(text || response.statusText);
+    }
+    throw new Error("响应格式无效");
+  }
+
+  if (isApiEnvelope(body)) {
+    if (body.code !== 0) {
+      throw new Error(formatEnvelopeError(body as ApiEnvelope<unknown>));
+    }
+    return body.data as T;
+  }
+
+  if (!response.ok) {
+    throw new Error(parseApiError(text, response.statusText));
+  }
+
+  return body as T;
 }
 
 export async function fetchPublic<T>(
@@ -89,7 +155,13 @@ export async function fetchAuth<T>(path: string, init?: RequestInit, retried = f
     !retried &&
     path !== "/auth/login" &&
     path !== "/auth/logout" &&
-    path !== "/auth/refresh";
+    path !== "/auth/refresh" &&
+    path !== "/auth/forgot-password" &&
+    path !== "/auth/reset-password" &&
+    path !== "/auth/oauth/providers" &&
+    path !== "/auth/login-methods" &&
+    path !== "/auth/sms/send-code" &&
+    path !== "/auth/sms/login";
 
   if (shouldRefresh) {
     const refreshResponse = await fetch(buildUrl("/auth/refresh"), {
@@ -132,11 +204,28 @@ export function getAdminSiteTheme() {
   return fetchAuth<SitePublicTheme>("/admin/site-theme");
 }
 
-export function updateAdminSiteTheme(payload: Partial<SitePublicTheme> & Pick<SitePublicTheme, "mode" | "palette">) {
+export function getPublicSiteThemeClient() {
+  return fetchPublic<SitePublicTheme>("/public/site-theme");
+}
+
+export function updateAdminSiteTheme(payload: Partial<SitePublicTheme>) {
   return fetchAuth<SitePublicTheme>("/admin/site-theme", {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export function uploadSiteLogo(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return fetchAuth<SitePublicTheme>("/admin/site-theme/logo", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function deleteSiteLogo() {
+  return fetchAuth<SitePublicTheme>("/admin/site-theme/logo", { method: "DELETE" });
 }
 
 export function recordPageView(path: string, referrer?: string) {
@@ -158,6 +247,85 @@ export function logout() {
   return fetchAuth<void>("/auth/logout", { method: "POST" });
 }
 
+export type LoginMethods = {
+  sms: boolean;
+  github: boolean;
+  wechat: boolean;
+};
+
+export type AuthSettingsAdmin = {
+  sms_enabled: boolean;
+  sms_configured: boolean;
+  github_enabled: boolean;
+  github_configured: boolean;
+  wechat_enabled: boolean;
+  wechat_configured: boolean;
+};
+
+export function getLoginMethods() {
+  return fetchPublic<LoginMethods>("/auth/login-methods");
+}
+
+export function getAdminAuthSettings() {
+  return fetchAuth<AuthSettingsAdmin>("/admin/auth-settings");
+}
+
+export function updateAdminAuthSettings(payload: Partial<Pick<AuthSettingsAdmin, "sms_enabled" | "github_enabled" | "wechat_enabled">>) {
+  return fetchAuth<AuthSettingsAdmin>("/admin/auth-settings", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function sendSmsLoginCode(phone: string) {
+  return fetchAuth<{ message: string }>("/auth/sms/send-code", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export function loginWithSms(phone: string, code: string) {
+  return fetchAuth<{ username: string }>("/auth/sms/login", {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
+  });
+}
+
+export type OAuthProviders = {
+  github: boolean;
+  wechat: boolean;
+};
+
+export function getOAuthProviders() {
+  return fetchPublic<OAuthProviders>("/auth/oauth/providers");
+}
+
+export function getOAuthLinks() {
+  return fetchAuth<OAuthProviders>("/auth/oauth/links");
+}
+
+export function forgotPassword(username: string) {
+  return fetchAuth<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return fetchAuth<void>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}
+
+export function oauthLoginUrl(provider: "github" | "wechat") {
+  return buildUrl(`/auth/oauth/${provider}/start`);
+}
+
+export function oauthBindUrl(provider: "github" | "wechat") {
+  return buildUrl(`/auth/oauth/${provider}/bind/start`);
+}
+
 export type AdminUser = {
   id: number;
   username: string;
@@ -169,10 +337,18 @@ export type AdminUser = {
 export type AdminUserMe = {
   username: string;
   avatar_url: string | null;
+  phone: string | null;
 };
 
 export function getMe() {
   return fetchAuth<AdminUserMe>("/auth/me");
+}
+
+export function bindPhone(phone: string) {
+  return fetchAuth<AdminUserMe>("/auth/phone", {
+    method: "PATCH",
+    body: JSON.stringify({ phone }),
+  });
 }
 
 export function uploadAvatar(file: File) {
@@ -230,6 +406,36 @@ export function updatePost(id: number, payload: Record<string, unknown>) {
 
 export function deletePost(id: number) {
   return fetchAuth<{ message: string }>(`/admin/posts/${id}`, { method: "DELETE" });
+}
+
+export function listAdminLinks() {
+  return fetchAuth<FriendLinkPublic[]>("/admin/links");
+}
+
+export function createAdminLink(payload: {
+  name: string;
+  url: string;
+  logo_url?: string | null;
+  sort_order?: number;
+}) {
+  return fetchAuth<FriendLinkPublic>("/admin/links", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminLink(
+  id: number,
+  payload: { name?: string; url?: string; logo_url?: string | null; sort_order?: number },
+) {
+  return fetchAuth<FriendLinkPublic>(`/admin/links/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAdminLink(id: number) {
+  return fetchAuth<{ message: string }>(`/admin/links/${id}`, { method: "DELETE" });
 }
 
 export function getAdminPage(slug: string) {

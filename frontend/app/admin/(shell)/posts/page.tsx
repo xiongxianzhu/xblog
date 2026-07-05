@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PenLineIcon, PlusIcon, Trash2Icon } from "lucide-react";
+
+import { AdminListSearch } from "@/components/admin/admin-list-search";
 
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminPanel } from "@/components/admin/admin-panel";
@@ -21,12 +23,28 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deletePost, listAdminPosts } from "@/lib/api";
+import { matchQuery } from "@/lib/match-query";
 import { formatDate } from "@/lib/utils";
 
 export default function AdminPostsPage() {
   const { data: posts, error, isLoading, mutate } = useSWR("admin-posts", listAdminPosts);
+  const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const filtered = useMemo(
+    () =>
+      (posts ?? []).filter((post) =>
+        matchQuery(
+          search,
+          post.title,
+          post.slug,
+          post.excerpt,
+          post.status === "published" ? "已发布" : "草稿",
+        ),
+      ),
+    [posts, search],
+  );
 
   async function confirmDelete() {
     if (deleteId === null) return;
@@ -66,6 +84,10 @@ export default function AdminPostsPage() {
         }
       />
 
+      <div className="mb-4">
+        <AdminListSearch value={search} onChange={setSearch} placeholder="搜索标题、slug、摘要…" />
+      </div>
+
       {isLoading ? (
         <div className="flex flex-col gap-3">
           <Skeleton className="h-12 w-full" />
@@ -78,7 +100,11 @@ export default function AdminPostsPage() {
         <EmptyState title="暂无文章" description="点击「新建文章」开始写作。" />
       ) : null}
 
-      {!isLoading && (posts ?? []).length > 0 ? (
+      {!isLoading && (posts ?? []).length > 0 && filtered.length === 0 ? (
+        <EmptyState title="无匹配结果" description="试试其他关键词。" />
+      ) : null}
+
+      {!isLoading && filtered.length > 0 ? (
         <AdminPanel>
           <Table>
             <TableHeader>
@@ -90,9 +116,21 @@ export default function AdminPostsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(posts ?? []).map((post) => (
+              {filtered.map((post) => (
                 <TableRow key={post.id}>
-                  <TableCell className="max-w-[240px] truncate font-medium">{post.title}</TableCell>
+                  <TableCell className="max-w-[12rem] sm:max-w-[240px]">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="truncate font-medium">{post.title}</span>
+                      <div className="flex flex-wrap items-center gap-2 sm:hidden">
+                        <Badge variant={post.status === "published" ? "default" : "muted"}>
+                          {post.status === "published" ? "已发布" : "草稿"}
+                        </Badge>
+                        {post.updated_at ? (
+                          <span className="text-xs text-muted-foreground">{formatDate(post.updated_at)}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Badge variant={post.status === "published" ? "default" : "muted"}>
                       {post.status === "published" ? "已发布" : "草稿"}
@@ -103,15 +141,21 @@ export default function AdminPostsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/admin/posts/${post.id}/edit`}>
-                          <PenLineIcon data-icon="inline-start" />
-                          编辑
+                      <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
+                        <Link href={`/admin/posts/${post.id}/edit`} aria-label={`编辑 ${post.title}`}>
+                          <PenLineIcon className="size-4 sm:mr-1" />
+                          <span className="hidden sm:inline">编辑</span>
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteId(post.id)}>
-                        <Trash2Icon data-icon="inline-start" />
-                        删除
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-2 text-destructive sm:px-3"
+                        aria-label={`删除 ${post.title}`}
+                        onClick={() => setDeleteId(post.id)}
+                      >
+                        <Trash2Icon className="size-4 sm:mr-1" />
+                        <span className="hidden sm:inline">删除</span>
                       </Button>
                     </div>
                   </TableCell>

@@ -12,6 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
+from app.core.openapi import setup_openapi
+from app.core.response import envelope_middleware
 from app.db.session import engine
 from app.services.uploads import get_upload_root
 
@@ -36,6 +38,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_exception_handlers(app)
+    app.middleware("http")(envelope_middleware)
+    setup_openapi(app)
     app.include_router(api_router, prefix="/api/v1")
     upload_root = get_upload_root()
     upload_root.mkdir(parents=True, exist_ok=True)

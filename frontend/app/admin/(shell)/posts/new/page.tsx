@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef } from "react";
 
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { PostEditorForm } from "@/components/admin/post-editor-form";
@@ -11,16 +11,11 @@ import { createPost } from "@/lib/api";
 
 export default function NewPostPage() {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const createdPostId = useRef<number | null>(null);
 
   async function handleSubmit(values: Record<string, unknown>) {
-    setError("");
-    try {
-      const post = await createPost(values);
-      router.push(`/admin/posts/${post.id}/edit`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "创建失败");
-    }
+    const post = await createPost(values);
+    createdPostId.current = post.id;
   }
 
   return (
@@ -33,8 +28,14 @@ export default function NewPostPage() {
           </Button>
         }
       />
-      {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
-      <PostEditorForm onSubmit={handleSubmit} />
+      <PostEditorForm
+        onSubmit={handleSubmit}
+        onSuccess={() => {
+          if (createdPostId.current !== null) {
+            router.push(`/admin/posts/${createdPostId.current}/edit`);
+          }
+        }}
+      />
     </div>
   );
 }

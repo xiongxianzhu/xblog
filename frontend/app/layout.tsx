@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
-
-import { SiteChrome } from "@/components/site-chrome";
-import { getPublicSiteTheme } from "@/lib/site-theme";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import "./globals.css";
 
@@ -23,17 +21,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "xblog",
-    template: "%s · xblog",
-  },
-  description: "个人博客 · Markdown 写作 · 自托管",
-  openGraph: {
-    type: "website",
-    locale: "zh_CN",
-    siteName: "xblog",
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta");
+
+  return {
+    title: {
+      default: t("siteName"),
+      template: `%s · ${t("siteName")}`,
+    },
+    description: t("siteDescription"),
+    openGraph: {
+      type: "website",
+      locale: "zh_CN",
+      siteName: t("siteName"),
+    },
+  };
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -41,13 +49,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const siteTheme = await getPublicSiteTheme();
+  const locale = await getLocale();
 
   return (
-    <html lang="zh-CN" className={`${notoSans.variable} ${notoSerif.variable} ${geistMono.variable} h-full`}>
-      <body className="flex min-h-full flex-col">
-        <SiteChrome siteTheme={siteTheme}>{children}</SiteChrome>
-      </body>
+    <html lang={locale} className={`${notoSans.variable} ${notoSerif.variable} ${geistMono.variable} h-full`}>
+      <body className="flex min-h-full min-w-0 flex-col overflow-x-clip">{children}</body>
     </html>
   );
 }

@@ -22,9 +22,13 @@ export function SiteChrome({ children, siteTheme }: SiteChromeProps) {
 
   return (
     <SiteThemeShell theme={siteTheme}>
-      <SiteHeader />
-      <main className="flex-1">{children}</main>
-      <SiteFooter />
+      <SiteHeader
+        siteName={siteTheme.site_name}
+        siteTagline={siteTheme.site_tagline}
+        siteLogoUrl={siteTheme.site_logo_url}
+      />
+      <main className="min-w-0 flex-1">{children}</main>
+      <SiteFooter siteName={siteTheme.site_name} />
     </SiteThemeShell>
   );
 }

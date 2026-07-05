@@ -6,7 +6,7 @@
 | 产品   | xblog 个人博客                              |
 | 仓库   | `git@github.com:xiongxianzhu/xblog.git` |
 | 许可证  | MIT                                     |
-| 文档版本 | v2.6 |
+| 文档版本 | v2.8 |
 | 最后更新 | 2026-07-05 |
 
 ## 技术栈速查
@@ -76,7 +76,18 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | SC-5 | 生产环境：`/api/v1/public/health` 返回 200；HTTPS 可用；仓库无真实密钥与私人文章内容                        | 部署检查清单          |
 | SC-6 | `backend`: `ruff check`、`mypy`、`pytest` 通过；`frontend`: `pnpm lint`、`pnpm build` 通过 | CI 或本地命令        |
 | SC-7 | 管理员在后台修改**公开站主题**后，访客刷新公开页可见新配色（开发即时；生产 **60 秒内**，见 US-7） | 改主题 → 访问 `/` 或 `/blog` 对比 |
-| SC-8 | 仓库含 `AGENT.md`、根/`backend`/`frontend` README、`docs/prd-xblog.md`；`.gitignore` 覆盖前后端产物 | 克隆后文档可读、无 `.env` 泄漏 |
+| SC-8 | 仓库含 `AGENT.md`、根/`backend`/`frontend` README、`docs/prd-xblog.md`、`CONTRIBUTING.md`、`llms.txt`；`.gitignore` 覆盖前后端产物 | 克隆后文档可读、无 `.env` 泄漏 |
+| SC-9 | 文章详情页在配置 Giscus 环境变量后显示评论；未配置时有明确引导 | 配置 env → 访问 `/blog/[slug]` |
+
+**Phase 2 — AI 写作**（见 §3、US-AI-*；设计 spec：`docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md`）
+
+| # | 指标 | 验收方式 |
+|---|------|----------|
+| SC-AI-1 | 管理员配置并激活至少 1 个模型提供商后，可在文章编辑页完成选区润色 | 选中文本 → 润色 → SSE 流式 → 替换选区 |
+| SC-AI-2 | 上传不符合 [agentskills.io](https://agentskills.io/specification) 的 Skill 包时被拒绝 | 故意错误 frontmatter → 422 + 中文说明 |
+| SC-AI-3 | P2 对话改稿与 P3 全文生成可用 | 见 US-AI-3 / US-AI-4 |
+| SC-AI-4 | API 响应、日志、DB 不泄露 API Key | 抓包 / 列表接口仅 `has_api_key` |
+| SC-AI-5 | 未激活任何提供商时 AI 入口禁用并引导至设置页 | 空配置 → 设置 → AI 模型 |
 
 
 
@@ -89,13 +100,14 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | 类别    | 手动事项                                                      | 详见              |
 | ----- | --------------------------------------------------------- | --------------- |
 | 环境安装  | Python 3.14、uv、Node.js、pnpm、create-fastapi CLI、PostgreSQL | §6.1 · **附录 B** |
-| 仓库与密钥 | `git clone` / `push`；复制并编辑 `.env` / `.env.local`（不提交）     | §6.2            |
+| 仓库与密钥 | `git clone` / `push`；复制并编辑 `backend/.env`、`frontend/.env`（不提交）     | §6.2            |
 | 后端脚手架 | `create-fastapi` 生成 `backend/`                            | §6.3 · 附录 A.1   |
 | 前端脚手架 | `pnpm create next-app` 生成 `frontend/`                     | §6.4 · 附录 A.2   |
 | 数据库   | 安装/启动 PostgreSQL；建库建用户；`alembic upgrade`                  | §6.5            |
 | 管理员   | `uv run python -m app.cli create-admin`（本地与生产各执行）                      | §6.6            |
 | 本地运行  | `uv sync`、`uvicorn`；`pnpm dev`                            | §6.7            |
 | 第三方   | Giscus 所需 GitHub Discussions 仓库与前端 env                    | §6.8            |
+| AI 模型  | 在后台 **设置 → AI 模型** 自行添加提供商、填写 API Key 并 **激活**（Phase 2） | §3 · §6.2       |
 | 生产部署  | nginx、systemd、HTTPS（certbot）、生产 env                    | §6.9            |
 
 
@@ -181,7 +193,11 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] 文章详情页嵌入 Giscus；`repo` / `repoId` 等仅来自前端环境变量。
+- [ ] 文章详情页 `/blog/[slug]` 底部嵌入 **Giscus** 评论区（「评论」标题 + 组件）。
+- [ ] `repo` / `repoId` / `category` / `categoryId` 等 **仅**来自前端环境变量（`NEXT_PUBLIC_GISCUS_*`），不写死后端、不提交 `frontend/.env`。
+- [ ] 提供 `frontend/.env.example` 占位模板；未配置时显示中文引导（链到 giscus.app），而非静默空白。
+- [ ] 支持 `data-mapping="pathname"`（可经 `NEXT_PUBLIC_GISCUS_MAPPING` 覆盖）；可选 `NEXT_PUBLIC_GISCUS_THEME`、`NEXT_PUBLIC_GISCUS_INPUT_POSITION`。
+- [ ] 评论组件为 Client 端动态加载 `giscus.app/client.js`；可与公开站 `mode` 联动，或用 env 指定 Giscus 主题。
 - [ ] `POST /api/v1/public/pageviews` 记录 `path` 与可选 `referrer`。
 - [ ] 管理端可查看按 path 聚合的访问计数（复杂报表非 MVP）。
 
@@ -234,11 +250,65 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] 根目录含 **`README.md`**（Monorepo 概览、shields、快速开始）、**`AGENT.md`**（AI/贡献者约定、主题 ISR、Git 规范）。
-- [ ] **`docs/prd-xblog.md`** 纳入版本库，作为产品与验收的权威来源。
+- [ ] 根目录含 **`README.md`**（Monorepo 概览、shields、快速开始）、**`AGENT.md`**（AI/贡献者约定、主题 ISR、Git 规范）、**`CONTRIBUTING.md`**（贡献流程）、**`llms.txt`**（LLM 仓库导航，[llms.txt 规范](https://llmstxt.org/)）。
+- [ ] **`docs/prd-xblog.md`** 纳入版本库，作为产品与验收的权威来源；**`docs/git-workflow.md`** 说明分支、Commit、PR、Review 文化。
 - [ ] `backend/README.md`、`frontend/README.md` 分别说明本目录开发与部署。
+- [ ] **`.github/`** 含 PR 模板与 Issue 模板（Bug / 功能建议）。
 - [ ] **根 `.gitignore`** 汇总 Monorepo 忽略规则（含 Python 缓存 `.venv` / `.pytest_cache` / `.ruff_cache` / `.mypy_cache`、前端 `node_modules` / `.next`、`backend/uploads/` 用户文件等）；子目录 `.gitignore` 可与根规则等效互补。
-- [ ] 环境模板仅用 `.env.example` / `.env.local.example` 占位，**禁止**提交真实 `.env`、`.env.local` 及用户上传内容。
+- [ ] 环境模板仅用 `backend/.env.example`、`frontend/.env.example` 占位，**禁止**提交真实 `backend/.env`、`frontend/.env` 及用户上传内容。
+
+
+
+#### US-AI-1：模型提供商配置（Phase 2 · P1）
+
+**Story**：As a 管理员, I want to 在后台添加并激活 LLM 提供商, so that AI 写作使用我自己的 Key 与模型。
+
+**Acceptance Criteria**
+
+- [ ] **设置 → AI 模型** 可 CRUD 提供商；字段含 `name`、`provider_type`（openai / deepseek / zhipu / minimax / openai_compatible）、`base_url`、`model`、**激活**（`enabled`）、**默认**（`is_default`）。
+- [ ] API Key **仅**写入 PostgreSQL 加密字段；列表/详情返回 `has_api_key`，**永不**返回明文。
+- [ ] 创建时 `provider_type` 可预填建议 `base_url`（用户可改）；**系统不内置**固定厂商实例或共享 Key。
+- [ ] `POST /api/v1/admin/ai/providers/{id}/test` 用已存 Key 发最小 completion，返回成功或错误信息。
+- [ ] 未激活任何提供商时，文章编辑页 AI 入口不可用并引导至设置页（SC-AI-5）。
+
+
+
+#### US-AI-2：Agent Skills 管理（Phase 2 · P1）
+
+**Story**：As a 管理员, I want to 上传与管理符合 agentskills.io 的 Skill, so that AI 写作遵循可复用的写作规范。
+
+**Acceptance Criteria**
+
+- [ ] **设置 → Skills** 支持上传 `.zip`、新建、编辑 `SKILL.md`、删除、启用/禁用。
+- [ ] Skill 存于 `backend/uploads/skills/{name}/`，DB 存元数据；`name` / `description` 符合 [Agent Skills Specification](https://agentskills.io/specification)。
+- [ ] 校验失败返回 **422** 与可读中文错误（SC-AI-2）。
+- [ ] 可配置三场景默认 Skill：`polish`、`chat`、`generate`；未选手动 Skill 时走默认 + description 关键词推荐。
+- [ ] MVP **不执行** Skill 内 `scripts/`，仅将 `SKILL.md` body 注入 system prompt。
+
+
+
+#### US-AI-3：选区操作与对话改稿（Phase 2 · P1 / P2）
+
+**Story**：As a 管理员, I want to 对 Markdown 选区或整篇对话进行 AI 辅助, so that 写作更高效。
+
+**Acceptance Criteria**
+
+- [ ] **P1**：文章编辑页选区工具栏支持润色、扩写、缩写、改标题；`POST /api/v1/admin/ai/complete` 返回 **SSE** 流式结果；可预览后 **替换选区**。
+- [ ] **P2**：右侧 **AI 助手** Sheet 支持多轮对话（`action=chat`），可手动选择 Skill 或接受推荐。
+- [ ] 所有 AI 请求经后端网关；前端不持有 Key（SC-AI-4）。
+- [ ] `ai_usage_log` 记录 action、token 用量与延迟，**不存** prompt 与文章正文。
+
+
+
+#### US-AI-4：全文生成（Phase 2 · P3）
+
+**Story**：As a 管理员, I want to 从主题与大纲生成 Markdown 草稿, so that 我能快速起稿。
+
+**Acceptance Criteria**
+
+- [ ] **P3**：AI 助手支持 `action=generate`（主题 + 可选大纲）。
+- [ ] 流式预览后可 **插入光标处** 或 **覆盖全文**（需确认）。
+- [ ] 生成内容遵循 Skill 与基础 system 约束（Markdown、不编造外链等）。
 
 
 
@@ -255,6 +325,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - Agent 或脚本**代生成** `backend/`、`frontend/` 基础脚手架
 - 演示站、Docker 一键包（Phase 2 可选）
 - UI 多语言 i18n（MVP 不强制）
+- 访客侧 AI、公开 AI API、Skill 内 **scripts 服务端执行**（Phase 2 AI 亦不做）
+- 多租户 / 多管理员独立 Key、自动发布、批量 SEO 生成
 
 ---
 
@@ -262,7 +334,60 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 ## 3. AI System Requirements
 
-**不适用。** xblog MVP 不含 LLM 生成、智能摘要等 AI 功能。若 Phase 2 引入 AI 辅助写作，须单独增补 PRD 章节与评测标准。
+### 3.1 范围说明
+
+| 能力 | MVP | Phase 2（AI 写作） |
+|------|-----|-------------------|
+| 站内 AI 写作 | 否 | 是（管理员后台） |
+| 访客 AI | 否 | 否 |
+| 仓库 **`llms.txt`** | 是（外部 LLM 文档索引，[llms.txt 规范](https://llmstxt.org/)） | 保持 |
+
+**权威设计**：`docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md`  
+**实现计划**：`docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md`
+
+### 3.2 架构原则
+
+- **后端 AI 网关**：FastAPI 模块统一调用 LLM；前端经 Cookie 会话访问 `/api/v1/admin/ai/*`。
+- **SSE 流式**：`POST /api/v1/admin/ai/complete` 返回 `text/event-stream`（`delta` / `done` / `error`）。
+- **Key 隔离**：API Key 加密存 PostgreSQL；禁止出现在前端 env、Git、PRD、日志与 usage 表正文。
+- **OpenAI 兼容为主**：Chat Completions 适配层覆盖 OpenAI、DeepSeek、智谱 GLM、MiniMax 及自定义 `base_url`。
+
+### 3.3 模型提供商
+
+- 管理员在 **设置 → AI 模型** **自行创建** 提供商，填写 `base_url`、`model`、API Key，并 **激活**（`enabled=true`）后可用。
+- 可指定 **一个默认提供商**（`is_default`）；`complete` 未传 `provider_id` 时使用「已激活 + 默认」项。
+- **无内置固定厂商**；`provider_type` 仅提供表单模板（建议 base URL），不预置 Key。
+
+### 3.4 Agent Skills
+
+- 目录包符合 [agentskills.io](https://agentskills.io/specification)：`SKILL.md` + 可选 `scripts/`、`references/`、`assets/`。
+- 存储：`backend/uploads/skills/{name}/`；管理端上传 zip / 新建 / 编辑 / 删除。
+- 选用策略：**场景默认**（polish / chat / generate）+ **description 关键词推荐** + **用户手动改选**。
+- MVP 不执行 `scripts/`，仅注入 `SKILL.md` body 至 system prompt。
+
+### 3.5 写作能力与分阶段
+
+| 阶段 | 能力 | 关联 US |
+|------|------|---------|
+| **P1** | 提供商 + Skill + 选区润色/扩写/缩写/改标题 + SSE | US-AI-1、US-AI-2、US-AI-3 |
+| **P2** | 侧边栏多轮对话 | US-AI-3 |
+| **P3** | 主题/大纲 → 全文生成 | US-AI-4 |
+
+### 3.6 数据与安全
+
+| 表 / 资源 | 用途 |
+|-----------|------|
+| `ai_provider` | 提供商与加密 Key |
+| `ai_skill` | Skill 元数据 |
+| `ai_skill_default` | 三场景默认 Skill |
+| `ai_usage_log` | 审计（无正文） |
+
+| 环境变量 | 说明 |
+|----------|------|
+| `AI_KEY_ENCRYPTION_SECRET` | Key 加密（推荐生产独立配置） |
+| `SECRET_KEY` | 未设上项时的加密回退 |
+
+速率限制（MVP）：约 60 次/分钟/管理员。
 
 ---
 
@@ -294,7 +419,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
                     │ PostgreSQL  │
                     └─────────────┘
 
-外部：Giscus（评论，前端嵌入）
+外部：Giscus（评论，前端嵌入）；Phase 2：各 LLM 厂商 API（后端出站，Key 仅服务端）
 ```
 
 **Monorepo 结构**
@@ -302,13 +427,17 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 ```text
 xblog/
 ├── AGENT.md          # AI 助手与贡献者协作说明
+├── CONTRIBUTING.md   # 开源贡献与 Git 工作流入口
+├── llms.txt          # LLM 仓库导航（llms.txt 规范）
 ├── README.md
 ├── .gitignore        # Monorepo 忽略规则（汇总前后端）
+├── .github/          # PR / Issue 模板
 ├── backend/          # create-fastapi 生成 + 博客业务扩展
 ├── frontend/         # create-next-app 初始化 + 页面与 admin
 ├── deploy/           # nginx · systemd
 ├── docs/
-│   └── prd-xblog.md  # 本文档（纳入 Git）
+│   ├── prd-xblog.md
+│   └── git-workflow.md
 └── LICENSE
 ```
 
@@ -359,7 +488,7 @@ xblog/
 | 公开页  | React Server Components + ISR（默认 `revalidate: 3600`） |
 | 后台   | Client Components；Markdown 编辑器 `next/dynamic` 懒加载    |
 | 后台数据 | SWR（M2 起安装）                                          |
-| 评论   | Giscus · `next/script` · `lazyOnload`                |
+| 评论   | Giscus · Client 动态加载 · 文章详情 `/blog/[slug]` · env 配置 |
 
 
 
@@ -440,7 +569,14 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 | `NEXT_PUBLIC_API_URL` | 可选；与 `BACKEND_URL` 二选一或互补，见 frontend README |
 | `NEXT_PUBLIC_SITE_URL` | 站点绝对 URL（sitemap、RSS、OG） |
 | `REVALIDATE_SECRET`   | 与后端成对的 ISR 回调校验密钥（**作者自行生成，禁止提交 Git**） |
-| Giscus 相关             | 仅前端 `.env.local`，不进后端                           |
+| Giscus 相关             | 仅前端 `frontend/.env`（模板见 `frontend/.env.example`），不进后端 |
+| `NEXT_PUBLIC_GISCUS_REPO` | GitHub 仓库，如 `owner/repo` |
+| `NEXT_PUBLIC_GISCUS_REPO_ID` | giscus.app 生成的 `R_…` |
+| `NEXT_PUBLIC_GISCUS_CATEGORY` | Discussions 分类名 |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID` | giscus.app 生成的 `DIC_…` |
+| `NEXT_PUBLIC_GISCUS_MAPPING` | 可选，默认 `pathname` |
+| `NEXT_PUBLIC_GISCUS_THEME` | 可选，Giscus 主题名（覆盖公开站联动时） |
+| `NEXT_PUBLIC_GISCUS_INPUT_POSITION` | 可选，`top` / `bottom` |
 
 
 **后端环境变量（补充）**
@@ -465,7 +601,7 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 
 ### 4.5 Security & Privacy
 
-- 密钥、`DATABASE_URL`、JWT `SECRET_KEY` 仅来自环境变量；提供 `backend/.env.example`、`frontend/.env.local.example`；**禁止**提交 `.env` / `.env.local`。
+- 密钥、`DATABASE_URL`、JWT `SECRET_KEY` 仅来自环境变量；提供 `backend/.env.example`、`frontend/.env.example`；**禁止**提交 `backend/.env` / `frontend/.env`。
 - 密码 **bcrypt** 存储；JWT 存 **HttpOnly** Cookie；生产 `COOKIE_SECURE=true`。
 - 管理 API 未授权返回 401/403；生产不向访客暴露堆栈详情。
 - 博客正文与用户数据存 PostgreSQL；**私人草稿不得作为 fixture 提交 Git**。
@@ -480,7 +616,7 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | -------- | --------------------------------------------------------------------- |
 | **性能**   | 公开文章 ISR；Server Component 内独立 fetch 使用 `Promise.all`；后台编辑器不进公开 bundle |
 | **SEO**  | 公开列表/详情禁止纯 CSR 首屏；须 SSR/ISR 输出完整 HTML                                 |
-| **可维护性** | 根目录 + `backend/` + `frontend/` 各有一份 README；**`AGENT.md`** 供 Agent/贡献者速查；**`docs/prd-xblog.md`** 入 Git；通过第 1.3 节 SC-6～SC-8 |
+| **可维护性** | 根目录 + `backend/` + `frontend/` 各有一份 README；**`AGENT.md`**、**`CONTRIBUTING.md`**、**`llms.txt`**；**`docs/git-workflow.md`**；通过第 1.3 节 SC-6～SC-9 |
 
 
 
@@ -506,7 +642,9 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 
 **公开站 preset palette（MVP）**：至少支持 4 套命名预设（如墨纸、深林、冷灰、墨夜），每套含 light/dark 模式；具体 CSS 变量在 `globals.css` 与前端主题定义中维护。
 
-**后台壳层 UI**：侧边栏导航（文章、页面、友链、用户、设置等）、顶栏（折叠侧栏、标题区、头像菜单）、主内容区全宽；设置页分区展示「公开站外观」与「后台外观」，避免混淆。
+**后台壳层 UI**：侧边栏导航（文章、页面、友链、用户、设置等）、顶栏（折叠侧栏、毛玻璃、标题区、**头像**菜单）、主内容区 **全宽**；设置页分区展示「公开站外观」与「后台外观」，避免混淆。
+
+**Giscus 评论**：实现于 `frontend/components/giscus.tsx`；文章页 `frontend/app/blog/[slug]/page.tsx` 引入；配置说明见 `frontend/.env.example` 与 §6.8。
 
 ---
 
@@ -525,11 +663,15 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | **M1**           | 后端 MVP | create-fastapi 生成 `backend/`；SQLModel、Alembic、auth、文章 public/admin API、CLI |
 | **M2**           | 前端 MVP | 作者初始化 `frontend/`；公开页 ISR、admin 登录与文章 CRUD                                 |
 | **M3**           | 内容与发现  | Page、FriendLink、搜索、RSS、sitemap、PageView                                    |
-| **M4**           | 部署与开源  | `deploy/`、根 README、**AGENT.md**、`.gitignore` 汇总、VPS + HTTPS 跑通 SC-5～SC-8 |
-| **M5 — Phase 2** | 增强     | openapi-typescript、标签 CRUD 页、封面上传、Umami、Docker Compose、Demo 站              |
+| **M4**           | 部署与开源  | `deploy/`、文档体系（README / AGENT / CONTRIBUTING / llms.txt / git-workflow）、`.github` 模板、VPS + HTTPS 跑通 SC-5～SC-9 |
+| **M5 — Phase 2a** | AI 写作 P1 | 提供商 CRUD + 激活 + test；Skill 管理 + 校验；选区 AI + SSE；SC-AI-1/2/4/5 |
+| **M6 — Phase 2b** | AI 写作 P2/P3 | 对话改稿；全文生成；SC-AI-3 |
+| **M7 — Phase 2c** | 其它增强 | openapi-typescript、标签 CRUD 页、封面上传、Umami、Docker Compose、Demo 站 |
 
 
-**MVP Done**：满足第 1.3 节 SC-1～SC-8 与第 2.2 节全部 Acceptance Criteria（含 US-7、US-8）。
+**MVP Done**：满足第 1.3 节 SC-1～SC-9 与第 2.2 节 US-1～US-8 Acceptance Criteria。
+
+**Phase 2 AI Done**：满足 SC-AI-1～SC-AI-5 与 US-AI-1～US-AI-4（按 P1→P3 分阶段验收）。
 
 ### 5.2 Technical Risks
 
@@ -544,6 +686,8 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | PostgreSQL 全文检索中文分词弱      | 搜索体验差              | MVP 接受简单 `to_tsvector`；Phase 2 评估 pg_jieba 等           |
 | Giscus 依赖 GitHub          | 国内访问不稳定            | README 说明；评论为可选配置                                      |
 | 单人维护范围膨胀                  | 延期                 | 严格遵守 2.3 Non-Goals                                     |
+| LLM 厂商 API 变更 / 限流        | AI 写作不可用         | OpenAI 兼容层 + 用户自配多提供商；test 端点；usage 日志 |
+| API Key 泄漏                    | 费用与安全风险          | 加密存储、响应脱敏、禁止前端 Key；见 SC-AI-4                  |
 
 
 ---
@@ -577,9 +721,9 @@ https://<domain>/uploads/      → nginx 静态目录（Phase 2 上传）
 | #   | 事项             | 说明                                                                     |
 | --- | -------------- | ---------------------------------------------------------------------- |
 | 1   | 克隆 / 维护 Git 仓库 | 如 `git clone git@github.com:xiongxianzhu/xblog.git`                    |
-| 2   | 复制后端环境文件       | `backend/.env.example` → `backend/.env`，修改 `SECRET_KEY`、`DATABASE_URL` |
-| 3   | 复制前端环境文件       | `frontend/.env.local.example` → `frontend/.env.local`                  |
-| 4   | 提交边界           | **禁止**将 `.env`、`.env.local`、私人文章数据、用户上传文件提交到 Git                              |
+| 2   | 复制后端环境文件       | `backend/.env.example` → `backend/.env`，修改 `SECRET_KEY`、`DATABASE_URL`；Phase 2 AI 可选 `AI_KEY_ENCRYPTION_SECRET` |
+| 3   | 复制前端环境文件       | `frontend/.env.example` → `frontend/.env`                  |
+| 4   | 提交边界           | **禁止**将 `backend/.env`、`frontend/.env`、私人文章数据、用户上传文件提交到 Git                              |
 | 5   | 忽略规则           | 根 `.gitignore` 覆盖 `.venv`、`.pytest_cache`、`.ruff_cache`、`.mypy_cache`、`node_modules`、`.next`、`backend/uploads/*` 等；见 US-8 |
 | 6   | 文档               | `docs/prd-xblog.md`、`AGENT.md`、各 README **应提交**，供 clone 后阅读 |
 
@@ -612,7 +756,7 @@ pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --no
 | #   | 事项                                                                              |
 | --- | ------------------------------------------------------------------------------- |
 | 1   | `cd frontend && pnpm dev`，确认 [http://localhost:3000](http://localhost:3000) 可访问 |
-| 2   | 创建 `frontend/.env.local.example` 并复制为 `.env.local`                              |
+| 2   | 复制 `frontend/.env.example` → `frontend/.env`                              |
 | 3   | 确认根 `.gitignore` 忽略 `node_modules/`、`.next/` 及 Python 工具缓存（可与 US-8 根规则合并）                                    |
 | 4   | 删除误生成的 `package-lock.json`（仅保留 `pnpm-lock.yaml`）                                |
 | 5   | 初始化 **shadcn/ui**（见附录 A.2）                                                      |
@@ -677,9 +821,10 @@ pnpm dev
 
 | #   | 事项                                      | 说明                                |
 | --- | --------------------------------------- | --------------------------------- |
-| 1   | 在 GitHub 启用 Discussions                 | 用于 Giscus 数据源                     |
-| 2   | 在 [giscus.app](https://giscus.app) 生成配置 | 获取 `repo`、`repoId`、`categoryId` 等 |
-| 3   | 写入 `frontend/.env.local`                | 仅前端环境变量，不写死后端                     |
+| 1   | 在 GitHub 仓库启用 **Discussions**                 | 可与主仓库 `xblog` 同库，或独立 `xblog-comments` 分类 |
+| 2   | 在 [giscus.app](https://giscus.app/zh-CN) 生成配置 | 获取 `repo`、`repoId`、`category`、`categoryId` |
+| 3   | 复制 `frontend/.env.example` → `frontend/.env` 并填写 | `NEXT_PUBLIC_GISCUS_*`；**勿提交** `frontend/.env` |
+| 4   | 重启 `pnpm dev`；生产环境改 env 后须重新 `pnpm build` | `NEXT_PUBLIC_*` 在构建时注入 |
 
 
 
@@ -754,9 +899,12 @@ cd frontend && pnpm dev
 
 **骨架阶段配置**
 
-1. 新增 `frontend/.env.local.example`（提交 Git）：
+1. 维护 `frontend/.env.example`（提交 Git），作者复制为 `frontend/.env`：
   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:8000
+   BACKEND_URL=http://localhost:8000
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   REVALIDATE_SECRET=change-me-revalidate
+   # NEXT_PUBLIC_GISCUS_* 见 .env.example 完整列表
   ```
 2. 根 `.gitignore` 忽略 `frontend/node_modules/`、`.next/` 及 `backend/` 下 Python 缓存、`.venv`、`uploads/*`（保留 `.gitkeep`）；完整清单见 **US-8**。
 3. 若存在 `package-lock.json`，删除，仅保留 `pnpm-lock.yaml`。
@@ -1061,6 +1209,8 @@ psql -U xblog -d xblog -h localhost -c "SELECT 1;"
 
 | 版本   | 日期         | 说明                                                                |
 | ---- | ---------- | ----------------------------------------------------------------- |
+| v2.8 | 2026-07-05 | **Phase 2 AI 写作**：§3 AI System Requirements；**US-AI-1～4**、**SC-AI-1～5**；路线图 **M5/M6/M7**；关联 design spec 与 implementation plan |
+| v2.7 | 2026-07-05 | 同步 **Giscus** 实现细节与 env 清单；**US-8** 扩展 CONTRIBUTING / git-workflow / llms.txt / `.github` 模板；**SC-9**；§3 明确 llms.txt 定位 |
 | v2.6 | 2026-07-05 | 新增 **US-7** 后台壳层与双轨主题、**US-8** 文档与 `.gitignore`；**SC-7/SC-8**；`SiteSetting` 与 site-theme API；ISR 主题缓存与 env 说明（不含敏感值） |
 | v2.5 | 2026-07-05 | 前端 UI 定为 **shadcn/ui + Tailwind**（全站方案 A）；附录 A.2 补充 init 步骤 |
 | v2.4 | 2026-07-05 | 生产进程管理由 supervisor 改为 **systemd**；新增 `deploy/systemd/` 示例 unit |

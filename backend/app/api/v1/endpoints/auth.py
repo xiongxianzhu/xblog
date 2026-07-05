@@ -13,11 +13,13 @@ from app.core.timezone import now
 from app.models.user import User
 from app.schemas.auth import (
     AvatarUploadResponse,
+    BindPhoneRequest,
     ChangePasswordRequest,
     LoginRequest,
     TokenResponse,
     UserPublic,
 )
+from app.services import sms_service
 from app.services.uploads import delete_avatar_file, save_user_avatar
 
 router = APIRouter()
@@ -68,7 +70,33 @@ async def refresh(
 
 @router.get("/me", response_model=UserPublic)
 async def me(current_user: CurrentUserDep) -> UserPublic:
-    return UserPublic(username=current_user.username, avatar_url=current_user.avatar_url)
+    return UserPublic(
+        username=current_user.username,
+        avatar_url=current_user.avatar_url,
+        phone=current_user.phone,
+    )
+
+
+@router.patch("/phone", response_model=UserPublic)
+async def bind_phone(
+    payload: BindPhoneRequest,
+    current_user: CurrentUserDep,
+    session: SessionDep,
+) -> UserPublic:
+    normalized = sms_service.normalize_phone(payload.phone)
+    result = await session.exec(select(User).where(User.phone == normalized))
+    existing = result.first()
+    if existing is not None and existing.id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number is already linked")
+    current_user.phone = normalized
+    session.add(current_user)
+    await session.commit()
+    await session.refresh(current_user)
+    return UserPublic(
+        username=current_user.username,
+        avatar_url=current_user.avatar_url,
+        phone=current_user.phone,
+    )
 
 
 @router.post("/avatar", response_model=AvatarUploadResponse)

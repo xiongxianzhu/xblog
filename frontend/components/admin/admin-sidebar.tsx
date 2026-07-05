@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeftIcon, ChevronRightIcon, HouseIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
+import { Link as LocaleLink } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { adminNavItems, isNavActive } from "@/lib/admin-nav";
 import { cn } from "@/lib/utils";
@@ -18,6 +20,7 @@ type AdminSidebarProps = {
 
 export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminSidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations("admin.nav");
   const { collapsed: railCollapsed, toggleCollapsed } = useAdminSidebar();
   const isDrawer = variant === "drawer";
   const collapsed = isDrawer ? false : railCollapsed;
@@ -31,7 +34,7 @@ export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminS
       )}
     >
       <nav
-        className={cn("flex flex-1 flex-col gap-0.5 overflow-y-auto p-2", collapsed && !isDrawer && "px-1.5")}
+        className={cn("flex flex-1 flex-col gap-1 overflow-y-auto p-2.5", collapsed && !isDrawer && "px-1.5")}
         aria-label="管理后台导航"
       >
         {adminNavItems.map((item) => {
@@ -41,10 +44,10 @@ export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminS
             <Link
               key={item.href}
               href={item.href}
-              title={collapsed && !isDrawer ? item.label : undefined}
+              title={collapsed && !isDrawer ? t(item.labelKey) : undefined}
               onClick={onNavigate}
               className={cn(
-                "group relative flex items-center rounded-[2px] py-2 text-sm font-medium transition-colors",
+                "group relative flex min-h-10 items-center rounded-[2px] py-2.5 text-sm font-medium transition-colors",
                 collapsed && !isDrawer ? "justify-center px-2" : "gap-3 px-3",
                 active
                   ? "bg-primary/10 text-primary"
@@ -54,32 +57,32 @@ export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminS
               {active ? (
                 <span
                   className={cn(
-                    "absolute top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary",
+                    "absolute inset-y-0 w-0.5 rounded-full bg-primary",
                     collapsed && !isDrawer ? "left-0.5" : "left-0",
                   )}
                   aria-hidden
                 />
               ) : null}
               <Icon className="size-4 shrink-0" />
-              {!collapsed || isDrawer ? <span className="truncate">{item.label}</span> : null}
+              {!collapsed || isDrawer ? <span className="truncate">{t(item.labelKey)}</span> : null}
             </Link>
           );
         })}
       </nav>
 
-      <div className={cn("border-t border-border/80 p-2", collapsed && !isDrawer && "px-1.5")}>
-        <Link
+      <div className={cn("border-t border-border/80 p-2.5", collapsed && !isDrawer && "px-1.5")}>
+        <LocaleLink
           href="/"
-          title={collapsed && !isDrawer ? "返回站点" : undefined}
+          title={collapsed && !isDrawer ? t("backToSite") : undefined}
           onClick={onNavigate}
           className={cn(
-            "flex items-center rounded-[2px] py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+            "flex min-h-10 items-center rounded-[2px] py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
             collapsed && !isDrawer ? "justify-center px-2" : "gap-2 px-3",
           )}
         >
           <HouseIcon className="size-4 shrink-0" />
-          {!collapsed || isDrawer ? <span>返回站点</span> : null}
-        </Link>
+          {!collapsed || isDrawer ? <span>{t("backToSite")}</span> : null}
+        </LocaleLink>
 
         {variant === "rail" ? (
           <Button
@@ -87,7 +90,7 @@ export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminS
             variant="ghost"
             size="sm"
             className={cn(
-              "mt-1 w-full text-muted-foreground hover:text-foreground",
+              "mt-1.5 min-h-10 w-full text-muted-foreground hover:text-foreground",
               collapsed ? "justify-center px-2" : "justify-start gap-2 px-3",
             )}
             onClick={toggleCollapsed}

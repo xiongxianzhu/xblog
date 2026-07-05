@@ -1,0 +1,61 @@
+name: Bug 报告
+description: 报告 xblog 的缺陷或异常行为
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先搜索是否已有相同 Issue。请勿在 Issue 中粘贴密钥或 `.env` 内容。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清楚说明发生了什么、期望行为是什么
+      placeholder: 例如：保存公开站主题后，前台仍显示旧配色…
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 逐步说明如何复现
+      placeholder: |
+        1. 启动 backend 与 frontend
+        2. 进入 /admin/settings 修改主题
+        3. 刷新公开页 /
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - 公开站 frontend
+        - 管理后台 /admin
+        - 后端 API backend
+        - 部署 / 环境
+        - 文档
+        - 不确定
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 环境
+      description: OS、Python、Node、浏览器等
+      placeholder: Windows 11 · Python 3.14 · pnpm · Chrome 136
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 截图
+      description: 相关报错、控制台输出或截图链接
+    validations:
+      required: false

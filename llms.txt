@@ -1,0 +1,50 @@
+# xblog
+
+> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，MIT 开源。
+
+本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENT.md`。
+
+关键约定：`/` → Next.js；`/api/` → FastAPI。公开站主题存数据库；后台主题存 localStorage。勿提交 `.env`、密钥或用户上传文件。
+
+## Documentation
+
+- [README](README.md): 项目概览、快速开始、技术栈、文档索引与参与贡献
+- [AGENT](AGENT.md): AI 编码助手与贡献者速查（目录、API 分层、主题 ISR、环境变量、Git 规范）
+- [CONTRIBUTING](CONTRIBUTING.md): 开源贡献入口（分支、Commit、PR、提交前检查）
+- [Git 工作流](docs/git-workflow.md): 详细 Git 协作规范（Fork、Review、Squash merge、禁止事项）
+- [后端 README](backend/README.md): FastAPI API 开发、迁移、部署与排错
+- [前端 README](frontend/README.md): Next.js 页面结构、主题系统、路由与构建
+- [部署说明](deploy/systemd/README.md): 生产环境 systemd 守护 uvicorn 与 next start
+
+## Specifications
+
+- [产品需求文档 PRD](docs/prd-xblog.md): 功能范围、用户故事、验收标准、数据模型、API 与 Non-Goals（权威来源）
+- [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md): 提 PR 时的变更说明与测试清单
+- [LICENSE](LICENSE): MIT 许可证
+
+## Configuration
+
+- [后端环境变量示例](backend/.env.example): SECRET_KEY、DATABASE_URL、CORS、ISR revalidate 等占位配置
+- [前端环境变量示例](frontend/.env.example): 复制为 `frontend/.env`；含 BACKEND_URL、站点 URL、Giscus、REVALIDATE_SECRET
+- [后端依赖与工具链](backend/pyproject.toml): Python 包、ruff、mypy、pytest、FastAPI entrypoint
+- [前端依赖](frontend/package.json): Next.js、React、Tailwind、shadcn/ui 脚本与版本
+
+## Code entry points
+
+- [API 路由聚合](backend/app/api/v1/router.py): public / auth / admin 路由注册
+- [FastAPI 应用入口](backend/app/main.py): 应用实例、静态上传挂载
+- [Next.js 配置](frontend/next.config.ts): `/api/*` 代理到 BACKEND_URL
+- [公开站主题拉取](frontend/lib/site-theme.ts): 服务端主题与 ISR cache tag
+- [ISR 刷新路由](frontend/app/api/revalidate/route.ts): revalidateTag / revalidatePath 入口
+- [Giscus 评论组件](frontend/components/giscus.tsx): 文章详情页 GitHub Discussions 评论
+
+## Optional
+
+- [Issue：Bug 报告模板](.github/ISSUE_TEMPLATE/bug_report.yml): GitHub Issue 表单
+- [Issue：功能建议模板](.github/ISSUE_TEMPLATE/feature_request.yml): GitHub Issue 表单
+- [nginx 后端示例](backend/deploy/nginx/backend.conf): API 反向代理参考
+- [systemd API 单元](deploy/systemd/xblog-api.service): uvicorn 进程示例
+- [systemd Web 单元](deploy/systemd/xblog-web.service): next start 进程示例
+- [Alembic 初始迁移](backend/alembic/versions/001_xblog_initial.py): 数据库表结构起点
+- [主题定义](frontend/lib/themes.ts): 公开站与后台 palette 元数据
+- [全局样式与主题变量](frontend/app/globals.css): CSS 变量与 palette 块

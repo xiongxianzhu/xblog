@@ -4,7 +4,7 @@ Monorepo 生产环境用 **systemd** 守护 API 与 Next.js 进程（不用 supe
 
 ## 安装步骤
 
-1. 将仓库部署到 VPS（示例路径 `/srv/xblog`），并完成 `backend/.env`、`frontend/.env.local` 与构建：
+1. 将仓库部署到 VPS（示例路径 `/srv/xblog`），并完成 `backend/.env`、`frontend/.env` 与构建：
 
    ```bash
    cd /srv/xblog/backend && uv sync --frozen --no-dev && uv run alembic upgrade head

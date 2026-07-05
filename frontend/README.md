@@ -82,18 +82,24 @@ pnpm lint && pnpm build && pnpm start
 
 ## 环境变量
 
-<p align="center"><sub>在 <code>frontend/.env.local</code> 配置 · <b>勿提交 Git</b></sub></p>
+<p align="center"><sub>复制 <code>.env.example</code> → <code>.env</code> · <b>勿提交 Git</b></sub></p>
 
 | 变量 | 说明 |
 |------|------|
 | `BACKEND_URL` | 服务端 fetch 与 `/api` rewrite 目标，默认 `http://localhost:8000` |
 | `REVALIDATE_SECRET` | 与 backend 一致，供 `/api/revalidate` 校验 |
 | `NEXT_PUBLIC_SITE_URL` | 站点绝对 URL（sitemap、RSS） |
-| `NEXT_PUBLIC_GISCUS_*` | Giscus 评论（可选） |
+| `NEXT_PUBLIC_GISCUS_REPO` | Giscus 仓库 `owner/repo` |
+| `NEXT_PUBLIC_GISCUS_REPO_ID` | Giscus repoId |
+| `NEXT_PUBLIC_GISCUS_CATEGORY` | Discussion 分类名 |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID` | Giscus categoryId |
+| `NEXT_PUBLIC_GISCUS_MAPPING` | 可选，`pathname` 等 |
+| `NEXT_PUBLIC_GISCUS_INPUT_POSITION` | 可选，`top` / `bottom` |
+| `NEXT_PUBLIC_GISCUS_THEME` | 可选，Giscus 主题名 |
 
 <p align="center"><sub><a href="next.config.ts"><code>next.config.ts</code></a> 将浏览器 <code>/api/*</code> 代理到 <code>BACKEND_URL</code></sub></p>
 
-> 💡 可创建 `.env.example` 作为模板；`.gitignore` 已忽略 `.env.local` 但保留 `!.env.example`。
+> 💡 模板见 <a href=".env.example"><code>.env.example</code></a>；`.gitignore` 已忽略 `.env` 但保留 `!.env.example`。
 
 ---
 

@@ -1,14 +1,14 @@
-import Link from "next/link";
 import { ArrowUpRightIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "@/i18n/navigation";
 import type { PostSummary } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export function PostCard({ post }: { post: PostSummary }) {
   return (
-    <Card className="group overflow-hidden border-border/80 hover:border-primary/30 hover:shadow-md">
+    <Card className="site-glass-panel group overflow-hidden transition-colors">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
           {post.published_at ? (

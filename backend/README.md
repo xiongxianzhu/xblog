@@ -113,9 +113,15 @@ uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
 |------|:----:|------|
 | `SECRET_KEY` | ✅ | JWT 签名；生产用随机强密钥 |
 | `DATABASE_URL` | ✅ | `postgresql+asyncpg://user:pass@host:5432/xblog` |
+| `APP_ENV` | | 默认 `development` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | | JWT 访问令牌有效期 |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | | 刷新令牌有效期 |
 | `CORS_ORIGINS` | 开发 | 默认 `http://localhost:3000` |
-| `REVALIDATE_SECRET` | 生产 | 与 frontend 一致 |
+| `COOKIE_SECURE` / `COOKIE_DOMAIN` | 生产 | HTTPS 与 Cookie 域 |
+| `REVALIDATE_SECRET` | 生产 | 与 `frontend/.env` 一致 |
 | `REVALIDATE_URL` | 生产 | 如 `http://localhost:3000/api/revalidate` |
+| `UPLOAD_DIR` | | 上传根目录，默认 `uploads` |
+| `AI_KEY_ENCRYPTION_SECRET` | | AI 写作 Key 加密；留空则派生自 `SECRET_KEY` |
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"

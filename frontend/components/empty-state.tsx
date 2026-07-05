@@ -12,11 +12,11 @@ export function EmptyState({ title, description, className }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-4 rounded-xl border border-dashed border-border bg-card/60 px-6 py-16 text-center",
+        "site-glass-panel flex flex-col items-center gap-4 border-dashed px-6 py-16 text-center",
         className,
       )}
     >
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+      <div className="flex size-12 items-center justify-center rounded-sm bg-muted/80">
         <FileTextIcon className="size-5 text-muted-foreground" />
       </div>
       <div className="flex flex-col gap-1">

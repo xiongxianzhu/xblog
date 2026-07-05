@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 贡献指南
+    url: https://github.com/xiongxianzhu/xblog/blob/main/CONTRIBUTING.md
+    about: 分支命名、Commit 规范与 PR 流程
+  - name: Git 工作流
+    url: https://github.com/xiongxianzhu/xblog/blob/main/docs/git-workflow.md
+    about: 详细 Git 协作规范

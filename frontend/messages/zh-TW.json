@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "siteName": "xblog",
+    "siteDescription": "個人部落格 · Markdown 寫作 · 自託管",
+    "titleTemplate": "{title} · xblog"
+  },
+  "nav": {
+    "menu": "開啟選單",
+    "blog": "部落格",
+    "about": "關於",
+    "projects": "專案",
+    "links": "友鏈",
+    "search": "搜尋",
+    "admin": "管理"
+  },
+  "locale": {
+    "label": "語言",
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    "en": "English"
+  },
+  "footer": {
+    "tagline": "自託管 · Markdown · 開源",
+    "rss": "RSS",
+    "sitemap": "Sitemap",
+    "copyright": "© {year} {siteName} · MIT License"
+  },
+  "home": {
+    "eyebrow": "Personal Journal",
+    "titleLine1": "以 Markdown 書寫，",
+    "titleLine2": "以網頁留存。",
+    "description": "自託管的個人部落格：FastAPI 驅動內容，Next.js 呈現閱讀體驗，支援 ISR、搜尋與 Giscus 評論。",
+    "enterBlog": "進入部落格",
+    "search": "搜尋",
+    "latestPosts": "最新文章",
+    "latestPostsHint": "最近發布的內容",
+    "viewAll": "查看全部",
+    "emptyTitle": "尚無文章",
+    "emptyDescription": "登入後台，寫下你的第一篇文章。",
+    "cardAdminTitle": "寫作後台",
+    "cardAdminDescription": "Markdown 編輯與發布",
+    "cardRssTitle": "RSS 訂閱",
+    "cardRssDescription": "跟進部落格更新",
+    "cardAboutTitle": "關於",
+    "cardAboutSubtitle": "認識作者",
+    "cardAboutDescription": "專案與自我介紹"
+  },
+  "blog": {
+    "title": "部落格",
+    "description": "記錄思考、專案與日常。",
+    "metaDescription": "全部已發布文章",
+    "emptyTitle": "還沒有文章",
+    "emptyDescription": "發布第一篇文章後，它們會出現在這裡。",
+    "postNotFound": "文章未找到",
+    "comments": "評論"
+  },
+  "about": {
+    "fallbackTitle": "關於",
+    "description": "關於作者與這個部落格。"
+  },
+  "projects": {
+    "fallbackTitle": "專案",
+    "description": "作品集與 side projects。"
+  },
+  "links": {
+    "title": "友鏈",
+    "description": "志同道合的朋友們。",
+    "metaDescription": "友情連結",
+    "emptyTitle": "暫無友鏈",
+    "emptyDescription": "可在後台新增友鏈。"
+  },
+  "search": {
+    "eyebrow": "Search",
+    "title": "搜尋文章",
+    "description": "依標題、摘要或正文關鍵詞查找。",
+    "keywordLabel": "關鍵詞",
+    "placeholder": "輸入關鍵詞…",
+    "submit": "搜尋",
+    "submitting": "搜尋中…",
+    "emptyTitle": "未找到相關文章",
+    "emptyDescription": "換個關鍵詞試試。"
+  },
+  "tags": {
+    "description": "該標籤下的全部文章。",
+    "metaTitle": "標籤：{slug}",
+    "emptyTitle": "暫無文章",
+    "emptyDescription": "該標籤下還沒有已發布的內容。"
+  },
+  "common": {
+    "copy": "複製",
+    "copied": "已複製",
+    "copyCodeAria": "複製程式碼"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "儀表板",
+      "users": "使用者",
+      "posts": "文章",
+      "about": "關於",
+      "projects": "作品集",
+      "links": "友鏈",
+      "logs": "日誌",
+      "aiModels": "AI 模型",
+      "skills": "Skills",
+      "settings": "設定",
+      "backToSite": "返回站點"
+    },
+    "feedback": {
+      "gotIt": "知道了",
+      "draftSaved": "草稿已保存",
+      "published": "發布成功",
+      "saveFailed": "保存失敗",
+      "publishFailed": "發布失敗",
+      "loginSuccess": "登入成功",
+      "loginSuccessDesc": "歡迎回來，{username}。",
+      "loginFailed": "登入失敗",
+      "logoutSuccess": "已登出",
+      "logoutFailed": "登出失敗"
+    }
+  }
+}

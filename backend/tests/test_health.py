@@ -2,26 +2,25 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
 
-
-@pytest.fixture
-def client() -> TestClient:
-    from app.main import app
-
-    return TestClient(app)
+from tests.conftest import unwrap_api_response
 
 
 def test_public_health_ok(client: TestClient) -> None:
     resp = client.get("/api/v1/public/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    body = resp.json()
+    assert body["code"] == 0
+    assert body["data"] == {"status": "ok"}
 
 
 def test_admin_posts_requires_auth(client: TestClient) -> None:
     resp = client.get("/api/v1/admin/posts")
     assert resp.status_code == 401
+    body = resp.json()
+    assert body["code"] == -1
+    assert body["msg"]
 
 
 def test_auth_login_and_me(client: TestClient) -> None:
@@ -43,8 +42,8 @@ def test_auth_login_and_me(client: TestClient) -> None:
         json={"username": "tester", "password": "secret123"},
     )
     assert login.status_code == 200
-    assert login.json()["username"] == "tester"
+    assert unwrap_api_response(login)["username"] == "tester"
 
     me = client.get("/api/v1/auth/me")
     assert me.status_code == 200
-    assert me.json()["username"] == "tester"
+    assert unwrap_api_response(me)["username"] == "tester"

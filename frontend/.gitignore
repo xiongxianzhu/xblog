@@ -20,6 +20,7 @@
 
 /coverage
 
+# 本地环境（复制 .env.example → .env，勿提交 .env）
 .env
 .env.local
 .env.development.local

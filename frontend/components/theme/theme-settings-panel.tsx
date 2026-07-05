@@ -73,7 +73,7 @@ export function ThemeSettingsPanel<P extends string>({
           <p className="text-sm font-medium">配色</p>
           <p className="text-xs text-muted-foreground">选择一套预设配色方案。</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {palettes.map((item) => (
             <PaletteCard
               key={item.id}

@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "siteName": "xblog",
+    "siteDescription": "个人博客 · Markdown 写作 · 自托管",
+    "titleTemplate": "{title} · xblog"
+  },
+  "nav": {
+    "menu": "打开菜单",
+    "blog": "博客",
+    "about": "关于",
+    "projects": "项目",
+    "links": "友链",
+    "search": "搜索",
+    "admin": "管理"
+  },
+  "locale": {
+    "label": "语言",
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    "en": "English"
+  },
+  "footer": {
+    "tagline": "自托管 · Markdown · 开源",
+    "rss": "RSS",
+    "sitemap": "Sitemap",
+    "copyright": "© {year} {siteName} · MIT License"
+  },
+  "home": {
+    "eyebrow": "Personal Journal",
+    "titleLine1": "以 Markdown 书写，",
+    "titleLine2": "以网页留存。",
+    "description": "自托管的个人博客：FastAPI 驱动内容，Next.js 呈现阅读体验，支持 ISR、搜索与 Giscus 评论。",
+    "enterBlog": "进入博客",
+    "search": "搜索",
+    "latestPosts": "最新文章",
+    "latestPostsHint": "最近发布的内容",
+    "viewAll": "查看全部",
+    "emptyTitle": "尚无文章",
+    "emptyDescription": "登录后台，写下你的第一篇文章。",
+    "cardAdminTitle": "写作后台",
+    "cardAdminDescription": "Markdown 编辑与发布",
+    "cardRssTitle": "RSS 订阅",
+    "cardRssDescription": "跟进博客更新",
+    "cardAboutTitle": "关于",
+    "cardAboutSubtitle": "认识作者",
+    "cardAboutDescription": "项目与自我介绍"
+  },
+  "blog": {
+    "title": "博客",
+    "description": "记录思考、项目与日常。",
+    "metaDescription": "全部已发布文章",
+    "emptyTitle": "还没有文章",
+    "emptyDescription": "发布第一篇文章后，它们会出现在这里。",
+    "postNotFound": "文章未找到",
+    "comments": "评论"
+  },
+  "about": {
+    "fallbackTitle": "关于",
+    "description": "关于作者与这个博客。"
+  },
+  "projects": {
+    "fallbackTitle": "项目",
+    "description": "作品集与 side projects。"
+  },
+  "links": {
+    "title": "友链",
+    "description": "志同道合的朋友们。",
+    "metaDescription": "友情链接",
+    "emptyTitle": "暂无友链",
+    "emptyDescription": "可在后台添加友链。"
+  },
+  "search": {
+    "eyebrow": "Search",
+    "title": "搜索文章",
+    "description": "按标题、摘要或正文关键词查找。",
+    "keywordLabel": "关键词",
+    "placeholder": "输入关键词…",
+    "submit": "搜索",
+    "submitting": "搜索中…",
+    "emptyTitle": "未找到相关文章",
+    "emptyDescription": "换个关键词试试。"
+  },
+  "tags": {
+    "description": "该标签下的全部文章。",
+    "metaTitle": "标签：{slug}",
+    "emptyTitle": "暂无文章",
+    "emptyDescription": "该标签下还没有已发布的内容。"
+  },
+  "common": {
+    "copy": "复制",
+    "copied": "已复制",
+    "copyCodeAria": "复制代码"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "仪表盘",
+      "users": "用户",
+      "posts": "文章",
+      "about": "关于",
+      "projects": "作品集",
+      "links": "友链",
+      "logs": "日志",
+      "aiModels": "AI 模型",
+      "skills": "Skills",
+      "settings": "设置",
+      "backToSite": "返回站点"
+    },
+    "feedback": {
+      "gotIt": "知道了",
+      "draftSaved": "草稿已保存",
+      "published": "发布成功",
+      "saveFailed": "保存失败",
+      "publishFailed": "发布失败",
+      "loginSuccess": "登录成功",
+      "loginSuccessDesc": "欢迎回来，{username}。",
+      "loginFailed": "登录失败",
+      "logoutSuccess": "已退出登录",
+      "logoutFailed": "退出失败"
+    }
+  }
+}

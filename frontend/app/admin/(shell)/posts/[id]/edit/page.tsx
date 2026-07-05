@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
-import { useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { PostEditorForm } from "@/components/admin/post-editor-form";
@@ -14,18 +13,15 @@ export default function EditPostPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const postId = Number(params.id);
-  const { data: post, error, isLoading } = useSWR(postId ? `admin-post-${postId}` : null, () => getAdminPost(postId));
-  const [message, setMessage] = useState("");
+  const { data: post, error, isLoading, mutate } = useSWR(postId ? `admin-post-${postId}` : null, () => getAdminPost(postId));
 
   async function handleSubmit(values: Record<string, unknown>) {
-    setMessage("");
-    try {
-      await updatePost(postId, values);
-      setMessage("已保存");
-      router.refresh();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "保存失败");
-    }
+    await updatePost(postId, values);
+  }
+
+  async function handleSuccess() {
+    await mutate();
+    router.refresh();
   }
 
   if (error) {
@@ -53,7 +49,6 @@ export default function EditPostPage() {
           </Button>
         }
       />
-      {message ? <p className="mb-4 text-sm text-muted-foreground">{message}</p> : null}
       <PostEditorForm
         initial={{
           title: post.title,
@@ -65,6 +60,7 @@ export default function EditPostPage() {
           tag_slugs: post.tags.map((tag) => tag.slug),
         }}
         onSubmit={handleSubmit}
+        onSuccess={() => void handleSuccess()}
       />
     </div>
   );

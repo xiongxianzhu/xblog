@@ -1,4 +1,4 @@
-"""统一异常与全局处理器。"""
+"""全局异常处理。"""
 
 from __future__ import annotations
 
@@ -9,37 +9,41 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.schemas.response import fail
+
+
+def _format_error_detail(detail: Any) -> tuple[str, Any]:
+    if isinstance(detail, str):
+        return detail, {}
+    if isinstance(detail, list):
+        if detail and all(isinstance(item, str) for item in detail):
+            return "；".join(detail), detail
+        return "请求参数校验失败", detail
+    if isinstance(detail, dict):
+        msg = str(detail.get("msg") or detail.get("message") or "请求失败")
+        return msg, detail
+    return "请求失败", {}
+
 
 class APIException(Exception):
-    """业务异常基类。"""
-
-    status_code: int = 400
-    code: str = "API_ERROR"
-    message: str = "请求错误"
+    """业务异常，可自定义 code / msg / data。"""
 
     def __init__(
         self,
-        message: str | None = None,
+        msg: str = "请求错误",
         *,
-        code: str | None = None,
-        status_code: int | None = None,
-        details: list[Any] | None = None,
+        code: int = -1,
+        data: Any = None,
+        status_code: int = 400,
     ) -> None:
-        super().__init__(message or self.message)
-        if message is not None:
-            self.message = message
-        if code is not None:
-            self.code = code
-        if status_code is not None:
-            self.status_code = status_code
-        self.details = details or []
+        self.msg = msg
+        self.code = code
+        self.data = {} if data is None else data
+        self.status_code = status_code
+        super().__init__(msg)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "code": self.code,
-            "message": self.message,
-            "details": self.details,
-        }
+        return fail(msg=self.msg, code=self.code, data=self.data)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -49,24 +53,16 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={
-                "code": "HTTP_ERROR",
-                "message": exc.detail if isinstance(exc.detail, str) else "请求错误",
-                "details": exc.detail if isinstance(exc.detail, list) else [],
-            },
-        )
+        msg, data = _format_error_detail(exc.detail)
+        return JSONResponse(status_code=exc.status_code, content=fail(msg=msg, data=data))
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        _: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
             status_code=422,
-            content={
-                "code": "VALIDATION_ERROR",
-                "message": "请求参数校验失败",
-                "details": exc.errors(),
-            },
+            content=fail(msg="请求参数校验失败", data=exc.errors()),
         )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+        return JSONResponse(status_code=500, content=fail(msg="服务器内部错误"))
