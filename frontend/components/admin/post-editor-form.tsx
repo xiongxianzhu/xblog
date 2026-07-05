@@ -7,7 +7,9 @@ import { toast } from "sonner";
 
 import { AiAssistantPanel } from "@/components/admin/ai-assistant-panel";
 import { AiSelectionToolbar } from "@/components/admin/ai-selection-toolbar";
+import { useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
+import { PostCoverEditor } from "@/components/admin/post-cover-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -44,6 +46,7 @@ const defaultValues: PostFormValues = {
 
 export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
   const tFeedback = useTranslations("admin.feedback");
+  const { collapsed } = useAdminSidebar();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [values, setValues] = useState<PostFormValues>({ ...defaultValues, ...initial });
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -66,7 +69,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
         ...values,
         status,
         excerpt: values.excerpt || null,
-        cover_url: values.cover_url || null,
+        cover_url: values.cover_url.trim() || null,
         tag_slugs: tagsInput
           .split(",")
           .map((tag) => tag.trim())
@@ -129,7 +132,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
         <CardDescription>支持 Markdown 语法，保存后可在前台预览。</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="pb-20">
           <FieldGroup>
             <div className="grid gap-6 md:grid-cols-2">
               <Field>
@@ -149,14 +152,15 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
             </Field>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="cover_url">封面 URL</FieldLabel>
-                <Input id="cover_url" value={values.cover_url} onChange={(e) => updateField("cover_url", e.target.value)} />
-              </Field>
+              <PostCoverEditor
+                value={values.cover_url}
+                onChange={(coverUrl) => updateField("cover_url", coverUrl)}
+                disabled={submitting}
+              />
               <Field>
                 <FieldLabel htmlFor="tags">标签 slug</FieldLabel>
                 <Input id="tags" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tech, life" />
-                <FieldDescription>逗号分隔，需先在数据库中存在对应 tag</FieldDescription>
+                <FieldDescription>逗号分隔；不存在时会自动创建标签（slug 如 tech、life）</FieldDescription>
               </Field>
             </div>
 
@@ -207,35 +211,40 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                 ) : null}
               </div>
             </Field>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={submitting}
-                onClick={() => setPendingStatus("draft")}
-              >
-                {activeSubmit === "draft" ? (
-                  <>
-                    <Loader2Icon className="animate-spin" />
-                    保存中…
-                  </>
-                ) : (
-                  "保存草稿"
-                )}
-              </Button>
-              <Button type="submit" disabled={submitting} onClick={() => setPendingStatus("published")}>
-                {activeSubmit === "published" ? (
-                  <>
-                    <Loader2Icon className="animate-spin" />
-                    发布中…
-                  </>
-                ) : (
-                  "发布"
-                )}
-              </Button>
-            </div>
           </FieldGroup>
+
+          <div
+            className={cn(
+              "admin-editor-actions fixed inset-x-0 bottom-0 z-40 flex flex-wrap items-center gap-3 border-t px-4 py-3 sm:px-5 lg:px-6 lg:transition-[left] lg:duration-200 lg:ease-out",
+              collapsed ? "lg:left-16" : "lg:left-56",
+            )}
+          >
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={submitting}
+              onClick={() => setPendingStatus("draft")}
+            >
+              {activeSubmit === "draft" ? (
+                <>
+                  <Loader2Icon className="animate-spin" />
+                  保存中…
+                </>
+              ) : (
+                "保存草稿"
+              )}
+            </Button>
+            <Button type="submit" disabled={submitting} onClick={() => setPendingStatus("published")}>
+              {activeSubmit === "published" ? (
+                <>
+                  <Loader2Icon className="animate-spin" />
+                  发布中…
+                </>
+              ) : (
+                "发布"
+              )}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

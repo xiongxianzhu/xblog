@@ -48,3 +48,7 @@ class PostAdmin(PostSummary):
     status: str
     created_at: datetime | None
     updated_at: datetime | None
+
+
+class PostCoverUploadResponse(SQLModel):
+    cover_url: str

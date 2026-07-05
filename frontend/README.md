@@ -54,9 +54,10 @@
 | | 区域 | 路径 | 渲染 |
 |:-:|:---|:---|:---|
 | 🏠 | 公开站 | `/[locale]/` · `/blog` · `/search` … | RSC + ISR · next-intl |
-| ⚙️ | 管理后台 | `/admin/*`（无 locale 前缀） | Client Components + SWR + AI 内嵌面板 |
+| ⚙️ | 管理后台 | `/admin/*`（无 locale 前缀） | Client Components + SWR + AI 内嵌面板 + **固定底栏保存/发布** |
 | 📡 | ISR 回调 | `/api/revalidate` | Route Handler |
 | 🤖 | AI BFF | `/api/v1/admin/ai/complete` | SSE 代理至后端 |
+| 💬 | Giscus | 文章详情 `GiscusComments` | Client 动态加载；iframe wrapper + 公开站主题联动 |
 
 <p align="center"><sub><b>主题</b>：公开站 7 款 palette + 站点品牌（DB）· 后台 UI 主题存 <code>localStorage</code> · 互不干扰</sub></p>
 
@@ -90,6 +91,7 @@ pnpm lint && pnpm build && pnpm start
 | `BACKEND_URL` | 服务端 fetch 与 `/api` rewrite 目标，默认 `http://localhost:8000` |
 | `REVALIDATE_SECRET` | 与 backend 一致，供 `/api/revalidate` 校验 |
 | `NEXT_PUBLIC_SITE_URL` | 站点绝对 URL（sitemap、RSS） |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile 站点 Key（与 backend `TURNSTILE_SITE_KEY` 相同） |
 | `NEXT_PUBLIC_GISCUS_REPO` | Giscus 仓库 `owner/repo` |
 | `NEXT_PUBLIC_GISCUS_REPO_ID` | Giscus repoId |
 | `NEXT_PUBLIC_GISCUS_CATEGORY` | Discussion 分类名 |
@@ -121,7 +123,11 @@ app/
 ├── sitemap.ts · rss.xml/
 components/
 ├── site/                   # 公开页组件
-├── admin/                  # 壳层 · ai-assistant-panel · 主题设置
+├── admin/                  # 壳层 · post-editor-form · post-cover-editor · ai-assistant-panel
+├── article-cover.tsx       # 详情页封面
+├── article-toc.tsx         # 正文目录（桌面 sticky / 移动折叠）
+├── post-card.tsx           # 列表卡片（4:3 封面 + 标签）
+├── giscus.tsx              # Giscus 评论（iframe wrapper）
 └── ui/                     # shadcn/ui
 i18n/                       # routing.ts · request.ts
 messages/                   # zh-CN.json · zh-TW.json · en.json
@@ -173,13 +179,40 @@ CSS 变量 → [`app/globals.css`](app/globals.css)
 | 路径 | 类型 | 说明 |
 |------|:----:|------|
 | `/` 或 `/[locale]` | ISR | 首页 |
-| `/[locale]/blog` · `/blog/[slug]` | ISR | 文章 |
+| `/[locale]/blog` · `/blog/[slug]` | ISR | 文章（封面 · TOC · Giscus） |
 | `/[locale]/search` | ISR | 站内搜索 |
 | `/[locale]/projects` · `/links` · `/about` | ISR | 内容页 |
-| `/[locale]/tags/[slug]` | ISR | 标签归档 |
-| `/admin` | 动态 | 登录 |
+| `/[locale]/tags/[slug]` | ISR | 标签归档（`decodeRouteParam` 解码中文 slug） |
+| `/admin` | 动态 | 登录（Turnstile · `GET /auth/login-guard`） |
+| `/admin/posts/new` · `/admin/posts/[id]/edit` | Client | 文章编辑（固定底栏 **保存草稿 / 发布**） |
 | `/admin/dashboard` · `/admin/ai/*` 等 | Client | 后台模块 |
 | `/rss.xml` · `/sitemap.xml` | 动态 | 订阅 · SEO |
+
+---
+
+## Giscus 评论
+
+| 项 | 说明 |
+|----|------|
+| 组件 | [`components/giscus.tsx`](components/giscus.tsx) |
+| 配置 | `NEXT_PUBLIC_GISCUS_*`（见 `.env.example`） |
+| 挂载 | 文章详情 [`app/[locale]/blog/[slug]/page.tsx`](app/[locale]/blog/[slug]/page.tsx) |
+| 主题 | 默认跟随公开站 `mode`；`NEXT_PUBLIC_GISCUS_THEME` 可覆盖 |
+| 布局 | `client.js` 会清空 `.giscus` 并插入 iframe；组件用 `MutationObserver` 再包一层 `div`，由 `globals.css` `[data-site-shell] .giscus > div` 控制宽度 |
+
+> iframe **内部**样式无法由父页 CSS 穿透；需自定义时把 `data-theme` 设为托管 CSS URL（见 [Giscus STYLING](https://github.com/giscus/giscus/blob/main/STYLING.md)）并配置 CORS。
+
+---
+
+## 文章编辑与封面
+
+| 文件 | 职责 |
+|------|------|
+| [`components/admin/post-editor-form.tsx`](components/admin/post-editor-form.tsx) | 表单 · AI 助手 · **固定底栏** `.admin-editor-actions` |
+| [`components/admin/post-cover-editor.tsx`](components/admin/post-cover-editor.tsx) | 封面上传 / URL · 「移除」仅清空表单 |
+| [`lib/public-asset-url.ts`](lib/public-asset-url.ts) | 公开页与后台预览 URL 解析 |
+
+保存或发布时若 `cover_url` 为空，后端会删除旧的本地上传文件（见 backend README）。
 
 ---
 
@@ -198,6 +231,7 @@ AI 流式       ──BFF────→  /api/v1/admin/ai/complete → 后端 S
 | [`lib/ai-api.ts`](lib/ai-api.ts) | AI SSE 客户端 |
 | [`lib/site-theme.ts`](lib/site-theme.ts) | 根布局主题与品牌拉取 |
 | [`components/admin/ai-assistant-panel.tsx`](components/admin/ai-assistant-panel.tsx) | 内嵌 AI 助手（对话/生成/思考过程） |
+| [`components/giscus.tsx`](components/giscus.tsx) | Giscus 评论加载与 iframe wrapper |
 | [`app/api/revalidate/route.ts`](app/api/revalidate/route.ts) | ISR 入口 |
 
 ---
@@ -211,6 +245,8 @@ AI 流式       ──BFF────→  /api/v1/admin/ai/complete → 后端 S
 | `/zh-TW/admin` 404 | 应访问 `/admin`；勿在 admin 路径加 locale |
 | 后台切换语言无效 | 检查 cookie · 刷新页面 · 见 `i18n/request.ts` |
 | AI 无流式输出 | 确认提供商已激活 · 浏览器 Network 看 SSE |
+| Giscus 宽度不齐 | 检查 `globals.css` `.giscus > div`；iframe 内样式需 custom theme CSS |
+| 封面预览 404 | 确认后端已启动 · URL 为 `/api/v1/uploads/covers/…` |
 | `pnpm build` 失败 | `pnpm lint` 查看 TS/ESLint 报错 |
 | `.next` 异常 | 删除 `.next/` 后重新 `pnpm dev` |
 

@@ -52,7 +52,8 @@
     "emptyTitle": "还没有文章",
     "emptyDescription": "发布第一篇文章后，它们会出现在这里。",
     "postNotFound": "文章未找到",
-    "comments": "评论"
+    "comments": "评论",
+    "toc": "目录"
   },
   "about": {
     "fallbackTitle": "关于",

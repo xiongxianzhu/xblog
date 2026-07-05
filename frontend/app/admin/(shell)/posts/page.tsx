@@ -3,7 +3,9 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { useMemo, useState } from "react";
-import { PenLineIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { PenLineIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 
@@ -22,15 +24,17 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { deletePost, listAdminPosts } from "@/lib/api";
+import { deletePost, listAdminPosts, updatePost } from "@/lib/api";
 import { matchQuery } from "@/lib/match-query";
 import { formatDate } from "@/lib/utils";
 
 export default function AdminPostsPage() {
+  const tFeedback = useTranslations("admin.feedback");
   const { data: posts, error, isLoading, mutate } = useSWR("admin-posts", listAdminPosts);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -55,6 +59,23 @@ export default function AdminPostsPage() {
       setDeleteId(null);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handlePublish(id: number, title: string) {
+    setPublishingId(id);
+    try {
+      await updatePost(id, { status: "published" });
+      await mutate();
+      toast.success(tFeedback("published"), {
+        description: `文章「${title}」已发布。`,
+      });
+    } catch (err) {
+      toast.error(tFeedback("publishFailed"), {
+        description: err instanceof Error ? err.message : "请稍后重试",
+      });
+    } finally {
+      setPublishingId(null);
     }
   }
 
@@ -141,6 +162,21 @@ export default function AdminPostsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      {post.status !== "published" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-2 sm:px-3"
+                          aria-label={`发布 ${post.title}`}
+                          disabled={publishingId === post.id}
+                          onClick={() => void handlePublish(post.id, post.title)}
+                        >
+                          <SendIcon className="size-4 sm:mr-1" />
+                          <span className="hidden sm:inline">
+                            {publishingId === post.id ? "发布中…" : "发布"}
+                          </span>
+                        </Button>
+                      ) : null}
                       <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
                         <Link href={`/admin/posts/${post.id}/edit`} aria-label={`编辑 ${post.title}`}>
                           <PenLineIcon className="size-4 sm:mr-1" />

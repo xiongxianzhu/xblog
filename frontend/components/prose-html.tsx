@@ -24,6 +24,22 @@ type CopyLabels = {
   copyCodeAria: string;
 };
 
+function extractCodeLanguage(pre: Element, block: Element): string | null {
+  const fromData = block.getAttribute("data-code-language")?.trim();
+  if (fromData) return fromData;
+
+  const code = pre.querySelector("code");
+  if (!code) return null;
+
+  for (const className of code.classList) {
+    if (className.startsWith("language-")) {
+      return className.slice("language-".length);
+    }
+  }
+
+  return null;
+}
+
 function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
   const shells: HTMLDivElement[] = [];
 
@@ -34,7 +50,17 @@ function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
     const shell = document.createElement("div");
     shell.className = "code-block-shell";
     block.parentNode?.insertBefore(shell, block);
-    shell.appendChild(block);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "code-block-toolbar";
+
+    const lang = extractCodeLanguage(pre, block);
+    if (lang) {
+      const label = document.createElement("span");
+      label.className = "code-lang-label";
+      label.textContent = lang;
+      toolbar.appendChild(label);
+    }
 
     const btn = document.createElement("button");
     btn.type = "button";
@@ -54,13 +80,15 @@ function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
       });
     });
 
-    shell.appendChild(btn);
+    toolbar.appendChild(btn);
+    shell.appendChild(toolbar);
+    shell.appendChild(block);
     shells.push(shell);
   });
 
   return () => {
     shells.forEach((shell) => {
-      const block = shell.firstElementChild;
+      const block = shell.querySelector(":scope > .highlight") ?? shell.querySelector(":scope > pre");
       if (block && shell.parentNode) {
         shell.parentNode.insertBefore(block, shell);
         shell.remove();

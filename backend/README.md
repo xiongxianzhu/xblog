@@ -58,11 +58,11 @@
 
 | | 模块 | 能力 |
 |:-:|:---|:---|
-| 📝 | 内容 | 文章 / 页面 CRUD |
+| 📝 | 内容 | 文章 / 页面 CRUD · **封面上传** · **标签自动创建** |
 | 🔍 | 发现 | 全文搜索 |
 | 🔗 | 友链 | 友链管理 |
 | 📊 | 统计 | 访问计数 |
-| 🔐 | 认证 | Cookie + JWT · 短信验证码 · OAuth |
+| 🔐 | 认证 | Cookie + JWT · 短信验证码 · OAuth · **Turnstile / login-guard** |
 | 🤖 | AI | 提供商 CRUD · Skill 管理 · SSE complete |
 | 🎨 | 外观 | 公开站主题 + 站点品牌（名称/副标题/LOGO） |
 
@@ -121,7 +121,7 @@ uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
 | `COOKIE_SECURE` / `COOKIE_DOMAIN` | 生产 | HTTPS 与 Cookie 域 |
 | `REVALIDATE_SECRET` | 生产 | 与 `frontend/.env` 一致 |
 | `REVALIDATE_URL` | 生产 | 如 `http://localhost:3000/api/revalidate` |
-| `UPLOAD_DIR` | | 上传根目录，默认 `uploads`（Skill 包等） |
+| `UPLOAD_DIR` | | 上传根目录，默认 `uploads`（Skill 包、**文章封面** `covers/`） |
 | `AI_KEY_ENCRYPTION_SECRET` | | AI 写作 Key 加密；留空则派生自 `SECRET_KEY` |
 | `FRONTEND_URL` | OAuth | 回调跳转目标，如 `http://localhost:3000` |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | | GitHub OAuth（可选） |
@@ -129,6 +129,10 @@ uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
 | `SMS_PROVIDER` | | 短信：`dev`（开发，验证码写日志）或 `aliyun` |
 | `SMS_CODE_EXPIRE_MINUTES` | | 验证码有效期 |
 | `SMS_SEND_INTERVAL_SECONDS` | | 同号发送间隔 |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | | Cloudflare Turnstile（与 frontend 公钥一致） |
+| `LOGIN_CAPTCHA_AFTER_FAILURES` | | 密码登录失败 N 次后要求 Turnstile（默认 3） |
+| `LOGIN_MAX_FAILURES_PER_WINDOW` | | 同 IP/用户名失败上限（默认 10 / 15 分钟） |
+| `FORGOT_PASSWORD_MAX_PER_WINDOW` | | 找回密码窗口内次数上限 |
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -155,14 +159,20 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/auth/login-methods` | 已启用登录方式 |
+| GET | `/auth/login-guard` | 登录页 Turnstile 是否必填（按失败次数 / 找回密码） |
 | POST | `/auth/sms/send-code` · `/auth/sms/login` | 短信验证码 |
 | GET/POST | `/auth/oauth/*` | GitHub / 微信 OAuth 与绑定 |
 | GET/PATCH | `/admin/auth-settings` | 登录方式开关 |
 | * | `/admin/ai/providers` | AI 提供商 CRUD + test |
 | * | `/admin/ai/skills` | Skill 上传与管理 |
 | POST | `/admin/ai/complete` | SSE 流式（`delta` / `thinking` / `done`） |
+| POST | `/admin/posts/cover` | 上传文章封面 → `/api/v1/uploads/covers/…` |
+| DELETE | `/admin/posts/cover?cover_url=…` | 删除已上传封面文件（管理用） |
 
 </details>
+
+> **标签**：保存文章时 `tag_slugs` 不存在会自动 `get_or_create_tag`（支持中文 slug）。  
+> **封面**：PATCH 时若 `cover_url` 置空且旧值为本地上传 URL，服务端会删除磁盘文件；编辑页「移除」仅清空表单，保存后才删文件。
 
 > **写操作只出现在 admin 路由**，public 路由保持只读。
 
@@ -192,11 +202,11 @@ app/
 ├── db/                  # session
 ├── models/              # SQLModel 表定义
 ├── schemas/             # Pydantic 入参/出参
-├── services/            # posts · revalidate · site_settings · ai/ …
+├── services/            # posts · revalidate · site_settings · uploads · login_guard · ai/ …
 ├── data/builtin_skills/ # 内置 Agent Skills
-alembic/                 # 001 初始 · 004 site_settings · 005 AI · 006 OAuth · 007 SMS · 008 …
-tests/                   # pytest
-uploads/                 # Skill 包与用户上传（gitignore）
+alembic/                 # 001 初始 … 012 audit_logs
+tests/                   # pytest（含 test_post_cover · test_post_tags · test_login_guard）
+uploads/                 # Skill 包与 covers/（gitignore）
 Makefile
 ```
 
@@ -237,9 +247,11 @@ make migrate
 | `alembic upgrade` 失败 | 检查 PostgreSQL 运行状态与 `DATABASE_URL` |
 | 主题保存后公开页不变 | 确认 `REVALIDATE_SECRET`、`REVALIDATE_URL`；查日志 Skip ISR revalidate |
 | CORS 错误 | 将前端 origin 加入 `CORS_ORIGINS` |
-| 上传文件 404 | 确认 `uploads/` 目录存在且有写权限 |
+| 上传文件 404 | 确认 `uploads/` 目录存在且有写权限；封面 URL 前缀 `/api/v1/uploads/covers/` |
+| 封面保存后仍显示旧图 | ISR 缓存 | 生产检查 `REVALIDATE_SECRET`；开发硬刷新 |
 | AI complete 401 | 确认已登录且至少激活一个 AI 提供商 |
 | 短信 dev 模式 | 查看 uvicorn 日志中的验证码；生产需配置 `SMS_PROVIDER=aliyun` |
+| Turnstile 无法登录 | 前后端 Key 不一致或未在后台启用 | 对齐 `TURNSTILE_*` 与 `NEXT_PUBLIC_TURNSTILE_SITE_KEY`；**设置 → 登录方式** |
 
 ---
 

@@ -208,7 +208,10 @@ export function getPost(slug: string) {
 }
 
 export function listPostsByTag(slug: string, page = 1, pageSize = 10) {
-  return fetchPublic<PostSummary[]>(`/public/tags/${slug}/posts`, { page, page_size: pageSize });
+  return fetchPublic<PostSummary[]>(`/public/tags/${encodeURIComponent(slug)}/posts`, {
+    page,
+    page_size: pageSize,
+  });
 }
 
 export function searchPosts(q: string, page = 1, pageSize = 10) {
@@ -515,6 +518,21 @@ export function listAdminPosts() {
 
 export function getAdminPost(id: number) {
   return fetchAuth<import("@/lib/types").PostAdmin>(`/admin/posts/${id}`);
+}
+
+export function uploadPostCover(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return fetchAuth<{ cover_url: string }>("/admin/posts/cover", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function deletePostCover(coverUrl: string) {
+  return fetchAuth<{ message: string }>(`/admin/posts/cover?cover_url=${encodeURIComponent(coverUrl)}`, {
+    method: "DELETE",
+  });
 }
 
 export function createPost(payload: Record<string, unknown>) {

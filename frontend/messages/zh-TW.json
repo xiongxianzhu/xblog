@@ -52,7 +52,8 @@
     "emptyTitle": "還沒有文章",
     "emptyDescription": "發布第一篇文章後，它們會出現在這裡。",
     "postNotFound": "文章未找到",
-    "comments": "評論"
+    "comments": "評論",
+    "toc": "目錄"
   },
   "about": {
     "fallbackTitle": "關於",

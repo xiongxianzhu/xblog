@@ -58,14 +58,16 @@
 
 | | 能力 | 说明 |
 |:---:|:---|:---|
-| ✍️ | **在线写作** | 浏览器 Markdown 编辑，发布即前台可见 |
+| ✍️ | **在线写作** | Markdown 编辑；**保存草稿 / 发布** 固定底栏；列表页可一键发布草稿 |
+| 🖼 | **文章封面** | 本地上传或外链 URL；列表/详情 4:3 展示；保存时清理已移除的本地上传 |
+| 📑 | **阅读体验** | 详情页玻璃正文区、固定目录（TOC）、标签归档（支持中文 slug） |
 | 🤖 | **AI 写作助手** | 选区润色/扩写、内嵌对话改稿、全文生成；Agent Skills；SSE 流式 |
 | 🌐 | **多语言** | 公开站 `zh-CN` / `zh-TW` / `en`（next-intl）；后台文案 cookie 切换 |
 | 🔍 | **SEO 友好** | SSR/ISR、sitemap、RSS、结构化 metadata |
 | 🎨 | **双主题体系** | 公开站 7 款 palette + 站点品牌（后台配置）；后台 UI 主题（本地偏好） |
-| 🔐 | **灵活登录** | 用户名密码 · 短信验证码 · GitHub/微信 OAuth（后台可开关） |
+| 🔐 | **灵活登录** | 用户名密码 · 短信验证码 · GitHub/微信 OAuth；**Turnstile** 人机验证（可开关） |
 | 🖥 | **管理后台** | 可折叠侧栏、毛玻璃顶栏、2px 扁平风、全宽主内容、头像与设置 |
-| 💬 | **Giscus 评论** | 文章详情页 GitHub Discussions 评论（env 配置，可选） |
+| 💬 | **Giscus 评论** | 文章详情 GitHub Discussions；iframe 外层 wrapper 对齐宽度（env 配置，可选） |
 | 🏠 | **自托管** | nginx + systemd + PostgreSQL，数据在自己手里 |
 | 🤝 | **开源协作** | CONTRIBUTING、Git 工作流、Issue/PR 模板、`llms.txt` |
 | 📜 | **MIT 开源** | 可 fork、可改、可部署 |
@@ -150,7 +152,7 @@ cp .env.example .env
 pnpm dev
 ```
 
-仓库需启用 GitHub **Discussions**。未配置时文章页会显示引导文案。
+仓库需启用 GitHub **Discussions**。未配置时文章页会显示引导文案。评论 iframe 由 `components/giscus.tsx` 注入 wrapper，`globals.css` 中 `[data-site-shell] .giscus > div` 控制宽度对齐。
 
 ---
 
@@ -254,6 +256,9 @@ git push -u origin feat/your-feature
 |------|----------|------|
 | 公开页主题不生效 | `REVALIDATE_SECRET` 未配或缓存 | 对齐前后端密钥；开发环境硬刷新 |
 | 评论不显示 | 未配置 `NEXT_PUBLIC_GISCUS_*` | 复制 `frontend/.env.example` → `.env` 并重启 |
+| 封面/正文更新延迟 | ISR 缓存 | 生产配置 `REVALIDATE_SECRET`；开发环境硬刷新 |
+| 标签页 URL 乱码 | 中文 slug 已编码 | 正常；页面用 `decodeRouteParam` 解码并显示 `tag.name` |
+| 登录需人机验证 | Turnstile 已启用 | 配置 `TURNSTILE_*` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY`；后台 **设置 → 登录方式** 可开关 |
 | 前端 API 404 | 后端未启动 / `BACKEND_URL` 错误 | `make dev` + 检查 `frontend/.env` |
 | `/zh-TW/admin` 404 | 后台不应带 locale 前缀 | 访问 `/admin`；`proxy.ts` 会重定向 |
 | 后台切换语言无效 | cookie 未写入 | 确认 `locale-switcher` + 刷新页面 |

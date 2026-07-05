@@ -22,19 +22,33 @@ function isGiscusConfigured(): boolean {
 }
 
 export function GiscusComments({ theme = "light" }: GiscusCommentsProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const giscusRef = useRef<HTMLDivElement>(null);
   const giscusTheme = useMemo(
     () => GISCUS_THEME_OVERRIDE ?? (theme === "dark" ? "dark" : "light"),
     [theme],
   );
 
   useEffect(() => {
-    if (!isGiscusConfigured() || !containerRef.current) {
+    if (!isGiscusConfigured() || !giscusRef.current) {
       return;
     }
 
-    const host = containerRef.current;
-    host.innerHTML = "";
+    const giscusHost = giscusRef.current;
+    giscusHost.innerHTML = "";
+
+    const wrapIframe = () => {
+      const iframe = giscusHost.querySelector(":scope > iframe.giscus-frame");
+      if (!iframe || iframe.parentElement !== giscusHost) {
+        return;
+      }
+
+      const wrapper = document.createElement("div");
+      giscusHost.insertBefore(wrapper, iframe);
+      wrapper.appendChild(iframe);
+    };
+
+    const observer = new MutationObserver(wrapIframe);
+    observer.observe(giscusHost, { childList: true });
 
     const script = document.createElement("script");
     script.src = "https://giscus.app/client.js";
@@ -52,10 +66,11 @@ export function GiscusComments({ theme = "light" }: GiscusCommentsProps) {
     script.setAttribute("data-theme", giscusTheme);
     script.setAttribute("data-lang", "zh-CN");
 
-    host.appendChild(script);
+    giscusHost.appendChild(script);
 
     return () => {
-      host.innerHTML = "";
+      observer.disconnect();
+      giscusHost.innerHTML = "";
     };
   }, [giscusTheme]);
 
@@ -79,5 +94,5 @@ export function GiscusComments({ theme = "light" }: GiscusCommentsProps) {
     );
   }
 
-  return <div ref={containerRef} className="giscus min-h-[120px]" />;
+  return <div ref={giscusRef} className="giscus min-h-[120px]" />;
 }

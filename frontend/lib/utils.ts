@@ -41,3 +41,12 @@ export function formatDateTime(value: string | null | undefined): string {
     hour12: false,
   }).format(new Date(value));
 }
+
+/** 解码动态路由 param（Next.js 可能保留 percent-encoding）。 */
+export function decodeRouteParam(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}

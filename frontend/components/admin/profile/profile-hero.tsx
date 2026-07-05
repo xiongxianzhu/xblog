@@ -32,7 +32,6 @@ function StatusBadge({ active, activeLabel, inactiveLabel }: { active: boolean; 
 export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) {
   const displayName = user.nickname?.trim() || user.username;
   const hasNickname = Boolean(user.nickname?.trim());
-  const oauthCount = (oauthLinked?.github ? 1 : 0) + (oauthLinked?.wechat ? 1 : 0);
   const filledCount = [
     user.nickname?.trim(),
     user.birth_date,
@@ -70,9 +69,14 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
       <div className="flex flex-wrap justify-center gap-2">
         <StatusBadge active={Boolean(user.email)} activeLabel="邮箱已绑" inactiveLabel="邮箱未绑" />
         <StatusBadge active={Boolean(user.phone)} activeLabel="手机已绑" inactiveLabel="手机未绑" />
-        {oauthCount > 0 ? (
+        {oauthLinked?.github ? (
           <Badge variant="default" className="rounded-[2px] font-normal">
-            第三方 {oauthCount}
+            GitHub 已绑
+          </Badge>
+        ) : null}
+        {oauthLinked?.wechat ? (
+          <Badge variant="default" className="rounded-[2px] font-normal">
+            微信已绑
           </Badge>
         ) : null}
       </div>

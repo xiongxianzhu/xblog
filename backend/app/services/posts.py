@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import HTTPException, status
 from sqlmodel import delete, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -11,24 +13,68 @@ from app.models.post import Post, PostTag, Tag
 from app.schemas.post import PostAdmin, PostPublic, PostSummary, TagPublic
 from app.services.markdown import render_markdown
 
+_TAG_SLUG_RE = re.compile(r"^[\w\u4e00-\u9fff-]+$", re.UNICODE)
+
+
+def normalize_tag_slug(raw: str) -> str:
+    slug = raw.strip().lower()
+    if not slug:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty tag slug")
+    if len(slug) > 50:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tag slug too long")
+    if not _TAG_SLUG_RE.fullmatch(slug):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid tag slug: use letters, numbers, hyphens or CJK characters",
+        )
+    return slug
+
+
+def tag_name_from_slug(slug: str) -> str:
+    name = slug.replace("-", " ").strip()
+    return name[:50] if name else slug
+
+
+async def get_or_create_tag(session: AsyncSession, raw_slug: str) -> Tag:
+    slug = normalize_tag_slug(raw_slug)
+    result = await session.exec(select(Tag).where(Tag.slug == slug))
+    existing = result.first()
+    if existing is not None:
+        return existing
+
+    name = tag_name_from_slug(slug)
+    name_result = await session.exec(select(Tag).where(Tag.name == name))
+    if name_result.first() is not None:
+        name = slug
+
+    tag = Tag(name=name, slug=slug)
+    session.add(tag)
+    await session.flush()
+    await session.refresh(tag)
+    return tag
+
 
 async def load_tags(session: AsyncSession, post_id: int) -> list[Tag]:
     stmt = select(Tag).join(PostTag, PostTag.tag_id == Tag.id).where(PostTag.post_id == post_id)
     result = await session.exec(stmt)
     return list(result.all())
 
-
 async def sync_tags(session: AsyncSession, post_id: int, tag_slugs: list[str]) -> None:
     await session.exec(delete(PostTag).where(PostTag.post_id == post_id))
     if not tag_slugs:
         return
-    result = await session.exec(select(Tag).where(Tag.slug.in_(tag_slugs)))
-    tags = list(result.all())
-    if len(tags) != len(set(tag_slugs)):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown tag slug")
-    for tag in tags:
-        session.add(PostTag(post_id=post_id, tag_id=tag.id))
 
+    unique_slugs: list[str] = []
+    seen: set[str] = set()
+    for raw in tag_slugs:
+        slug = normalize_tag_slug(raw)
+        if slug not in seen:
+            seen.add(slug)
+            unique_slugs.append(slug)
+
+    for slug in unique_slugs:
+        tag = await get_or_create_tag(session, slug)
+        session.add(PostTag(post_id=post_id, tag_id=tag.id or 0))
 
 def apply_publish_state(post: Post, status_value: str) -> None:
     post.status = status_value
@@ -44,6 +90,13 @@ def apply_markdown(post: Post, content_md: str) -> None:
 def validate_status(status_value: str) -> None:
     if status_value not in {"draft", "published"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+
+
+def normalize_cover_url(cover_url: str | None) -> str | None:
+    if cover_url is None:
+        return None
+    trimmed = cover_url.strip()
+    return trimmed or None
 
 
 async def to_post_summary(session: AsyncSession, post: Post) -> PostSummary:

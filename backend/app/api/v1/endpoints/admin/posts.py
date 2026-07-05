@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlmodel import select
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.post import Post
 from app.schemas.common import MessageResponse
-from app.schemas.post import PostAdmin, PostCreate, PostUpdate
+from app.schemas.post import PostAdmin, PostCoverUploadResponse, PostCreate, PostUpdate
 from app.services.posts import (
     apply_markdown,
     apply_publish_state,
+    normalize_cover_url,
     sync_tags,
     to_post_admin,
     validate_status,
 )
 from app.services.revalidate import trigger_revalidate
+from app.services.uploads import delete_post_cover_file, is_managed_post_cover_url, save_post_cover
 
 router = APIRouter()
 
@@ -45,7 +47,7 @@ async def create_post(
         title=payload.title,
         slug=payload.slug,
         excerpt=payload.excerpt,
-        cover_url=payload.cover_url,
+        cover_url=normalize_cover_url(payload.cover_url),
     )
     apply_markdown(post, payload.content_md)
     apply_publish_state(post, payload.status)
@@ -87,8 +89,11 @@ async def update_post(
         apply_markdown(post, payload.content_md)
     if payload.excerpt is not None:
         post.excerpt = payload.excerpt
-    if payload.cover_url is not None:
-        post.cover_url = payload.cover_url
+    if "cover_url" in payload.model_fields_set:
+        new_cover = normalize_cover_url(payload.cover_url)
+        if new_cover != post.cover_url and is_managed_post_cover_url(post.cover_url):
+            delete_post_cover_file(post.cover_url)
+        post.cover_url = new_cover
     if payload.status is not None:
         validate_status(payload.status)
         apply_publish_state(post, payload.status)
@@ -102,10 +107,29 @@ async def update_post(
     return await to_post_admin(session, post)
 
 
+@router.post("/posts/cover", response_model=PostCoverUploadResponse)
+async def upload_post_cover(_: CurrentUserDep, file: UploadFile = File(...)) -> PostCoverUploadResponse:  # noqa: B008
+    cover_url = await save_post_cover(file)
+    return PostCoverUploadResponse(cover_url=cover_url)
+
+
+@router.delete("/posts/cover", response_model=MessageResponse)
+async def delete_uploaded_post_cover(
+    _: CurrentUserDep,
+    cover_url: str = Query(..., min_length=1),
+) -> MessageResponse:
+    if not is_managed_post_cover_url(cover_url):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not a managed cover URL")
+    delete_post_cover_file(cover_url)
+    return MessageResponse(message="deleted")
+
+
 @router.delete("/posts/{post_id}", response_model=MessageResponse)
 async def delete_post(post_id: int, session: SessionDep, _: CurrentUserDep) -> MessageResponse:
     post = await session.get(Post, post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if is_managed_post_cover_url(post.cover_url):
+        delete_post_cover_file(post.cover_url)
     await session.delete(post)
     return MessageResponse(message="deleted")

@@ -1,6 +1,6 @@
 # xblog
 
-> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手、Skill、短信/OAuth 登录与双轨主题，MIT 开源。
+> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与 `/admin` 写作后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手、Skill、短信/OAuth 登录、Turnstile 防刷、文章封面与 Giscus 评论，双轨主题，MIT 开源。
 
 本仓库为 **Monorepo**：`backend/`（Python 3.14 · FastAPI · SQLModel）、`frontend/`（Next.js 16 · React 19 · next-intl · pnpm）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENT.md`。
 
@@ -14,54 +14,71 @@
 - [Git 工作流](docs/git-workflow.md): 详细 Git 协作规范（Fork、Review、Squash merge、禁止事项）
 - [后端 README](backend/README.md): FastAPI API 开发、迁移、部署与排错
 - [前端 README](frontend/README.md): Next.js 页面结构、主题系统、i18n 路由与构建
-- [部署说明](deploy/systemd/README.md): 生产环境 systemd 守护 uvicorn 与 next start
+- [部署说明 systemd](deploy/systemd/README.md): 生产环境 systemd 守护 uvicorn 与 next start
+- [部署说明 nginx](deploy/nginx/README.md): 生产 nginx 同域反代、HTTPS 与 SSE 配置
 
 ## Specifications
 
 - [产品需求文档 PRD](docs/prd-xblog.md): 功能范围、用户故事、验收标准、数据模型、API 与 Non-Goals（权威来源）
 - [AI 写作 Skill 设计](docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md): AI 助手、Skill 推荐、流式 SSE 与内置 Skill 设计说明
 - [AI 写作 Skill 实施计划](docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md): AI 功能分阶段落地计划与任务拆分
+- [登录限流与 Turnstile 设计](docs/superpowers/specs/2026-07-05-login-captcha-design.md): 密码登录失败渐进验证码、找回密码防刷与 siteverify
+- [登录限流与 Turnstile 实施计划](docs/superpowers/plans/2026-07-05-login-captcha-plan.md): login_guard、Turnstile 组件与测试落地步骤
 - [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md): 提 PR 时的变更说明与测试清单
 - [LICENSE](LICENSE): MIT 许可证
 
 ## Configuration
 
-- [后端环境变量示例](backend/.env.example): SECRET_KEY、DATABASE_URL、CORS、AI 提供商、短信/OAuth、ISR revalidate 等占位配置
-- [前端环境变量示例](frontend/.env.example): 复制为 `frontend/.env`；含 BACKEND_URL、站点 URL、Giscus、REVALIDATE_SECRET
+- [后端环境变量示例](backend/.env.example): SECRET_KEY、DATABASE_URL、CORS、AI 提供商、短信/OAuth、Turnstile、ISR revalidate 等占位配置
+- [前端环境变量示例](frontend/.env.example): 复制为 `frontend/.env`；含 BACKEND_URL、站点 URL、Turnstile、Giscus、REVALIDATE_SECRET
 - [后端依赖与工具链](backend/pyproject.toml): Python 包、ruff、mypy、pytest、FastAPI entrypoint
 - [前端依赖](frontend/package.json): Next.js、React、next-intl、Tailwind、shadcn/ui 脚本与版本
+- [nginx 站点示例](deploy/nginx/xblog.conf): 生产同域反代 `/` 与 `/api/` 的完整 server 块
 
 ## Code entry points
 
-- [API 路由聚合](backend/app/api/v1/router.py): public / auth / admin 路由注册（含 AI、OAuth、SMS、站点主题）
+- [API 路由聚合](backend/app/api/v1/router.py): public / auth / admin 路由注册（含 AI、OAuth、SMS、站点主题、审计日志）
 - [FastAPI 应用入口](backend/app/main.py): 应用实例、静态上传挂载
+- [登录限流与 Turnstile](backend/app/services/login_guard.py): 密码失败计数、siteverify、找回密码 IP 限流
+- [文章与标签服务](backend/app/services/posts.py): CRUD、标签 get_or_create、封面 URL 清理
+- [上传与封面存储](backend/app/services/uploads.py): 文章封面上传路径与删除
 - [AI 网关与 SSE](backend/app/services/ai/gateway.py): 流式对话/生成、thinking 事件、Skill 注入
 - [AI Skill 读写](backend/app/services/ai/skills_io.py): Skill 上传校验、内置/自定义 Skill 目录
 - [Next.js 配置](frontend/next.config.ts): `/api/*` 代理到 BACKEND_URL
 - [i18n 路由与 locale cookie](frontend/i18n/routing.ts): 公开站 locale 定义；后台语言 cookie 常量
 - [i18n 请求配置](frontend/i18n/request.ts): 服务端 locale 解析（含 `/admin` cookie 优先）
 - [next-intl 中间件](frontend/proxy.ts): 公开站 locale 路由；`/admin` 请求头与错误前缀重定向
+- [路由参数解码](frontend/lib/utils.ts): 标签 slug 等 URL 编码中文路径解码
 - [公开站主题拉取](frontend/lib/site-theme.ts): 服务端主题与 ISR cache tag
 - [主题 palette 元数据](frontend/lib/themes.ts): 公开站与后台 7 款配色定义
 - [ISR 刷新路由](frontend/app/api/revalidate/route.ts): revalidateTag / revalidatePath 入口
 - [AI 流式 BFF](frontend/app/api/v1/admin/ai/complete/route.ts): 管理后台 AI SSE 代理
+- [文章编辑表单](frontend/components/admin/post-editor-form.tsx): Markdown 编辑、封面、固定底栏保存/发布
+- [文章封面上传](frontend/components/admin/post-cover-editor.tsx): 管理后台封面选择与本地预览
+- [Turnstile 组件](frontend/components/admin/admin-turnstile.tsx): 登录与找回密码 Cloudflare 验证码
 - [AI 助手内嵌面板](frontend/components/admin/ai-assistant-panel.tsx): 对话/全文生成、思考过程展示
-- [Giscus 评论组件](frontend/components/giscus.tsx): 文章详情页 GitHub Discussions 评论
+- [Giscus 评论组件](frontend/components/giscus.tsx): 文章详情 GitHub Discussions；iframe 外层 wrapper 布局
+- [文章目录 TOC](frontend/components/article-toc.tsx): 详情页固定侧栏锚点导航
+- [文章卡片](frontend/components/post-card.tsx): 列表 4:3 封面、标签与摘要布局
+- [文章封面展示](frontend/components/article-cover.tsx): 详情页封面图渲染
 
 ## Optional
 
 - [Issue：Bug 报告模板](.github/ISSUE_TEMPLATE/bug_report.yml): GitHub Issue 表单
 - [Issue：功能建议模板](.github/ISSUE_TEMPLATE/feature_request.yml): GitHub Issue 表单
-- [nginx 后端示例](backend/deploy/nginx/backend.conf): API 反向代理参考
+- [nginx 后端片段参考](backend/deploy/nginx/backend.conf): 仅 API 反代参考（完整站点见 deploy/nginx/xblog.conf）
 - [systemd API 单元](deploy/systemd/xblog-api.service): uvicorn 进程示例
 - [systemd Web 单元](deploy/systemd/xblog-web.service): next start 进程示例
 - [Alembic 初始迁移](backend/alembic/versions/001_xblog_initial.py): 数据库表结构起点
+- [站点设置迁移](backend/alembic/versions/004_site_settings.py): 公开站主题与品牌字段
 - [AI 表迁移](backend/alembic/versions/005_ai_tables.py): AI 提供商、Skill、用量日志
 - [短信与 OAuth 迁移](backend/alembic/versions/007_phone_sms_auth.py): 手机验证码与登录方式配置
+- [用户资料迁移](backend/alembic/versions/011_user_profile_fields.py): 昵称、生日等扩展字段
+- [审计日志迁移](backend/alembic/versions/012_audit_logs.py): 登录与操作审计表
 - [内置 Skill：对话](backend/app/data/builtin_skills/blog-chat-zh/SKILL.md): 默认中文博客对话 Skill
 - [内置 Skill：润色](backend/app/data/builtin_skills/blog-polish-zh/SKILL.md): 选区改写/扩写 Skill
 - [内置 Skill：生成](backend/app/data/builtin_skills/blog-generate-zh/SKILL.md): 全文生成 Skill
 - [i18n 文案 zh-CN](frontend/messages/zh-CN.json): 公开站与管理后台简体中文
 - [i18n 文案 zh-TW](frontend/messages/zh-TW.json): 公开站与管理后台繁体中文
 - [i18n 文案 en](frontend/messages/en.json): 公开站与管理后台英文
-- [全局样式与主题变量](frontend/app/globals.css): CSS 变量与 7 款 palette 块
+- [全局样式与主题变量](frontend/app/globals.css): CSS 变量、7 款 palette、Giscus 与编辑器底栏样式

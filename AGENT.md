@@ -44,6 +44,7 @@
 - [目录结构](#-目录结构)
 - [API 分层](#-api-分层)
 - [主题系统（易踩坑）](#-主题系统易踩坑)
+- [内容与公开页](#-内容与公开页)
 - [环境变量](#-环境变量)
 - [Git 规范](#-git-规范)
 - [编码原则](#-编码原则)
@@ -136,11 +137,11 @@ xblog/
 │   │   ├── models/          # SQLModel
 │   │   ├── schemas/         # Pydantic
 │   │   └── services/        # 业务逻辑 · ai/ · revalidate …
-│   ├── alembic/             # 001–008 迁移
+│   ├── alembic/             # 001–012 迁移
 │   └── tests/
 ├── frontend/
 │   ├── app/                 # App Router · [locale]/ · admin/
-│   ├── components/          # site/ · admin/ · ui/
+│   ├── components/          # site/ · admin/ · giscus · article-toc · post-card …
 │   ├── i18n/                # next-intl 路由与 request
 │   ├── messages/            # zh-CN · zh-TW · en 文案
 │   ├── proxy.ts             # locale 中间件 · admin 重定向
@@ -209,6 +210,25 @@ sequenceDiagram
 
 ---
 
+## 📄 内容与公开页
+
+近期能力速查（改前先读对应文件）：
+
+| 能力 | 后端 | 前端 |
+|------|------|------|
+| 文章封面 | `POST/DELETE /admin/posts/cover` · `services/uploads.py` · PATCH 时删旧文件 | `post-cover-editor.tsx` · `article-cover.tsx` · `post-card.tsx` |
+| 标签 | `services/posts.py` → `get_or_create_tag` / `sync_tags` | `tags/[slug]/page.tsx` · `decodeRouteParam` |
+| 文章 TOC | `prepareArticleContent` 解析 heading | `article-toc.tsx` · 详情页 `xl:sticky` 侧栏 |
+| Giscus | — | `giscus.tsx`（iframe wrapper）· **勿**在父页写 `.gsc-*` 期望生效 |
+| 编辑底栏 | — | `post-editor-form.tsx` · `.admin-editor-actions` 固定底部 |
+| Turnstile | `login_guard.py` · `GET /auth/login-guard` · `auth_settings` 开关 | `admin-login-screen.tsx` · `admin-turnstile.tsx` |
+
+**Giscus 注意**：`giscus.app/client.js` 会清空 `.giscus` 子节点再插入 iframe；宽度对齐靠插入后包一层 `div` + `[data-site-shell] .giscus > div`。改 iframe **内部**样式需 custom theme CSS URL。
+
+**封面删除**：编辑页「移除」不调 DELETE API；仅当保存/发布且 `cover_url` 为空时，后端 PATCH 删除 managed URL 对应文件。
+
+---
+
 ## 🌍 国际化（i18n）
 
 | 区域 | 路由 | 语言解析 |
@@ -237,6 +257,8 @@ sequenceDiagram
 | `AI_KEY_ENCRYPTION_SECRET` | AI Key 加密（可选） |
 | `GITHUB_CLIENT_*` / `WECHAT_*` | OAuth（可选） |
 | `SMS_PROVIDER` | 短信验证码；开发用 `dev`（验证码打日志） |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile |
+| `LOGIN_CAPTCHA_AFTER_FAILURES` 等 | 登录失败触发验证码 · 限流（见 `.env.example`） |
 
 模板 → [`backend/.env.example`](backend/.env.example)
 
@@ -250,6 +272,7 @@ sequenceDiagram
 | `BACKEND_URL` | 服务端 fetch 与 rewrite 目标 |
 | `REVALIDATE_SECRET` | 与 backend 一致 |
 | `NEXT_PUBLIC_SITE_URL` | sitemap、RSS 绝对 URL |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | 与 backend `TURNSTILE_SITE_KEY` 相同 |
 | `NEXT_PUBLIC_GISCUS_*` | Giscus 评论（可选，见 `.env.example` 完整字段） |
 
 </details>
@@ -330,6 +353,25 @@ docs: 补充 Git 工作流与贡献指南
 </details>
 
 <details>
+<summary><strong>文章封面 / 标签</strong></summary>
+
+1. 封面：`models/post.cover_url` · `admin/posts.py` upload/PATCH · `uploads/covers/`
+2. 标签：`sync_tags` 自动创建 · 中文 slug 走 URL 编码 · 标签页解码 `decodeRouteParam`
+3. 公开页：`resolvePublicAssetUrl` · ISR 与 revalidate 同文章发布链路
+4. 测试：`test_post_cover.py` · `test_post_tags.py`
+
+</details>
+
+<details>
+<summary><strong>Turnstile 登录防护</strong></summary>
+
+- 配置：`TURNSTILE_*` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` · 后台 **设置 → 登录方式** 启用
+- 逻辑：`login_guard.py` · 密码失败 N 次后必填 · 找回密码始终验证
+- 前端：`GET /auth/login-guard?username=` 决定登录页是否渲染 Turnstile
+
+</details>
+
+<details>
 <summary><strong>AI 助手相关</strong></summary>
 
 - 后端：`services/ai/gateway.py` · `POST /admin/ai/complete`（SSE：`delta` / `thinking` / `done`）
@@ -348,6 +390,7 @@ docs: 补充 Git 工作流与贡献指南
 - [ ] nginx：`/` → 3000，`/api/` → 8000
 - [ ] HTTPS · `COOKIE_SECURE=true` · 强 `SECRET_KEY`
 - [ ] `REVALIDATE_SECRET` 前后端一致
+- [ ] Turnstile 生产 Key 与后台开关按需配置
 
 <p align="center">详细流程 → <a href="deploy/systemd/README.md"><b>deploy/systemd/README.md</b></a></p>
 

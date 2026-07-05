@@ -29,7 +29,7 @@ export default async function BlogPage({ params }: Props) {
   const posts = await listPosts(1, 20);
 
   return (
-    <PageShell title={t("title")} description={t("description")}>
+    <PageShell title={t("title")} description={t("description")} className="article-layout">
       {posts.length === 0 ? (
         <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : (

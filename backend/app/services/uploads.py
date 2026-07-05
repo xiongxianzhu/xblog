@@ -18,8 +18,10 @@ ALLOWED_AVATAR_TYPES = {
 }
 MAX_AVATAR_BYTES = 5 * 1024 * 1024
 MAX_SITE_LOGO_BYTES = 2 * 1024 * 1024
+MAX_POST_COVER_BYTES = 5 * 1024 * 1024
 AVATAR_URL_PREFIX = "/api/v1/uploads/avatars/"
 SITE_LOGO_URL_PREFIX = "/api/v1/uploads/site/"
+POST_COVER_URL_PREFIX = "/api/v1/uploads/covers/"
 
 
 def get_upload_root() -> Path:
@@ -86,6 +88,47 @@ async def save_site_logo(file: UploadFile) -> str:
     filename = f"logo-{uuid4().hex}{extension}"
     (site_dir / filename).write_bytes(content)
     return f"{SITE_LOGO_URL_PREFIX}{filename}"
+
+
+def is_managed_post_cover_url(cover_url: str | None) -> bool:
+    return bool(cover_url and cover_url.startswith(POST_COVER_URL_PREFIX))
+
+
+def post_cover_url_to_path(cover_url: str | None) -> Path | None:
+    if not cover_url or not cover_url.startswith(POST_COVER_URL_PREFIX):
+        return None
+    filename = cover_url.removeprefix(POST_COVER_URL_PREFIX)
+    if not filename or ".." in filename or "/" in filename or "\\" in filename:
+        return None
+    if not re.fullmatch(r"[\w.-]+", filename):
+        return None
+    return get_upload_root() / "covers" / filename
+
+
+def delete_post_cover_file(cover_url: str | None) -> None:
+    path = post_cover_url_to_path(cover_url)
+    if path is None or not path.is_file():
+        return
+    path.unlink(missing_ok=True)
+
+
+async def save_post_cover(file: UploadFile) -> str:
+    content_type = file.content_type or ""
+    extension = ALLOWED_AVATAR_TYPES.get(content_type)
+    if extension is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported image type")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+    if len(content) > MAX_POST_COVER_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File too large")
+
+    covers_dir = get_upload_root() / "covers"
+    covers_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"cover-{uuid4().hex}{extension}"
+    (covers_dir / filename).write_bytes(content)
+    return f"{POST_COVER_URL_PREFIX}{filename}"
 
 
 async def save_user_avatar(username: str, file: UploadFile) -> str:
