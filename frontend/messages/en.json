@@ -73,7 +73,7 @@
   "search": {
     "eyebrow": "Search",
     "title": "Search posts",
-    "description": "Find posts by title, excerpt, or body keywords.",
+    "description": "Find posts by title, excerpt, body, or Chinese tag keywords.",
     "keywordLabel": "Keywords",
     "placeholder": "Enter keywords…",
     "submit": "Search",
@@ -89,8 +89,18 @@
   },
   "common": {
     "copy": "Copy",
-    "copied": "Copied",
-    "copyCodeAria": "Copy code"
+    "copied": "Copied!",
+    "copyCodeAria": "Copy code",
+    "mermaidZoomIn": "Zoom in",
+    "mermaidZoomOut": "Zoom out",
+    "mermaidReset": "Reset view",
+    "mermaidFullscreen": "Fullscreen",
+    "mermaidClose": "Close",
+    "mermaidCopySource": "Copy Mermaid source",
+    "mermaidPanUp": "Pan up",
+    "mermaidPanDown": "Pan down",
+    "mermaidPanLeft": "Pan left",
+    "mermaidPanRight": "Pan right"
   },
   "admin": {
     "nav": {

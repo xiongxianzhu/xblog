@@ -73,7 +73,7 @@
   "search": {
     "eyebrow": "Search",
     "title": "搜尋文章",
-    "description": "依標題、摘要或正文關鍵詞查找。",
+    "description": "依標題、摘要、正文或中文標籤關鍵詞查找。",
     "keywordLabel": "關鍵詞",
     "placeholder": "輸入關鍵詞…",
     "submit": "搜尋",
@@ -90,7 +90,17 @@
   "common": {
     "copy": "複製",
     "copied": "已複製",
-    "copyCodeAria": "複製程式碼"
+    "copyCodeAria": "複製程式碼",
+    "mermaidZoomIn": "放大",
+    "mermaidZoomOut": "縮小",
+    "mermaidReset": "重置視圖",
+    "mermaidFullscreen": "全螢幕",
+    "mermaidClose": "關閉",
+    "mermaidCopySource": "複製 Mermaid 原始碼",
+    "mermaidPanUp": "上移",
+    "mermaidPanDown": "下移",
+    "mermaidPanLeft": "左移",
+    "mermaidPanRight": "右移"
   },
   "admin": {
     "nav": {

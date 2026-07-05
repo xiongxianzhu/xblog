@@ -23,6 +23,7 @@ import { useAdminTheme } from "@/components/admin/theme-provider";
 import { MarkdownContent } from "@/components/markdown-content";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { SitePublicColorMode } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "edit" | "split" | "preview";
@@ -157,8 +158,16 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
   },
 ];
 
-function MarkdownPreview({ value, emptyHint }: { value: string; emptyHint: string }) {
-  return <MarkdownContent content={value} emptyHint={emptyHint} />;
+function MarkdownPreview({
+  value,
+  emptyHint,
+  colorMode,
+}: {
+  value: string;
+  emptyHint: string;
+  colorMode: SitePublicColorMode;
+}) {
+  return <MarkdownContent content={value} emptyHint={emptyHint} colorMode={colorMode} />;
 }
 
 export function MarkdownEditor({
@@ -285,12 +294,14 @@ export function MarkdownEditor({
         className={cn(
           "admin-markdown-editor-body grid min-h-0",
           fullscreen && "flex-1",
-          viewMode === "split" ? "lg:grid-cols-2" : "grid-cols-1",
+          viewMode === "split"
+            ? "grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-2 lg:grid-rows-1"
+            : "grid-cols-1 grid-rows-1",
         )}
         style={bodyHeight !== undefined ? { height: bodyHeight } : undefined}
       >
         {viewMode !== "preview" ? (
-          <div className="relative flex min-h-0 flex-col overflow-hidden border-border/60 lg:border-r">
+          <div className="relative flex min-h-0 flex-col overflow-hidden border-b border-border/60 lg:border-b-0 lg:border-r">
             <Textarea
               ref={textareaRef}
               id={id}
@@ -309,9 +320,13 @@ export function MarkdownEditor({
         ) : null}
 
         {viewMode !== "edit" ? (
-          <div className="min-h-0 overflow-y-auto bg-card/50 px-4 py-3">
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">预览</p>
-            <MarkdownPreview value={value} emptyHint="左侧输入 Markdown，此处实时渲染。" />
+          <div className="flex min-h-0 flex-col overflow-hidden bg-card/50">
+            <p className="shrink-0 px-4 pb-2 pt-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              预览
+            </p>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+              <MarkdownPreview value={value} emptyHint="左侧输入 Markdown，此处实时渲染。" colorMode={resolvedMode} />
+            </div>
           </div>
         ) : null}
       </div>

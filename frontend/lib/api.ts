@@ -214,8 +214,8 @@ export function listPostsByTag(slug: string, page = 1, pageSize = 10) {
   });
 }
 
-export function searchPosts(q: string, page = 1, pageSize = 10) {
-  return fetchPublic<PostSummary[]>("/public/search", { q, page, page_size: pageSize });
+export function searchPosts(q: string, page = 1, pageSize = 20) {
+  return fetchPublic<PostSummary[]>("/public/search", { q, page, page_size: pageSize }, { cache: "no-store" });
 }
 
 export function getPage(slug: string) {

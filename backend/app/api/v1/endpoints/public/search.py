@@ -3,23 +3,37 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Query
-from sqlalchemy import or_
+from sqlalchemy import exists, or_
 from sqlmodel import select
 
 from app.api.deps import SessionDep
-from app.models.post import Post
+from app.models.post import Post, PostTag, Tag
 from app.schemas.post import PostSummary
 from app.services.posts import to_post_summary
 
 router = APIRouter()
 
 
+def _like_pattern(query: str) -> str:
+    return f"%{query}%"
+
+
 def _text_search_filter(query: str):
-    pattern = f"%{query}%"
+    pattern = _like_pattern(query)
+    tag_match = exists(
+        select(PostTag.post_id)
+        .join(Tag, Tag.id == PostTag.tag_id)
+        .where(
+            PostTag.post_id == Post.id,
+            or_(Tag.name.ilike(pattern), Tag.slug.ilike(pattern)),
+        )
+    )
     return or_(
         Post.title.ilike(pattern),
+        Post.slug.ilike(pattern),
         Post.excerpt.ilike(pattern),
         Post.content_md.ilike(pattern),
+        tag_match,
     )
 
 

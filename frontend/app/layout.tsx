@@ -59,8 +59,14 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale} className={`${notoSans.variable} ${notoSerif.variable} ${geistMono.variable} h-full`}>
-      <body className="flex min-h-full min-w-0 flex-col overflow-x-clip">{children}</body>
+    <html
+      lang={locale}
+      className={`${notoSans.variable} ${notoSerif.variable} ${geistMono.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-full min-w-0 flex-col overflow-x-clip" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 
+import type { SitePublicColorMode } from "@/lib/themes";
+import { extractCodeLanguage, MERMAID_LANG, renderMermaidDiagrams } from "@/lib/mermaid-diagram";
+import { enhanceProseTables } from "@/lib/prose-tables";
 import { cn } from "@/lib/utils";
 
 /** 公开页渲染后端 content_html 时的 prose 样式（与后台预览对齐）。 */
@@ -16,6 +19,8 @@ export const proseHtmlClassName = cn(
 type ProseHtmlProps = {
   html: string;
   className?: string;
+  /** 与公开站主题 mode 对齐，Mermaid 深浅色主题一致 */
+  colorMode?: SitePublicColorMode;
 };
 
 type CopyLabels = {
@@ -24,20 +29,10 @@ type CopyLabels = {
   copyCodeAria: string;
 };
 
-function extractCodeLanguage(pre: Element, block: Element): string | null {
-  const fromData = block.getAttribute("data-code-language")?.trim();
-  if (fromData) return fromData;
-
-  const code = pre.querySelector("code");
-  if (!code) return null;
-
-  for (const className of code.classList) {
-    if (className.startsWith("language-")) {
-      return className.slice("language-".length);
-    }
-  }
-
-  return null;
+function resolveColorMode(root: HTMLElement, colorMode?: SitePublicColorMode): SitePublicColorMode {
+  if (colorMode) return colorMode;
+  const shell = root.closest("[data-site-shell], [data-admin-shell]");
+  return shell?.classList.contains("dark") ? "dark" : "light";
 }
 
 function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
@@ -47,6 +42,9 @@ function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
     const block = pre.closest(".highlight") ?? pre;
     if (block.parentElement?.classList.contains("code-block-shell")) return;
 
+    const lang = extractCodeLanguage(pre, block);
+    if (lang === MERMAID_LANG) return;
+
     const shell = document.createElement("div");
     shell.className = "code-block-shell";
     block.parentNode?.insertBefore(shell, block);
@@ -54,7 +52,6 @@ function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
     const toolbar = document.createElement("div");
     toolbar.className = "code-block-toolbar";
 
-    const lang = extractCodeLanguage(pre, block);
     if (lang) {
       const label = document.createElement("span");
       label.className = "code-lang-label";
@@ -97,7 +94,7 @@ function enhanceCodeBlocks(root: HTMLElement, labels: CopyLabels) {
   };
 }
 
-export function ProseHtml({ html, className }: ProseHtmlProps) {
+export function ProseHtml({ html, className, colorMode }: ProseHtmlProps) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useTranslations("common");
   const labels: CopyLabels = {
@@ -105,12 +102,69 @@ export function ProseHtml({ html, className }: ProseHtmlProps) {
     copied: t("copied"),
     copyCodeAria: t("copyCodeAria"),
   };
+  const mermaidLabels = {
+    zoomIn: t("mermaidZoomIn"),
+    zoomOut: t("mermaidZoomOut"),
+    reset: t("mermaidReset"),
+    fullscreen: t("mermaidFullscreen"),
+    close: t("mermaidClose"),
+    copy: t("copy"),
+    copied: t("copied"),
+    copySource: t("mermaidCopySource"),
+    panUp: t("mermaidPanUp"),
+    panDown: t("mermaidPanDown"),
+    panLeft: t("mermaidPanLeft"),
+    panRight: t("mermaidPanRight"),
+  };
 
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    return enhanceCodeBlocks(root, labels);
-  }, [html, labels.copy, labels.copied, labels.copyCodeAria]);
+
+    let disposed = false;
+    let removeCodeEnhance: (() => void) | undefined;
+    let removeTableEnhance: (() => void) | undefined;
+    let removeMermaid: (() => void) | undefined;
+
+    const mode = resolveColorMode(root, colorMode);
+
+    void (async () => {
+      removeTableEnhance = enhanceProseTables(root);
+      removeCodeEnhance = enhanceCodeBlocks(root, labels);
+      if (!disposed) {
+        try {
+          removeMermaid = await renderMermaidDiagrams(root, mode, mermaidLabels);
+        } catch {
+          // 单条语法错误时不阻断正文渲染
+        }
+      }
+    })();
+
+    return () => {
+      disposed = true;
+      removeTableEnhance?.();
+      removeCodeEnhance?.();
+      removeMermaid?.();
+    };
+  }, [
+    html,
+    colorMode,
+    labels.copy,
+    labels.copied,
+    labels.copyCodeAria,
+    mermaidLabels.zoomIn,
+    mermaidLabels.zoomOut,
+    mermaidLabels.reset,
+    mermaidLabels.fullscreen,
+    mermaidLabels.close,
+    mermaidLabels.copy,
+    mermaidLabels.copied,
+    mermaidLabels.copySource,
+    mermaidLabels.panUp,
+    mermaidLabels.panDown,
+    mermaidLabels.panLeft,
+    mermaidLabels.panRight,
+  ]);
 
   return (
     <div

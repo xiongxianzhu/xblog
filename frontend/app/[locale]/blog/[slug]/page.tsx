@@ -97,7 +97,7 @@ export default async function BlogPostPage({ params }: Props) {
           ) : null}
 
           <div className="site-glass-panel article-body-panel px-5 py-8 sm:px-8 sm:py-10">
-            <ProseHtml html={contentHtml} className="article-prose" />
+            <ProseHtml html={contentHtml} className="article-prose" colorMode={siteTheme.mode} />
           </div>
 
           <section className="site-glass-panel flex flex-col gap-4 px-5 py-8 sm:px-8">

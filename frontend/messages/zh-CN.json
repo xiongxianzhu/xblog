@@ -73,7 +73,7 @@
   "search": {
     "eyebrow": "Search",
     "title": "搜索文章",
-    "description": "按标题、摘要或正文关键词查找。",
+    "description": "按标题、摘要、正文或中文标签关键词查找。",
     "keywordLabel": "关键词",
     "placeholder": "输入关键词…",
     "submit": "搜索",
@@ -90,7 +90,17 @@
   "common": {
     "copy": "复制",
     "copied": "已复制",
-    "copyCodeAria": "复制代码"
+    "copyCodeAria": "复制代码",
+    "mermaidZoomIn": "放大",
+    "mermaidZoomOut": "缩小",
+    "mermaidReset": "重置视图",
+    "mermaidFullscreen": "全屏",
+    "mermaidClose": "关闭",
+    "mermaidCopySource": "复制 Mermaid 源码",
+    "mermaidPanUp": "上移",
+    "mermaidPanDown": "下移",
+    "mermaidPanLeft": "左移",
+    "mermaidPanRight": "右移"
   },
   "admin": {
     "nav": {

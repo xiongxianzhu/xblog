@@ -832,6 +832,7 @@
   --tw-prose-pre-bg: hsl(var(--muted));
   --tw-prose-th-borders: hsl(var(--border));
   --tw-prose-td-borders: hsl(var(--border));
+  --prose-table-cell-min-width: 6.5rem;
 }
 
 .prose :not(pre) > code {
@@ -853,6 +854,26 @@
   overflow-x: auto;
   border-radius: var(--radius-lg);
   border: 1px solid hsl(var(--border));
+}
+
+.prose .prose-table-wrap {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.25em 0;
+}
+
+.prose .prose-table-wrap > table {
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  table-layout: auto;
+}
+
+.prose .prose-table-wrap > table :is(th, td) {
+  min-width: var(--prose-table-cell-min-width, 6.5rem);
+  overflow-wrap: break-word;
 }
 
 .prose .code-block-shell {
@@ -928,6 +949,259 @@
   color: hsl(var(--primary));
   border-color: hsl(var(--primary) / 0.45);
   opacity: 1;
+}
+
+.prose .mermaid-diagram {
+  position: relative;
+  width: 100%;
+  margin: 1.5rem 0;
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.prose .mermaid-viewport {
+  width: 100%;
+  height: 420px;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+}
+
+.prose .mermaid-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.prose .mermaid-diagram .mermaid {
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.prose .mermaid-diagram svg {
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.mermaid-controls-top,
+.mermaid-controls-bottom {
+  position: absolute;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.mermaid-controls-top {
+  top: 0.625rem;
+  right: 0.625rem;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.mermaid-controls-bottom {
+  right: 0.75rem;
+  bottom: 0.75rem;
+}
+
+.mermaid-diagram:hover .mermaid-controls-top,
+.mermaid-diagram:hover .mermaid-controls-bottom,
+.mermaid-diagram:focus-within .mermaid-controls-top,
+.mermaid-diagram:focus-within .mermaid-controls-bottom,
+.mermaid-diagram--fullscreen .mermaid-controls-top,
+.mermaid-diagram--fullscreen .mermaid-controls-bottom {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .mermaid-controls-top,
+  .mermaid-controls-bottom {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.mermaid-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background) / 0.92);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.mermaid-icon-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.mermaid-icon-btn__icon svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.mermaid-icon-btn--copy.mermaid-icon-btn--copied {
+  color: hsl(142 71% 45%);
+  border-color: hsl(142 71% 45% / 0.55);
+}
+
+.mermaid-icon-btn--copy.mermaid-icon-btn--copied .mermaid-icon-btn__icon {
+  color: hsl(142 71% 45%);
+}
+
+.mermaid-icon-btn__tooltip {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.45rem);
+  z-index: 5;
+  padding: 0.3rem 0.55rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: hsl(var(--popover-foreground));
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px hsl(var(--foreground) / 0.12);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.mermaid-icon-btn__tooltip::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  border: 5px solid transparent;
+  border-right-color: hsl(var(--border));
+  transform: translateY(-50%);
+}
+
+.mermaid-icon-btn__tooltip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  border: 4px solid transparent;
+  border-right-color: hsl(var(--popover));
+  transform: translate(1px, -50%);
+}
+
+.mermaid-icon-btn:hover,
+.mermaid-icon-btn:focus-visible {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--primary) / 0.45);
+}
+
+.mermaid-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 2rem);
+  grid-template-rows: repeat(3, 2rem);
+  gap: 0.125rem;
+  padding: 0.35rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  background: hsl(var(--background) / 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.mermaid-pad .mermaid-icon-btn {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.85rem;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(1) {
+  grid-column: 2;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(2) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(4) {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(5) {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(6) {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.mermaid-pad .mermaid-icon-btn:nth-child(7) {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+.mermaid-diagram--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  background: hsl(var(--background) / 0.96);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+.mermaid-diagram--fullscreen .mermaid-viewport {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+body.mermaid-fullscreen-open {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mermaid-diagram--fullscreen {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: hsl(var(--background));
+  }
 }
 
 .page-enter {
