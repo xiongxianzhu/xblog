@@ -24,6 +24,7 @@ import { MarkdownContent } from "@/components/markdown-content";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { SitePublicColorMode } from "@/lib/themes";
+import { ADMIN_MARKDOWN_EDITOR_BODY_HEIGHT } from "@/lib/admin-editor-layout";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "edit" | "split" | "preview";
@@ -185,7 +186,7 @@ export function MarkdownEditor({
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [fullscreen, setFullscreen] = useState(false);
 
-  const bodyHeight = fullscreen ? undefined : (minHeight ?? "clamp(560px, 68vh, 920px)");
+  const bodyHeight = fullscreen ? undefined : (minHeight ?? ADMIN_MARKDOWN_EDITOR_BODY_HEIGHT);
 
   useEffect(() => {
     if (!fullscreen) return;

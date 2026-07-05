@@ -12,12 +12,19 @@ export function enhanceProseTables(root: HTMLElement) {
   });
 
   return () => {
-    wraps.forEach((wrap) => {
+    for (const wrap of wraps) {
+      if (!wrap.isConnected) continue;
+
       const table = wrap.querySelector("table");
-      if (table && wrap.parentNode) {
-        wrap.parentNode.insertBefore(table, wrap);
+      const parent = wrap.parentNode;
+      if (!table || !parent || table.parentElement !== wrap) continue;
+
+      try {
+        parent.insertBefore(table, wrap);
         wrap.remove();
+      } catch {
+        // React 可能已替换该子树，忽略即可。
       }
-    });
+    }
   };
 }

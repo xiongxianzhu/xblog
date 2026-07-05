@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.login_log import LoginLog
 from app.models.operation_log import OperationLog
-from app.schemas.admin.logs import LoginLogAdmin, OperationLogAdmin
+from app.schemas.admin.logs import (
+    LoginLogAdmin,
+    OperationLogAdmin,
+    PaginatedLoginLogs,
+    PaginatedOperationLogs,
+)
 from app.services import audit_logs
 
 router = APIRouter()
@@ -43,13 +48,33 @@ def _operation_log_to_admin(row: OperationLog) -> OperationLogAdmin:
     )
 
 
-@router.get("/logs/login", response_model=list[LoginLogAdmin])
-async def list_login_logs(session: SessionDep, _: CurrentUserDep) -> list[LoginLogAdmin]:
-    rows = await audit_logs.list_login_logs(session)
-    return [_login_log_to_admin(row) for row in rows]
+@router.get("/logs/login", response_model=PaginatedLoginLogs)
+async def list_login_logs(
+    session: SessionDep,
+    _: CurrentUserDep,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> PaginatedLoginLogs:
+    rows, total = await audit_logs.list_login_logs(session, page=page, page_size=page_size)
+    return PaginatedLoginLogs(
+        items=[_login_log_to_admin(row) for row in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
-@router.get("/logs/operations", response_model=list[OperationLogAdmin])
-async def list_operation_logs(session: SessionDep, _: CurrentUserDep) -> list[OperationLogAdmin]:
-    rows = await audit_logs.list_operation_logs(session)
-    return [_operation_log_to_admin(row) for row in rows]
+@router.get("/logs/operations", response_model=PaginatedOperationLogs)
+async def list_operation_logs(
+    session: SessionDep,
+    _: CurrentUserDep,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> PaginatedOperationLogs:
+    rows, total = await audit_logs.list_operation_logs(session, page=page, page_size=page_size)
+    return PaginatedOperationLogs(
+        items=[_operation_log_to_admin(row) for row in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )

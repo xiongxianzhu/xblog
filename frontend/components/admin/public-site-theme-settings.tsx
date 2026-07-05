@@ -26,12 +26,14 @@ export function PublicSiteThemeSettings() {
   const [siteName, setSiteName] = useState("");
   const [siteTagline, setSiteTagline] = useState("");
   const [siteLogoUrl, setSiteLogoUrl] = useState("");
+  const [siteIcpNumber, setSiteIcpNumber] = useState("");
 
   useEffect(() => {
     if (!data) return;
     setSiteName(data.site_name);
     setSiteTagline(data.site_tagline ?? "");
     setSiteLogoUrl(data.site_logo_url ?? "");
+    setSiteIcpNumber(data.site_icp_number ?? "");
   }, [data]);
 
   async function persist(next: SitePublicTheme) {
@@ -64,6 +66,7 @@ export function PublicSiteThemeSettings() {
         site_name: name,
         site_tagline: siteTagline.trim(),
         site_logo_url: siteLogoUrl.trim(),
+        site_icp_number: siteIcpNumber.trim(),
       });
       await mutate(saved, false);
       router.refresh();
@@ -123,6 +126,17 @@ export function PublicSiteThemeSettings() {
               maxLength={120}
             />
             <FieldDescription>显示在站点名称下方；留空则不显示副标题。</FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="site-icp-number">网站备案号</FieldLabel>
+            <Input
+              id="site-icp-number"
+              value={siteIcpNumber}
+              onChange={(e) => setSiteIcpNumber(e.target.value)}
+              placeholder="京ICP备12345678号"
+              maxLength={50}
+            />
+            <FieldDescription>显示在公开站页脚；留空则不显示。</FieldDescription>
           </Field>
           <Field>
             <FieldLabel>LOGO 图片</FieldLabel>

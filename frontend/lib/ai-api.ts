@@ -201,6 +201,7 @@ type StreamPayload = {
   action: AiCompleteAction;
   provider_id?: string | null;
   skill_id?: string | null;
+  skill_ids?: string[];
   selection?: { text: string };
   messages?: AiChatMessage[];
   document?: { title: string; content_md: string };

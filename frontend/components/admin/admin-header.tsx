@@ -17,6 +17,7 @@ import {
   UserIcon,
 } from "lucide-react";
 
+import { AdminDropdownMenuContent, AdminDropdownMenuSubContent, AdminShellPanel } from "@/components/admin/ai-assistant-form-styles";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { useAdminTheme, useAdminThemeLabels } from "@/components/admin/theme-provider";
 import { UserAvatar } from "@/components/admin/user-avatar";
@@ -32,14 +33,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
-  DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -129,7 +128,7 @@ export function AdminHeader() {
 
       <LocaleSwitcher compact className="hidden md:flex" />
 
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -140,7 +139,8 @@ export function AdminHeader() {
             <span className="hidden min-w-0 truncate text-sm font-medium sm:inline">{displayName}</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52 p-1.5">
+        <AdminDropdownMenuContent align="end">
+          <AdminShellPanel palette={palette} resolvedMode={resolvedMode} className="w-52 p-1.5">
           <DropdownMenuLabel className="px-2.5 py-2 font-normal">
             <div className="flex flex-col gap-0.5">
               <span className="truncate text-sm font-medium">{displayName}</span>
@@ -167,7 +167,8 @@ export function AdminHeader() {
               <PaletteIcon />
               后台主题
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-52 p-1.5">
+            <AdminDropdownMenuSubContent>
+              <AdminShellPanel palette={palette} resolvedMode={resolvedMode} className="w-52 p-1.5">
               <DropdownMenuLabel className="px-2.5 py-2 text-xs font-normal text-muted-foreground">
                 {paletteLabel} · {modeLabel}
               </DropdownMenuLabel>
@@ -196,7 +197,8 @@ export function AdminHeader() {
                   跟随系统
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
-            </DropdownMenuSubContent>
+              </AdminShellPanel>
+            </AdminDropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuItem className={userMenuItemClass} onSelect={() => router.push("/admin/password")}>
             <KeyRoundIcon />
@@ -213,7 +215,8 @@ export function AdminHeader() {
             <LogOutIcon />
             {loggingOut ? "退出中…" : "退出登录"}
           </DropdownMenuItem>
-        </DropdownMenuContent>
+          </AdminShellPanel>
+        </AdminDropdownMenuContent>
       </DropdownMenu>
     </header>
   );

@@ -36,6 +36,8 @@ from app.services.ai.builtin_skills import (
 
 from app.services.ai.skills import SkillRef, read_skill_body_unified
 
+MAX_SKILL_IDS = 5
+
 
 
 SCENE_BY_ACTION: dict[AiCompleteAction, str] = {
@@ -163,6 +165,54 @@ async def resolve_skill(
     return None, ""
 
 
+
+async def _resolve_one_skill(session: AsyncSession, skill_id: UUID) -> tuple[SkillRef | None, str]:
+    builtin_name = resolve_builtin_name(skill_id)
+    if builtin_name is not None:
+        return SkillRef(id=skill_id, name=builtin_name), read_skill_body_unified(builtin_name)
+    skill = await session.get(AiSkill, skill_id)
+    if skill is None or not skill.enabled:
+        return None, ""
+    return SkillRef(id=skill.id, name=skill.name), read_skill_body_unified(skill.name)
+
+
+
+async def resolve_skills(
+    session: AsyncSession,
+    *,
+    action: AiCompleteAction,
+    skill_id: UUID | None,
+    skill_ids: list[UUID],
+    user_text: str,
+) -> tuple[list[SkillRef], str]:
+    explicit_ids: list[UUID] = []
+    if skill_ids:
+        seen: set[UUID] = set()
+        for item in skill_ids:
+            if item in seen:
+                continue
+            seen.add(item)
+            explicit_ids.append(item)
+            if len(explicit_ids) >= MAX_SKILL_IDS:
+                break
+    elif skill_id is not None:
+        explicit_ids = [skill_id]
+
+    if explicit_ids:
+        refs: list[SkillRef] = []
+        bodies: list[str] = []
+        for item in explicit_ids:
+            ref, body = await _resolve_one_skill(session, item)
+            if ref is None or not body.strip():
+                continue
+            refs.append(ref)
+            bodies.append(f"### Skill: {ref.name}\n\n{body.strip()}")
+        return refs, "\n\n".join(bodies)
+
+    ref, body = await resolve_skill(session, action=action, skill_id=None, user_text=user_text)
+    if ref is None:
+        return [], body
+    return [ref], body
 
 
 

@@ -59,9 +59,11 @@ def test_ai_skills_include_builtin(client: TestClient) -> None:
     assert resp.status_code == 200
     skills = unwrap_api_response(resp)
     builtin = [item for item in skills if item.get("is_builtin")]
-    assert len(builtin) >= 3
+    assert len(builtin) >= 5
     names = {item["name"] for item in builtin}
     assert "blog-polish-zh" in names
+    assert "blog-format-zh" in names
+    assert "blog-excerpt-zh" in names
     assert all(item["enabled"] for item in builtin)
 
 

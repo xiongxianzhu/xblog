@@ -6,6 +6,11 @@ import { ImagePlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  adminBorderlessControlClass,
+  adminBorderlessFocusClass,
+} from "@/components/admin/ai-assistant-form-styles";
+import { cn } from "@/lib/utils";
 import { uploadPostCover } from "@/lib/api";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
 
@@ -81,6 +86,7 @@ export function PostCoverEditor({ value, onChange, disabled }: PostCoverEditorPr
             onChange={(e) => onChange(e.target.value)}
             placeholder="https://… 或上传本地图片"
             disabled={disabled || loading}
+            className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
           />
           <div className="flex flex-wrap gap-2">
             <Button

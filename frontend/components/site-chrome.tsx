@@ -28,7 +28,7 @@ export function SiteChrome({ children, siteTheme }: SiteChromeProps) {
         siteLogoUrl={siteTheme.site_logo_url}
       />
       <main className="min-w-0 flex-1">{children}</main>
-      <SiteFooter siteName={siteTheme.site_name} />
+      <SiteFooter siteName={siteTheme.site_name} siteIcpNumber={siteTheme.site_icp_number} />
     </SiteThemeShell>
   );
 }

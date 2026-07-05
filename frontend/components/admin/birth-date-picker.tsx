@@ -3,13 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { CalendarIcon, XIcon } from "lucide-react";
+import { CalendarIcon, CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
 
+import {
+  adminBorderlessControlClass,
+  adminBorderlessFocusClass,
+  adminPopoverPanelClass,
+} from "@/components/admin/ai-assistant-form-styles";
+import { useAdminTheme } from "@/components/admin/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAdminTheme } from "@/components/admin/theme-provider";
 import { cn, formatIsoDate, parseIsoDate } from "@/lib/utils";
 
 const MIN_YEAR = 1940;
@@ -36,8 +46,42 @@ function getTodayParts() {
   };
 }
 
+type PanelPickerProps = {
+  label: string;
+  valueLabel: string;
+  panelEl: HTMLElement | null;
+  children: React.ReactNode;
+};
+
+function PanelPicker({ label, valueLabel, panelEl, children }: PanelPickerProps) {
+  const triggerClass = cn(
+    adminBorderlessControlClass,
+    adminBorderlessFocusClass,
+    "admin-form-control h-10 w-full justify-between px-3 font-normal hover:bg-muted/40",
+  );
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="ghost" aria-label={label} className={triggerClass}>
+          <span className="truncate">{valueLabel}</span>
+          <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        container={panelEl}
+        align="start"
+        className={cn(adminPopoverPanelClass, "z-[60] max-h-56 overflow-y-auto p-1")}
+      >
+        {children}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function BirthDatePicker({ id, value, onChange, className, disabled }: BirthDatePickerProps) {
   const [open, setOpen] = useState(false);
+  const [panelEl, setPanelEl] = useState<HTMLElement | null>(null);
   const { resolvedMode, palette } = useAdminTheme();
   const selected = useMemo(() => (value ? parseIsoDate(value) : undefined), [value]);
   const today = useMemo(() => getTodayParts(), []);
@@ -72,12 +116,12 @@ export function BirthDatePicker({ id, value, onChange, className, disabled }: Bi
 
   const calendarMonth = useMemo(() => new Date(viewYear, viewMonth - 1, 1), [viewMonth, viewYear]);
 
-  function handleYearChange(nextYear: string) {
-    setViewYear(Number(nextYear));
+  function handleYearChange(nextYear: number) {
+    setViewYear(nextYear);
   }
 
-  function handleMonthChange(nextMonth: string) {
-    setViewMonth(Number(nextMonth));
+  function handleMonthChange(nextMonth: number) {
+    setViewMonth(nextMonth);
   }
 
   function handleDaySelect(date: Date | undefined) {
@@ -87,16 +131,16 @@ export function BirthDatePicker({ id, value, onChange, className, disabled }: Bi
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <div className={cn("flex gap-2", className)}>
         <PopoverTrigger asChild>
           <Button
             id={id}
             type="button"
-            variant="outline"
+            variant="ghost"
             disabled={disabled}
             className={cn(
-              "h-10 flex-1 justify-start rounded-[2px] px-3 font-normal",
+              "admin-form-control h-10 flex-1 justify-start px-3 font-normal hover:bg-muted/40",
               !value && "text-muted-foreground",
             )}
           >
@@ -118,58 +162,65 @@ export function BirthDatePicker({ id, value, onChange, className, disabled }: Bi
           </Button>
         ) : null}
       </div>
-      <PopoverContent className="w-auto border-0 bg-transparent p-0 shadow-none" align="start">
+      <PopoverContent className="z-50 w-auto border-0 bg-transparent p-0 shadow-none" align="start">
         <div
+          ref={setPanelEl}
           data-admin-shell
           data-admin-palette={palette}
           className={cn(
-            "w-[min(100vw-2rem,20rem)] overflow-hidden rounded-[2px] border border-border bg-popover text-popover-foreground shadow-md",
+            "w-[min(100vw-2rem,20rem)] overflow-visible rounded-[2px] border border-primary/25 bg-popover text-popover-foreground shadow-md",
             resolvedMode === "dark" && "dark",
           )}
         >
           <div className="flex flex-col gap-3 p-3">
-          <div className="grid grid-cols-2 gap-2">
-            <Select value={String(viewYear)} onValueChange={handleYearChange}>
-              <SelectTrigger className="rounded-[2px]" aria-label="选择年份">
-                <SelectValue placeholder="年份" />
-              </SelectTrigger>
-              <SelectContent className="max-h-56 rounded-[2px]">
+            <div className="grid grid-cols-2 gap-2">
+              <PanelPicker label="选择年份" valueLabel={`${viewYear} 年`} panelEl={panelEl}>
                 {yearOptions.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
+                  <DropdownMenuItem
+                    key={year}
+                    className="rounded-[2px]"
+                    onSelect={() => handleYearChange(year)}
+                  >
                     {year} 年
-                  </SelectItem>
+                    {year === viewYear ? <CheckIcon className="ml-auto size-4 text-primary" /> : null}
+                  </DropdownMenuItem>
                 ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(viewMonth)} onValueChange={handleMonthChange}>
-              <SelectTrigger className="rounded-[2px]" aria-label="选择月份">
-                <SelectValue placeholder="月份" />
-              </SelectTrigger>
-              <SelectContent className="rounded-[2px]">
+              </PanelPicker>
+              <PanelPicker
+                label="选择月份"
+                valueLabel={MONTH_OPTIONS[viewMonth - 1]?.label ?? `${viewMonth}月`}
+                panelEl={panelEl}
+              >
                 {monthOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <DropdownMenuItem
+                    key={option.value}
+                    className="rounded-[2px]"
+                    onSelect={() => handleMonthChange(Number(option.value))}
+                  >
                     {option.label}
-                  </SelectItem>
+                    {Number(option.value) === viewMonth ? (
+                      <CheckIcon className="ml-auto size-4 text-primary" />
+                    ) : null}
+                  </DropdownMenuItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Calendar
-            mode="single"
-            className="p-0"
-            month={calendarMonth}
-            onMonthChange={(month) => {
-              setViewYear(month.getFullYear());
-              setViewMonth(month.getMonth() + 1);
-            }}
-            selected={selected}
-            startMonth={new Date(MIN_YEAR, 0, 1)}
-            endMonth={today.date}
-            disabled={{ after: today.date }}
-            hideNavigation
-            classNames={{ month_caption: "rdp-month_caption hidden" }}
-            onSelect={handleDaySelect}
-          />
+              </PanelPicker>
+            </div>
+            <Calendar
+              mode="single"
+              className="p-0"
+              month={calendarMonth}
+              onMonthChange={(month) => {
+                setViewYear(month.getFullYear());
+                setViewMonth(month.getMonth() + 1);
+              }}
+              selected={selected}
+              startMonth={new Date(MIN_YEAR, 0, 1)}
+              endMonth={today.date}
+              disabled={{ after: today.date }}
+              hideNavigation
+              classNames={{ month_caption: "rdp-month_caption hidden" }}
+              onSelect={handleDaySelect}
+            />
           </div>
         </div>
       </PopoverContent>

@@ -45,9 +45,7 @@ export default function AdminSettingsPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">后台外观</CardTitle>
-            <CardDescription>
-              仅影响当前浏览器中的管理后台，偏好保存在本机（键名 xblog-admin-theme-v2）。
-            </CardDescription>
+            <CardDescription>仅影响当前浏览器中的管理后台，偏好保存在本机。</CardDescription>
           </CardHeader>
           <CardContent>
             <AdminThemeSettingsPanel mode={mode} palette={palette} onModeChange={setMode} onPaletteChange={setPalette} />

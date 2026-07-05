@@ -33,7 +33,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       className={cn("rdp-admin-calendar p-3", className)}
       classNames={{
         months: cn("rdp-months", "flex flex-col gap-4 sm:flex-row"),
-        month: cn("rdp-month", "relative flex w-full flex-col gap-4"),
+        month: cn("rdp-month", "relative flex w-full flex-col items-center gap-3"),
         month_caption: cn("rdp-month_caption", "flex h-9 w-full items-center justify-center px-1"),
         caption_label: cn("rdp-caption_label", "text-sm font-medium"),
         nav: cn("rdp-nav", "flex items-center gap-1"),
@@ -47,18 +47,21 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           buttonVariants({ variant: "outline" }),
           "size-7 bg-transparent p-0 opacity-70 hover:opacity-100",
         ),
-        month_grid: cn("rdp-month_grid", "w-full border-collapse"),
-        weekdays: cn("rdp-weekdays", "flex"),
-        weekday: cn("rdp-weekday", "w-9 rounded-[2px] text-[0.8rem] font-normal text-muted-foreground"),
-        week: cn("rdp-week", "mt-2 flex w-full"),
+        month_grid: cn("rdp-month_grid", "w-fit"),
+        weekdays: cn("rdp-weekdays", "grid w-full grid-cols-7 gap-x-2 justify-items-center"),
+        weekday: cn(
+          "rdp-weekday",
+          "flex h-8 w-8 items-center justify-center text-[0.8rem] font-normal text-muted-foreground",
+        ),
+        week: cn("rdp-week", "mt-1.5 grid w-full grid-cols-7 gap-x-2 justify-items-center"),
         day: cn(
           "rdp-day",
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
+          "flex h-8 w-8 items-center justify-center p-0 text-center text-sm focus-within:relative focus-within:z-20",
         ),
         day_button: cn(
           "rdp-day_button",
           buttonVariants({ variant: "ghost" }),
-          "size-9 rounded-[2px] p-0 font-normal transition-colors",
+          "size-7 rounded-full p-0 font-normal transition-colors",
         ),
         selected: cn("rdp-selected"),
         today: cn("rdp-today"),

@@ -159,9 +159,14 @@ export async function fetchPublicSafe<T>(path: string, fallback: T, params?: Rec
   }
 }
 
-export async function fetchAuth<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
+export async function fetchAuth<T>(
+  path: string,
+  init?: RequestInit,
+  retried = false,
+  params?: Record<string, string | number | undefined>,
+): Promise<T> {
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
-  const response = await fetch(buildUrl(path), {
+  const response = await fetch(buildUrl(path, params), {
     ...init,
     credentials: "include",
     headers: isFormData
@@ -192,7 +197,7 @@ export async function fetchAuth<T>(path: string, init?: RequestInit, retried = f
       credentials: "include",
     });
     if (refreshResponse.ok) {
-      return fetchAuth<T>(path, init, true);
+      return fetchAuth<T>(path, init, true, params);
     }
   }
 
@@ -480,6 +485,13 @@ export function deleteAdminUser(id: number) {
   return fetchAuth<void>(`/admin/users/${id}`, { method: "DELETE" });
 }
 
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
 export type LoginLogAdmin = {
   id: number;
   user_id: number | null;
@@ -504,12 +516,18 @@ export type OperationLogAdmin = {
   created_at: string | null;
 };
 
-export function listLoginLogs() {
-  return fetchAuth<LoginLogAdmin[]>("/admin/logs/login");
+export function listLoginLogs(page = 1, pageSize = 20) {
+  return fetchAuth<PaginatedResponse<LoginLogAdmin>>("/admin/logs/login", undefined, false, {
+    page,
+    page_size: pageSize,
+  });
 }
 
-export function listOperationLogs() {
-  return fetchAuth<OperationLogAdmin[]>("/admin/logs/operations");
+export function listOperationLogs(page = 1, pageSize = 20) {
+  return fetchAuth<PaginatedResponse<OperationLogAdmin>>("/admin/logs/operations", undefined, false, {
+    page,
+    page_size: pageSize,
+  });
 }
 
 export function listAdminPosts() {

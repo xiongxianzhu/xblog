@@ -139,6 +139,7 @@ class AiCompleteRequest(SQLModel):
     action: AiCompleteAction
     provider_id: UUID | None = None
     skill_id: UUID | None = None
+    skill_ids: list[UUID] = Field(default_factory=list)
     messages: list[AiCompleteMessage] = Field(default_factory=list)
     selection: AiCompleteSelection | None = None
     document: AiCompleteDocument | None = None
@@ -148,6 +149,18 @@ class AiCompleteRequest(SQLModel):
     @classmethod
     def default_messages(cls, value: list[AiCompleteMessage] | None) -> list[AiCompleteMessage]:
         return value or []
+
+    @field_validator("skill_ids", mode="before")
+    @classmethod
+    def default_skill_ids(cls, value: list[UUID] | None) -> list[UUID]:
+        return value or []
+
+    @field_validator("skill_ids")
+    @classmethod
+    def limit_skill_ids(cls, value: list[UUID]) -> list[UUID]:
+        if len(value) > 5:
+            raise ValueError("单次最多选择 5 个 Skill")
+        return value
 
 
 class AiUsageStats(SQLModel):

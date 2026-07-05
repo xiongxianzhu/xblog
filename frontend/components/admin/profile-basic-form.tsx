@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  adminBorderlessControlClass,
+  adminBorderlessFocusClass,
+} from "@/components/admin/ai-assistant-form-styles";
 import { BirthDatePicker } from "@/components/admin/birth-date-picker";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -69,6 +73,7 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
             placeholder="展示用昵称，可留空"
             maxLength={50}
             autoComplete="nickname"
+            className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
           />
         </Field>
         <Field>
@@ -81,7 +86,7 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
             value={gender || GENDER_NONE}
             onValueChange={(value) => setGender(value === GENDER_NONE ? "" : (value as ProfileGender))}
           >
-            <SelectTrigger id="profile-gender">
+            <SelectTrigger id="profile-gender" className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}>
               <SelectValue placeholder="请选择" />
             </SelectTrigger>
             <SelectContent>

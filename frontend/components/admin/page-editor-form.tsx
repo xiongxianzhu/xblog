@@ -3,7 +3,12 @@
 import { Loader2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
+import {
+  adminBorderlessControlClass,
+  adminBorderlessFocusClass,
+} from "@/components/admin/ai-assistant-form-styles";
 import { AiAssistantPanel } from "@/components/admin/ai-assistant-panel";
+import { EditorAiAssistantLayout } from "@/components/admin/editor-ai-assistant-layout";
 import { AiSelectionToolbar } from "@/components/admin/ai-selection-toolbar";
 import { AdminFeedbackDialog, type AdminFeedbackVariant } from "@/components/admin/admin-feedback-dialog";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
@@ -95,6 +100,8 @@ export function PageEditorForm({ initial, previewPath, onSubmit, onSuccess }: Pa
     requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
+  const adminFieldClass = cn(adminBorderlessControlClass, adminBorderlessFocusClass);
+
   return (
     <>
       <Card className="border-border/80">
@@ -112,6 +119,7 @@ export function PageEditorForm({ initial, previewPath, onSubmit, onSuccess }: Pa
                   value={values.title}
                   onChange={(e) => setValues((prev) => ({ ...prev, title: e.target.value }))}
                   required
+                  className={adminFieldClass}
                 />
               </Field>
               <Field>
@@ -126,37 +134,36 @@ export function PageEditorForm({ initial, previewPath, onSubmit, onSuccess }: Pa
                     {assistantOpen ? "收起 AI 助手" : "AI 助手"}
                   </Button>
                 </div>
-                <div
-                  className={cn(
-                    "grid gap-4",
-                    assistantOpen && "lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-stretch",
-                  )}
-                >
-                  <div className="min-w-0">
-                    <AiSelectionToolbar
-                      textareaRef={textareaRef}
-                      content={values.content_md}
-                      title={values.title}
-                      onApply={applyAiSelection}
-                    />
-                    <MarkdownEditor
-                      id="page-content"
-                      textareaRef={textareaRef}
-                      value={values.content_md}
-                      onChange={(content_md) => setValues((prev) => ({ ...prev, content_md }))}
-                      required
-                    />
-                  </div>
-                  {assistantOpen ? (
+                <EditorAiAssistantLayout
+                  assistantOpen={assistantOpen}
+                  editor={
+                    <>
+                      <AiSelectionToolbar
+                        textareaRef={textareaRef}
+                        content={values.content_md}
+                        title={values.title}
+                        onApply={applyAiSelection}
+                      />
+                      <MarkdownEditor
+                        id="page-content"
+                        textareaRef={textareaRef}
+                        value={values.content_md}
+                        onChange={(content_md) => setValues((prev) => ({ ...prev, content_md }))}
+                        required
+                      />
+                    </>
+                  }
+                  assistant={
                     <AiAssistantPanel
+                      className="h-full min-h-0"
                       title={values.title}
                       content={values.content_md}
                       onClose={() => setAssistantOpen(false)}
                       onInsertAtCursor={insertAtCursor}
                       onReplaceContent={replaceContent}
                     />
-                  ) : null}
-                </div>
+                  }
+                />
               </Field>
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={loading}>

@@ -5,17 +5,24 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
+import { AiComposer, type AiComposerSendPayload } from "@/components/admin/ai-composer";
+import {
+  AiAssistantSelectContent,
+  AiAssistantSelectItem,
+  adminBorderlessControlClass,
+  adminBorderlessFocusClass,
+} from "@/components/admin/ai-assistant-form-styles";
 import { AiThinkingPanel } from "@/components/admin/ai-thinking-panel";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   getAiSkillRecommend,
   getAiStatus,
+  listAiProviders,
   listAiSkills,
   streamAiComplete,
   type AiSkill,
@@ -30,6 +37,8 @@ type ChatMessage = {
 
 type TabKey = "chat" | "generate";
 
+const generateFieldClass = "shrink-0 gap-2";
+
 type Props = {
   className?: string;
   onClose: () => void;
@@ -37,6 +46,7 @@ type Props = {
   content: string;
   onInsertAtCursor: (text: string) => void;
   onReplaceContent: (text: string) => void;
+  onUpdateExcerpt?: (text: string) => void;
 };
 
 function SkillSelect({
@@ -51,25 +61,33 @@ function SkillSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <Field>
+    <Field className={generateFieldClass}>
       <FieldLabel className="flex items-center gap-2">
         Skill
         {skillMode === "auto" && recommendedName ? (
-          <Badge variant="secondary">推荐：{recommendedName}</Badge>
+          <span className="text-xs font-normal text-muted-foreground">推荐：{recommendedName}</span>
         ) : null}
       </FieldLabel>
-      <Select value={skillMode} onValueChange={onChange}>
-        <SelectTrigger>
+      <Select
+        value={skillMode}
+        onValueChange={(value) => {
+          onChange(value);
+          requestAnimationFrame(() => {
+            (document.activeElement as HTMLElement | null)?.blur();
+          });
+        }}
+      >
+        <SelectTrigger className={cn(adminBorderlessControlClass, adminBorderlessFocusClass, "h-10 w-full")}>
           <SelectValue placeholder="自动推荐" />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="auto">自动（推荐）</SelectItem>
+        <AiAssistantSelectContent>
+          <AiAssistantSelectItem value="auto">自动（推荐）</AiAssistantSelectItem>
           {enabledSkills.map((skill) => (
-            <SelectItem key={skill.id} value={skill.id}>
+            <AiAssistantSelectItem key={skill.id} value={skill.id}>
               {skill.name}
-            </SelectItem>
+            </AiAssistantSelectItem>
           ))}
-        </SelectContent>
+        </AiAssistantSelectContent>
       </Select>
     </Field>
   );
@@ -82,16 +100,17 @@ export function AiAssistantPanel({
   content,
   onInsertAtCursor,
   onReplaceContent,
+  onUpdateExcerpt,
 }: Props) {
   const { data: status } = useSWR("ai-status", getAiStatus);
   const { data: skills } = useSWR("ai-skills-assistant", listAiSkills);
+  const { data: providers } = useSWR("ai-providers-assistant", listAiProviders);
 
   const [tab, setTab] = useState<TabKey>("chat");
   const [skillMode, setSkillMode] = useState<"auto" | string>("auto");
   const [recommendedName, setRecommendedName] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
   const [lastAssistant, setLastAssistant] = useState("");
   const [lastThinking, setLastThinking] = useState("");
 
@@ -105,45 +124,43 @@ export function AiAssistantPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const aiReady = (status?.enabled_providers ?? 0) > 0;
-  const enabledSkills = (skills ?? []).filter((s: AiSkill) => s.enabled);
-
-  const chatContext = useMemo(
-    () => [title, content, input, ...messages.map((m) => m.content)].join(" "),
-    [title, content, input, messages],
+  const enabledSkills = useMemo(() => (skills ?? []).filter((skill: AiSkill) => skill.enabled), [skills]);
+  const enabledProviders = useMemo(
+    () => (providers ?? []).filter((provider) => provider.enabled && provider.has_api_key),
+    [providers],
   );
+
   const generateContext = useMemo(() => [topic, outline, title].join(" "), [topic, outline, title]);
 
   useEffect(() => {
-    if (tab === "generate" && !topic && title) {
-      setTopic(title);
-    }
-  }, [tab, title, topic]);
+    if (tab !== "generate" || !title) return;
+    setTopic((prev) => (prev === "" ? title : prev));
+  }, [tab, title]);
 
   useEffect(() => {
-    if (skillMode !== "auto" || !aiReady) {
+    if (skillMode !== "auto" || !aiReady || tab !== "generate") {
       return;
     }
-    const action = tab === "generate" ? "generate" : "chat";
-    const text = tab === "generate" ? generateContext : chatContext;
     const timer = window.setTimeout(() => {
-      void getAiSkillRecommend(action, text)
+      void getAiSkillRecommend("generate", generateContext)
         .then((result) => setRecommendedName(result.skill_name))
         .catch(() => setRecommendedName(null));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [skillMode, aiReady, tab, chatContext, generateContext]);
+  }, [skillMode, aiReady, tab, generateContext]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, streaming, lastAssistant]);
 
-  async function handleSendChat() {
-    const text = input.trim();
-    if (!text || streaming || !aiReady) return;
+  async function runChat(payload: AiComposerSendPayload) {
+    if (streaming || !aiReady) return;
 
-    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: text }];
+    const userText = payload.text.trim();
+    if (!userText) return;
+
+    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: userText }];
     setMessages(nextMessages);
-    setInput("");
     setError(null);
     setLastAssistant("");
     setLastThinking("");
@@ -155,7 +172,8 @@ export function AiAssistantPanel({
       await streamAiComplete(
         {
           action: "chat",
-          skill_id: skillMode === "auto" ? null : skillMode,
+          provider_id: payload.providerId,
+          ...(payload.skillIds.length > 0 ? { skill_ids: payload.skillIds } : {}),
           messages: nextMessages,
           document: { title, content_md: content },
         },
@@ -168,15 +186,12 @@ export function AiAssistantPanel({
             thinking += chunk;
             setLastThinking(thinking);
           },
-          onDone: (meta) => {
-            if (meta.skill_name && skillMode === "auto") {
-              setRecommendedName(meta.skill_name);
-            }
-          },
           onError: (message) => setError(message),
         },
       );
-      setMessages((prev) => [...prev, { role: "assistant", content: assistant, thinking: thinking || undefined }]);
+
+      const result = assistant.trim();
+      setMessages((prev) => [...prev, { role: "assistant", content: result, thinking: thinking || undefined }]);
       setLastAssistant("");
       setLastThinking("");
     } catch (err) {
@@ -195,12 +210,16 @@ export function AiAssistantPanel({
     setGenerateThinking("");
     setStreaming(true);
 
+    const defaultProvider =
+      enabledProviders.find((provider) => provider.is_default) ?? enabledProviders[0] ?? null;
+
     try {
       let draft = "";
       let thinking = "";
       await streamAiComplete(
         {
           action: "generate",
+          provider_id: defaultProvider?.id ?? null,
           skill_id: skillMode === "auto" ? null : skillMode,
           document: { title, content_md: content },
           generate: { topic: subject, outline: outline.trim() },
@@ -244,14 +263,14 @@ export function AiAssistantPanel({
   return (
     <aside
       className={cn(
-        "flex min-h-[420px] flex-col overflow-hidden rounded-lg border border-border/80 bg-muted/10 lg:min-h-[560px]",
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border/80 bg-muted/10",
         className,
       )}
     >
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/60 px-4 py-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold tracking-tight">AI 助手</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">对话改稿或从主题/大纲生成全文草稿。</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">输入 / 选择 Skill，或使用快捷操作。</p>
         </div>
         <Button
           type="button"
@@ -275,25 +294,22 @@ export function AiAssistantPanel({
             配置并激活提供商。
           </p>
         ) : (
-          <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)} className="flex min-h-0 flex-1 flex-col">
+          <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)} className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
             <TabsList className="grid w-full shrink-0 grid-cols-2">
-              <TabsTrigger value="chat">对话</TabsTrigger>
+              <TabsTrigger value="chat">Agent</TabsTrigger>
               <TabsTrigger value="generate">全文生成</TabsTrigger>
             </TabsList>
 
-            <div className="mt-3 shrink-0">
-              <SkillSelect
-                skillMode={skillMode}
-                recommendedName={recommendedName}
-                enabledSkills={enabledSkills}
-                onChange={setSkillMode}
-              />
-            </div>
-
-            <TabsContent value="chat" className="mt-3 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden">
-              <div ref={scrollRef} className="min-h-[200px] flex-1 space-y-3 overflow-y-auto rounded-md border bg-background/50 p-3">
+            <TabsContent
+              value="chat"
+              className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden data-[state=inactive]:hidden"
+            >
+              <div
+                ref={scrollRef}
+                className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-md border bg-background/50 p-3"
+              >
                 {!messages.length && !lastAssistant ? (
-                  <p className="text-sm text-muted-foreground">例如：「帮我把第二段改得更口语化」</p>
+                  <p className="text-sm text-muted-foreground">例如：输入 /blog-polish-zh 后描述改稿需求</p>
                 ) : null}
                 {messages.map((msg, index) => (
                   <div
@@ -339,50 +355,49 @@ export function AiAssistantPanel({
                 ) : null}
               </div>
 
-              <div className="mt-3 shrink-0 space-y-2">
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="输入改稿指令…"
-                  className="min-h-[80px] resize-none"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                      e.preventDefault();
-                      void handleSendChat();
-                    }
-                  }}
-                />
-                <div className="flex justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">Ctrl+Enter 发送</span>
-                  <Button type="button" disabled={streaming || !input.trim()} onClick={() => void handleSendChat()}>
-                    {streaming ? "输出中…" : "发送"}
-                  </Button>
-                </div>
-              </div>
+              <AiComposer
+                disabled={!aiReady}
+                streaming={streaming}
+                enabledSkills={enabledSkills}
+                enabledProviders={enabledProviders}
+                showExcerptAction={Boolean(onUpdateExcerpt)}
+                onSend={runChat}
+              />
             </TabsContent>
 
-            <TabsContent value="generate" className="mt-3 flex min-h-0 flex-1 flex-col gap-3 data-[state=inactive]:hidden">
-              <Field className="shrink-0">
+            <TabsContent
+              value="generate"
+              className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden data-[state=inactive]:hidden"
+            >
+              <SkillSelect
+                skillMode={skillMode}
+                recommendedName={recommendedName}
+                enabledSkills={enabledSkills}
+                onChange={setSkillMode}
+              />
+
+              <Field className={generateFieldClass}>
                 <FieldLabel>主题</FieldLabel>
-                <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="文章或页面主题" />
+                <Input
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="文章或页面主题"
+                  className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
+                />
               </Field>
 
-              <Field className="flex min-h-[220px] flex-1 flex-col">
+              <Field className={cn(generateFieldClass, "min-h-[180px] flex-1")}>
                 <FieldLabel>大纲（可选）</FieldLabel>
                 <FieldDescription>列出章节与要点，结构越清晰，生成效果越好。</FieldDescription>
                 <Textarea
                   value={outline}
                   onChange={(e) => setOutline(e.target.value)}
-                  placeholder={
-                    "# 一、开篇\n" +
-                    "引入主题，说明背景\n\n" +
-                    "# 二、核心内容\n" +
-                    "- 要点 A\n" +
-                    "- 要点 B\n\n" +
-                    "# 三、总结\n" +
-                    "回顾与展望"
-                  }
-                  className="mt-1 min-h-[200px] flex-1 resize-y rounded-lg border-border/80 bg-background/60 px-4 py-3 text-sm leading-relaxed md:min-h-[260px]"
+                  placeholder={"# 一、开篇\n引入主题\n\n# 二、核心内容\n- 要点 A"}
+                  className={cn(
+                    "min-h-[160px] flex-1 resize-y px-4 py-3 text-sm leading-relaxed",
+                    adminBorderlessControlClass,
+                    adminBorderlessFocusClass,
+                  )}
                 />
               </Field>
 
@@ -396,12 +411,12 @@ export function AiAssistantPanel({
               </Button>
 
               {(generatePreview || generateThinking || streaming) && (
-                <div className="mt-4 flex min-h-0 flex-1 flex-col gap-2">
+                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
                   <FieldLabel>预览</FieldLabel>
                   {generateThinking || (streaming && !generatePreview) ? (
                     <AiThinkingPanel thinking={generateThinking} streaming={streaming && !generatePreview} />
                   ) : null}
-                  <pre className="max-h-[220px] min-h-[120px] flex-1 overflow-auto whitespace-pre-wrap rounded-md border bg-background/50 p-3 font-mono text-sm">
+                  <pre className="min-h-0 flex-1 overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md border bg-background/50 p-3 font-mono text-sm">
                     {generatePreview}
                     {streaming ? (
                       <span className="ml-0.5 inline-block animate-pulse text-primary" aria-hidden>
@@ -443,7 +458,7 @@ export function AiAssistantPanel({
               )}
             </TabsContent>
 
-            {error ? <p className="mt-2 shrink-0 text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="shrink-0 text-sm text-destructive">{error}</p> : null}
           </Tabs>
         )}
       </div>

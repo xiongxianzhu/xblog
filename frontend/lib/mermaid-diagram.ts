@@ -370,6 +370,7 @@ export async function renderMermaidDiagrams(
   const nodes: HTMLElement[] = [];
   const sources = new Map<HTMLElement, string>();
   const cleanups: Array<() => void> = [];
+  const restorations: Array<{ shell: HTMLElement; block: Element }> = [];
 
   blocks.forEach((block) => {
     const source = getCodeBlockSource(block);
@@ -392,6 +393,7 @@ export async function renderMermaidDiagrams(
     canvas.appendChild(diagram);
     viewport.appendChild(canvas);
     shell.appendChild(viewport);
+    restorations.push({ shell, block });
     block.replaceWith(shell);
     nodes.push(diagram);
     sources.set(shell, source);
@@ -413,6 +415,14 @@ export async function renderMermaidDiagrams(
   return () => {
     cleanups.forEach((cleanup) => cleanup());
     document.body.classList.remove("mermaid-fullscreen-open");
+    for (const { shell, block } of restorations) {
+      if (!shell.isConnected) continue;
+      try {
+        shell.replaceWith(block);
+      } catch {
+        // React 可能已替换该子树，忽略即可。
+      }
+    }
   };
 }
 

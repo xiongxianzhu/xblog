@@ -23,7 +23,9 @@ function normalizeTheme(raw: Partial<SitePublicTheme> | null | undefined): SiteP
     typeof raw?.site_tagline === "string" ? raw.site_tagline.trim() : DEFAULT_SITE_THEME.site_tagline;
   const site_logo_url =
     typeof raw?.site_logo_url === "string" && raw.site_logo_url.trim() ? raw.site_logo_url.trim() : null;
-  return { mode, palette, site_name, site_tagline, site_logo_url };
+  const site_icp_number =
+    typeof raw?.site_icp_number === "string" && raw.site_icp_number.trim() ? raw.site_icp_number.trim() : null;
+  return { mode, palette, site_name, site_tagline, site_logo_url, site_icp_number };
 }
 
 async function fetchSiteThemeFromApi(): Promise<SitePublicTheme> {
@@ -44,7 +46,7 @@ async function fetchSiteThemeFromApi(): Promise<SitePublicTheme> {
   }
 }
 
-const getPublicSiteThemeCached = unstable_cache(fetchSiteThemeFromApi, ["public-site-theme-v4"], {
+const getPublicSiteThemeCached = unstable_cache(fetchSiteThemeFromApi, ["public-site-theme-v5"], {
   tags: ["site-theme"],
   revalidate: 3600,
 });

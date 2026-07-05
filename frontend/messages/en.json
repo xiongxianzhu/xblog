@@ -20,10 +20,9 @@
     "en": "English"
   },
   "footer": {
-    "tagline": "Self-hosted · Markdown · Open source",
     "rss": "RSS",
     "sitemap": "Sitemap",
-    "copyright": "© {year} {siteName} · MIT License"
+    "copyright": "© {year} {siteName}"
   },
   "home": {
     "eyebrow": "Personal Journal",

@@ -382,7 +382,20 @@ DB 表 `ai_skill`：`id`, `name`, `description`, `storage_path`, `enabled`, `cre
 | 2026-07-05 | Key：仅服务端加密存储 |
 | 2026-07-05 | Skill 选用：场景默认 + 推荐 + 用户改选 |
 | 2026-07-05 | 提供商：**用户后台配置并激活**，无内置固定厂商；OpenAI 兼容为主适配层 |
-| 2026-07-05 | 架构：后端 AI 网关 + SSE |
+| 2026-07-05 | Agent Composer：快捷按钮预填不自动发送；模型名去重；对话覆盖正文无 confirm |
+
+---
+
+## 14. Agent Composer 交互补充（2026-07-05）
+
+侧边栏 **Agent 对话** 已按 [2026-07-05-ai-editor-composer-design.md](./2026-07-05-ai-editor-composer-design.md) 落地，相对初版 P2 对话的 UX 约定如下：
+
+| 行为 | 说明 |
+|------|------|
+| 快捷按钮 | 预填输入框 + 挂载对应 Skill，**不自动发送**；用户点「发送」或 `Ctrl+Enter` 才请求 |
+| 模型下拉 | 提供商 `name` 与 `model` 相同时只显示一项 |
+| 对话结果应用 | `replace-content` / `excerpt` **直接写入**编辑器，不弹确认框 |
+| 全文生成 Tab | 仍保留「覆盖正文」前的 confirm（与 Agent 对话分离） |
 
 ---
 

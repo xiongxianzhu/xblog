@@ -13,7 +13,7 @@ from app.models.ai_usage_log import AiUsageLog
 from app.schemas.ai import ALLOWED_ACTIONS, P1_ACTIONS, AiCompleteAction, AiCompleteRequest
 from app.services.ai.llm_client import stream_llm
 from app.services.ai.providers import provider_plain_api_key, resolve_active_provider
-from app.services.ai.recommend import resolve_skill
+from app.services.ai.recommend import resolve_skills
 
 BASE_SYSTEM = (
     "你是 xblog 博客写作助手。输出 Markdown，保持结构清晰，不编造外链或虚假事实。"
@@ -98,10 +98,11 @@ async def stream_complete(
 
     provider = await resolve_active_provider(session, payload.provider_id)
     user_text = _user_text_for_recommend(payload)
-    skill, skill_body = await resolve_skill(
+    skills, skill_body = await resolve_skills(
         session,
         action=payload.action,
         skill_id=payload.skill_id,
+        skill_ids=payload.skill_ids,
         user_text=user_text,
     )
     messages = _build_messages(payload, skill_body)
@@ -125,7 +126,7 @@ async def stream_complete(
         AiUsageLog(
             action=payload.action.value,
             provider_id=provider.id,
-            skill_id=skill.id if skill else None,
+            skill_id=skills[0].id if skills else None,
             latency_ms=latency_ms,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
@@ -139,8 +140,8 @@ async def stream_complete(
                 "completion_tokens": completion_tokens,
                 "latency_ms": latency_ms,
             },
-            "skill_id": str(skill.id) if skill else None,
-            "skill_name": skill.name if skill else None,
+            "skill_id": str(skills[0].id) if skills else None,
+            "skill_name": ", ".join(skill.name for skill in skills) if skills else None,
         },
     )
 

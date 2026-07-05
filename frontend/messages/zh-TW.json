@@ -20,10 +20,9 @@
     "en": "English"
   },
   "footer": {
-    "tagline": "自託管 · Markdown · 開源",
     "rss": "RSS",
     "sitemap": "Sitemap",
-    "copyright": "© {year} {siteName} · MIT License"
+    "copyright": "© {year} {siteName}"
   },
   "home": {
     "eyebrow": "Personal Journal",

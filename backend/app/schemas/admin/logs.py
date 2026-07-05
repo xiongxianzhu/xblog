@@ -29,3 +29,17 @@ class OperationLogAdmin(SQLModel):
     detail: str | None
     ip_address: str | None
     created_at: datetime | None
+
+
+class PaginatedLoginLogs(SQLModel):
+    items: list[LoginLogAdmin]
+    total: int
+    page: int
+    page_size: int
+
+
+class PaginatedOperationLogs(SQLModel):
+    items: list[OperationLogAdmin]
+    total: int
+    page: int
+    page_size: int

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import Request
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -75,11 +76,31 @@ async def record_operation(
     )
 
 
-async def list_login_logs(session: AsyncSession, *, limit: int = 200) -> list[LoginLog]:
-    result = await session.exec(select(LoginLog).order_by(LoginLog.created_at.desc()).limit(limit))
-    return list(result.all())
+async def list_login_logs(
+    session: AsyncSession,
+    *,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[LoginLog], int]:
+    offset = (page - 1) * page_size
+    count_result = await session.exec(select(func.count()).select_from(LoginLog))
+    total = int(count_result.one())
+    result = await session.exec(
+        select(LoginLog).order_by(LoginLog.created_at.desc()).offset(offset).limit(page_size)
+    )
+    return list(result.all()), total
 
 
-async def list_operation_logs(session: AsyncSession, *, limit: int = 200) -> list[OperationLog]:
-    result = await session.exec(select(OperationLog).order_by(OperationLog.created_at.desc()).limit(limit))
-    return list(result.all())
+async def list_operation_logs(
+    session: AsyncSession,
+    *,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[OperationLog], int]:
+    offset = (page - 1) * page_size
+    count_result = await session.exec(select(func.count()).select_from(OperationLog))
+    total = int(count_result.one())
+    result = await session.exec(
+        select(OperationLog).order_by(OperationLog.created_at.desc()).offset(offset).limit(page_size)
+    )
+    return list(result.all()), total

@@ -6,6 +6,11 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AiAssistantPanel } from "@/components/admin/ai-assistant-panel";
+import {
+  adminBorderlessControlClass,
+  adminBorderlessFocusClass,
+} from "@/components/admin/ai-assistant-form-styles";
+import { EditorAiAssistantLayout } from "@/components/admin/editor-ai-assistant-layout";
 import { AiSelectionToolbar } from "@/components/admin/ai-selection-toolbar";
 import { useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
@@ -125,6 +130,8 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
     requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
+  const adminFieldClass = cn(adminBorderlessControlClass, adminBorderlessFocusClass);
+
   return (
     <Card className="border-border/80">
       <CardHeader>
@@ -137,18 +144,18 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
             <div className="grid gap-6 md:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="title">标题</FieldLabel>
-                <Input id="title" value={values.title} onChange={(e) => updateField("title", e.target.value)} required />
+                <Input id="title" value={values.title} onChange={(e) => updateField("title", e.target.value)} required className={adminFieldClass} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="slug">Slug</FieldLabel>
-                <Input id="slug" value={values.slug} onChange={(e) => updateField("slug", e.target.value)} required />
+                <Input id="slug" value={values.slug} onChange={(e) => updateField("slug", e.target.value)} required className={adminFieldClass} />
                 <FieldDescription>URL 路径，如 my-first-post</FieldDescription>
               </Field>
             </div>
 
             <Field>
               <FieldLabel htmlFor="excerpt">摘要</FieldLabel>
-              <Textarea id="excerpt" value={values.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} />
+              <Textarea id="excerpt" value={values.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} className={adminFieldClass} />
             </Field>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -159,7 +166,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
               />
               <Field>
                 <FieldLabel htmlFor="tags">标签 slug</FieldLabel>
-                <Input id="tags" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tech, life" />
+                <Input id="tags" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tech, life" className={adminFieldClass} />
                 <FieldDescription>逗号分隔；不存在时会自动创建标签（slug 如 tech、life）</FieldDescription>
               </Field>
             </div>
@@ -178,38 +185,38 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                   {assistantOpen ? "收起 AI 助手" : "AI 助手"}
                 </Button>
               </div>
-              <div
-                className={cn(
-                  "grid gap-4",
-                  assistantOpen && "lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-stretch",
-                )}
-              >
-                <div className="min-w-0">
-                  <AiSelectionToolbar
-                    textareaRef={textareaRef}
-                    content={values.content_md}
-                    title={values.title}
-                    onApply={applyAiSelection}
-                  />
-                  <MarkdownEditor
-                    id="content_md"
-                    textareaRef={textareaRef}
-                    value={values.content_md}
-                    onChange={(next) => updateField("content_md", next)}
-                    required
-                    placeholder={"# 标题\n\n正文段落…\n\n- 列表项\n\n> 引用"}
-                  />
-                </div>
-                {assistantOpen ? (
+              <EditorAiAssistantLayout
+                assistantOpen={assistantOpen}
+                editor={
+                  <>
+                    <AiSelectionToolbar
+                      textareaRef={textareaRef}
+                      content={values.content_md}
+                      title={values.title}
+                      onApply={applyAiSelection}
+                    />
+                    <MarkdownEditor
+                      id="content_md"
+                      textareaRef={textareaRef}
+                      value={values.content_md}
+                      onChange={(next) => updateField("content_md", next)}
+                      required
+                      placeholder={"# 标题\n\n正文段落…\n\n- 列表项\n\n> 引用"}
+                    />
+                  </>
+                }
+                assistant={
                   <AiAssistantPanel
+                    className="h-full min-h-0"
                     title={values.title}
                     content={values.content_md}
                     onClose={() => setAssistantOpen(false)}
                     onInsertAtCursor={insertAtCursor}
                     onReplaceContent={replaceContent}
+                    onUpdateExcerpt={(text) => updateField("excerpt", text)}
                   />
-                ) : null}
-              </div>
+                }
+              />
             </Field>
           </FieldGroup>
 

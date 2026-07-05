@@ -833,6 +833,15 @@
   --tw-prose-th-borders: hsl(var(--border));
   --tw-prose-td-borders: hsl(var(--border));
   --prose-table-cell-min-width: 6.5rem;
+  --prose-table-cell-padding-block: 0.5714286em;
+}
+
+.prose.prose-sm {
+  --prose-table-cell-padding-block: 0.6666667em;
+}
+
+.prose.prose-lg {
+  --prose-table-cell-padding-block: 0.8888889em;
 }
 
 .prose :not(pre) > code {
@@ -876,6 +885,12 @@
   overflow-wrap: break-word;
 }
 
+.prose .prose-table-wrap > table thead th {
+  vertical-align: middle;
+  padding-top: var(--prose-table-cell-padding-block);
+  padding-bottom: var(--prose-table-cell-padding-block);
+}
+
 .prose .code-block-shell {
   position: relative;
   overflow: hidden;
@@ -909,6 +924,7 @@
 }
 
 .prose .code-lang-label {
+  margin-right: auto;
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 500;
@@ -1232,6 +1248,39 @@ body.mermaid-fullscreen-open {
   color: hsl(var(--foreground));
 }
 
+/* Radix Select 无法关闭 modal，避免后台打开下拉时锁 body 滚动导致布局右移 */
+body:has([data-admin-shell])[data-scroll-locked] {
+  overflow: auto !important;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+  --removed-body-scroll-bar-size: 0 !important;
+}
+
+/* 后台表单控件：primary/25 细边框（覆盖 Input / SelectTrigger 默认 border-input） */
+[data-admin-shell] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]),
+  textarea,
+  button[role="combobox"],
+  .admin-form-control
+) {
+  border-radius: 2px !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: hsl(var(--primary) / 0.25) !important;
+  background: hsl(var(--muted) / 0.3) !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  transition: border-color 150ms ease;
+}
+
+[data-admin-shell] :is(input, textarea, button[role="combobox"], .admin-form-control):focus-visible,
+[data-admin-shell] button[role="combobox"][data-state="open"],
+[data-admin-shell] .admin-form-control[data-state="open"] {
+  outline: none !important;
+  border-color: hsl(var(--primary) / 0.4) !important;
+}
+
 [data-admin-shell] h1,
 [data-admin-shell] h2,
 [data-admin-shell] h3,
@@ -1355,10 +1404,17 @@ body.mermaid-fullscreen-open {
   color: hsl(var(--muted-foreground));
 }
 
-[data-admin-shell] .admin-markdown-editor .prose pre {
+[data-admin-shell] .admin-markdown-editor .prose pre:not(.mermaid) {
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
   border-radius: 2px;
+}
+
+[data-admin-shell] .admin-markdown-editor .prose .mermaid-diagram,
+[data-admin-shell] .admin-markdown-editor .prose .mermaid-diagram pre.mermaid {
+  border: none;
+  background: transparent;
+  border-radius: 0;
 }
 
 [data-admin-shell] .admin-markdown-editor .prose :not(pre) > code {
@@ -1492,8 +1548,19 @@ body.mermaid-fullscreen-open {
   --rdp-today-color: inherit;
 }
 
+[data-admin-shell] .rdp-admin-calendar .rdp-weekdays,
+[data-admin-shell] .rdp-admin-calendar .rdp-week {
+  width: 100%;
+  column-gap: 0.5rem;
+  justify-items: center;
+}
+
 [data-admin-shell] .rdp-admin-calendar .rdp-day_button {
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
   border: none;
+  border-radius: 9999px;
   color: hsl(var(--foreground));
 }
 
@@ -1521,7 +1588,7 @@ body.mermaid-fullscreen-open {
 }
 
 [data-admin-shell] .rdp-admin-calendar .rdp-today.rdp-selected .rdp-day_button {
-  box-shadow: inset 0 0 0 2px hsl(var(--primary-foreground) / 0.35);
+  box-shadow: inset 0 0 0 1px hsl(var(--primary-foreground) / 0.35);
 }
 
 [data-admin-shell] .rdp-admin-calendar .rdp-disabled:not(.rdp-selected) .rdp-day_button {

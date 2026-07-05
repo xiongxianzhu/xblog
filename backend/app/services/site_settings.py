@@ -21,6 +21,7 @@ THEME_PALETTE_KEY = "site.theme.palette"
 SITE_NAME_KEY = "site.brand.name"
 SITE_TAGLINE_KEY = "site.brand.tagline"
 SITE_LOGO_URL_KEY = "site.brand.logo_url"
+SITE_ICP_NUMBER_KEY = "site.brand.icp_number"
 
 DEFAULT_MODE: SiteThemeMode = "light"
 DEFAULT_PALETTE: SiteThemePalette = "editorial"
@@ -66,7 +67,16 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
     site_tagline = raw_tagline.strip() if raw_tagline is not None else DEFAULT_SITE_TAGLINE
     raw_logo = await _get_value(session, SITE_LOGO_URL_KEY)
     site_logo_url = raw_logo.strip() if raw_logo and raw_logo.strip() else None
-    return SiteThemePublic(mode=mode, palette=palette, site_name=site_name, site_tagline=site_tagline, site_logo_url=site_logo_url)
+    raw_icp = await _get_value(session, SITE_ICP_NUMBER_KEY)
+    site_icp_number = raw_icp.strip() if raw_icp and raw_icp.strip() else None
+    return SiteThemePublic(
+        mode=mode,
+        palette=palette,
+        site_name=site_name,
+        site_tagline=site_tagline,
+        site_logo_url=site_logo_url,
+        site_icp_number=site_icp_number,
+    )
 
 
 async def update_site_theme(session: AsyncSession, payload: SiteThemeUpdate) -> SiteThemePublic:
@@ -84,5 +94,8 @@ async def update_site_theme(session: AsyncSession, payload: SiteThemeUpdate) -> 
         if current.site_logo_url and current.site_logo_url != logo and is_managed_site_logo_url(current.site_logo_url):
             delete_site_logo_file(current.site_logo_url)
         await _set_value(session, SITE_LOGO_URL_KEY, logo)
+    if payload.site_icp_number is not None:
+        icp = payload.site_icp_number.strip()
+        await _set_value(session, SITE_ICP_NUMBER_KEY, icp)
     await session.commit()
     return await get_site_theme(session)
