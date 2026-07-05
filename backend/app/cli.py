@@ -12,6 +12,7 @@ from app.core.security import hash_password
 from app.db.session import async_session_factory
 from app.models.page import Page
 from app.models.user import User
+from app.services.upload_cleanup import cleanup_orphan_uploads
 
 
 async def create_admin(username: str, password: str | None, phone: str | None = None) -> None:
@@ -90,6 +91,22 @@ def main() -> None:
 
     subparsers.add_parser("seed-pages", help="Create default about/projects pages")
 
+    cleanup_parser = subparsers.add_parser(
+        "cleanup-uploads",
+        help="Delete unreferenced managed uploads older than max-age",
+    )
+    cleanup_parser.add_argument(
+        "--max-age",
+        type=int,
+        default=3600,
+        help="Keep unreferenced files younger than this many seconds (default: 3600)",
+    )
+    cleanup_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report files that would be deleted without removing them",
+    )
+
     args = parser.parse_args()
     if args.command == "create-admin":
         asyncio.run(create_admin(args.username, args.password, args.phone))
@@ -97,6 +114,29 @@ def main() -> None:
         asyncio.run(reset_password(args.username, args.password))
     elif args.command == "seed-pages":
         asyncio.run(seed_pages())
+    elif args.command == "cleanup-uploads":
+        try:
+            report = asyncio.run(
+                cleanup_orphan_uploads(max_age_seconds=args.max_age, dry_run=args.dry_run)
+            )
+        except Exception as exc:
+            raise SystemExit(str(exc)) from exc
+
+        print(
+            "Scanned {scanned} files, deleted {deleted} orphans, "
+            "kept {kept_referenced} referenced, kept {kept_recent} recent (< {max_age}s).".format(
+                scanned=report.scanned,
+                deleted=report.deleted,
+                kept_referenced=report.kept_referenced,
+                kept_recent=report.kept_recent,
+                max_age=args.max_age,
+            )
+        )
+        if args.dry_run:
+            for path in report.deleted_paths:
+                print(f"would delete: {path}")
+        for warning in report.warnings:
+            print(f"warning: {warning}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| 状态 | 已批准 · 有计划（待实施） |
+| 状态 | 已实施（2026-07-05） |
 | 实现计划 | [2026-07-05-upload-orphan-cleanup-plan.md](../plans/2026-07-05-upload-orphan-cleanup-plan.md) |
 | 日期 | 2026-07-05 |
 | 关联 | 文章封面 `uploads/covers/`、友链 LOGO `uploads/link-logos/` |

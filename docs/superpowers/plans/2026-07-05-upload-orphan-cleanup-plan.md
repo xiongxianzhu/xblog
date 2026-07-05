@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| 状态 | 已批准（2026-07-05）· 待实施 |
+| 状态 | 已实施（2026-07-05） |
 | 设计 spec | [2026-07-05-upload-orphan-cleanup-design.md](../specs/2026-07-05-upload-orphan-cleanup-design.md) |
 
 ---

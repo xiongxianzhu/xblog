@@ -187,8 +187,24 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 | 🗄 迁移 | `make revision MSG="描述"` → `make migrate` |
 | ✅ 质量 | `make lint` · `make typecheck` · `make test` · `make check` |
 | 📦 生产依赖 | `make prod-install` |
+| 🧹 上传清理 | `uv run python -m app.cli cleanup-uploads [--max-age 3600] [--dry-run]` |
 
 <p align="center"><sub>要求 Python <b>3.14+</b>（见 <code>.python-version</code>）</sub></p>
+
+### 维护：上传孤儿文件清理
+
+先上传、后保存模式下，用户关浏览器可能留下未引用文件。前端会尽力即时 DELETE；`cleanup-uploads` 为服务端兜底，仅扫描 `uploads/covers/` 与 `uploads/link-logos/`，对比 `posts.cover_url` / `friend_links.logo_url`，删除**未引用且超过 `--max-age`（默认 3600 秒）** 的文件。
+
+```bash
+uv run python -m app.cli cleanup-uploads --dry-run   # 预览
+uv run python -m app.cli cleanup-uploads               # 实际删除
+```
+
+生产建议 cron 每小时执行一次：
+
+```cron
+0 * * * * cd /path/to/xblog/backend && uv run python -m app.cli cleanup-uploads >> /var/log/xblog-cleanup.log 2>&1
+```
 
 ---
 
@@ -205,7 +221,7 @@ app/
 ├── services/            # posts · revalidate · site_settings · uploads · login_guard · ai/ …
 ├── data/builtin_skills/ # 内置 Agent Skills
 alembic/                 # 001 初始 … 012 audit_logs
-tests/                   # pytest（含 test_post_cover · test_post_tags · test_login_guard）
+tests/                   # pytest（含 test_post_cover · test_upload_cleanup · test_login_guard）
 uploads/                 # Skill 包与 covers/（gitignore）
 Makefile
 ```
