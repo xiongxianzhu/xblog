@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { getPublicSiteTheme } from "@/lib/site-theme";
+
 import "./globals.css";
 
 const notoSans = Noto_Sans_SC({
@@ -22,18 +24,23 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("meta");
+  const [t, locale, siteTheme] = await Promise.all([getTranslations("meta"), getLocale(), getPublicSiteTheme()]);
+
+  const siteName = siteTheme.site_name;
+  const description = siteTheme.site_tagline || t("siteDescription");
+  const openGraphLocale = locale === "zh-TW" ? "zh_TW" : locale === "en" ? "en_US" : "zh_CN";
 
   return {
     title: {
-      default: t("siteName"),
-      template: `%s · ${t("siteName")}`,
+      default: siteName,
+      template: `%s · ${siteName}`,
     },
-    description: t("siteDescription"),
+    description,
     openGraph: {
       type: "website",
-      locale: "zh_CN",
-      siteName: t("siteName"),
+      locale: openGraphLocale,
+      siteName,
+      description,
     },
   };
 }
