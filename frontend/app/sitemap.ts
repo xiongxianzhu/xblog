@@ -4,7 +4,7 @@ import { listPosts } from "@/lib/api";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const posts = await listPosts(1, 200);
+  const { items: posts } = await listPosts(1, 200);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, lastModified: new Date() },

@@ -61,7 +61,7 @@ export function SiteHeader({ siteName, siteTagline, siteLogoUrl }: SiteHeaderPro
 
   return (
     <header className="site-glass-bar sticky top-0 z-40 border-b">
-      <div className="mx-auto flex h-16 max-w-5xl items-center px-4 sm:px-6">
+      <div className="article-layout mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -104,43 +104,38 @@ export function SiteHeader({ siteName, siteTagline, siteLogoUrl }: SiteHeaderPro
             </SheetContent>
           </Sheet>
 
-          <SiteBrand
-            siteName={siteName}
-            siteTagline={siteTagline}
-            siteLogoUrl={siteLogoUrl}
-            className="min-w-0 flex-1 lg:flex-none"
-          />
+          <SiteBrand siteName={siteName} siteTagline={siteTagline} siteLogoUrl={siteLogoUrl} className="min-w-0" />
         </div>
 
-        <nav className="hidden shrink-0 items-center gap-0.5 text-sm lg:ml-24 lg:flex xl:ml-32">
-          {navItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                label={t(item.labelKey)}
-                active={active}
-                className="px-3 py-1.5"
-              />
-            );
-          })}
-          <Link
-            href="/admin"
-            className="ml-2 rounded-sm border border-border/70 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            {t("admin")}
-          </Link>
-        </nav>
+        <div className="hidden items-center gap-2 lg:flex">
+          <nav className="flex items-center gap-0.5 text-sm" aria-label={t("menu")}>
+            {navItems.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  label={t(item.labelKey)}
+                  active={active}
+                  className="px-3 py-1.5"
+                />
+              );
+            })}
+            <Link
+              href="/admin"
+              className="ml-1 rounded-sm border border-border/70 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            >
+              {t("admin")}
+            </Link>
+          </nav>
 
-        <div className="hidden min-w-6 flex-1 lg:block" aria-hidden />
-
-        <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <SiteSearchForm compact />
-          <LocaleSwitcher compact />
+          <div className="ml-2 flex items-center gap-2 border-l border-border/50 pl-3">
+            <SiteSearchForm compact />
+            <LocaleSwitcher compact />
+          </div>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 lg:hidden">
+        <div className="flex shrink-0 items-center gap-1 lg:hidden">
           <Button asChild variant="ghost" size="sm" className="size-9 px-0" aria-label={t("search")}>
             <Link href="/search">
               <SearchIcon className="size-4" />

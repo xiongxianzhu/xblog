@@ -52,7 +52,13 @@
     "emptyDescription": "发布第一篇文章后，它们会出现在这里。",
     "postNotFound": "文章未找到",
     "comments": "评论",
-    "toc": "目录"
+    "toc": "目录",
+    "paginationPrev": "上一页",
+    "paginationNext": "下一页",
+    "paginationPage": "第 {page} 页，共 {totalPages} 页",
+    "postNavPrevious": "上一篇",
+    "postNavNext": "下一篇",
+    "postNavAria": "文章导航"
   },
   "about": {
     "fallbackTitle": "关于",
@@ -99,7 +105,8 @@
     "mermaidPanUp": "上移",
     "mermaidPanDown": "下移",
     "mermaidPanLeft": "左移",
-    "mermaidPanRight": "右移"
+    "mermaidPanRight": "右移",
+    "backToTop": "回到顶部"
   },
   "admin": {
     "nav": {

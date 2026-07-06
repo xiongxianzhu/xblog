@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, or_
 from sqlmodel import select
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.post import Post
 from app.schemas.common import MessageResponse
-from app.schemas.post import PostAdmin, PostCoverUploadResponse, PostCreate, PostUpdate
+from app.schemas.post import PaginatedPostAdmins, PostAdmin, PostCoverUploadResponse, PostCreate, PostStats, PostUpdate
 from app.services.posts import (
     apply_markdown,
+    apply_pin_state,
     apply_publish_state,
     normalize_cover_url,
     sync_tags,
@@ -23,14 +25,53 @@ from app.services.uploads import delete_post_cover_file, is_managed_post_cover_u
 router = APIRouter()
 
 
-@router.get("/posts", response_model=list[PostAdmin])
+def _apply_post_search(stmt, q: str | None):
+    if not q or not q.strip():
+        return stmt
+    term = f"%{q.strip()}%"
+    return stmt.where(
+        or_(
+            Post.title.ilike(term),
+            Post.slug.ilike(term),
+            Post.excerpt.ilike(term),
+        )
+    )
+
+
+@router.get("/posts", response_model=PaginatedPostAdmins)
 async def list_posts(
     session: SessionDep,
     _: CurrentUserDep,
-) -> list[PostAdmin]:
-    result = await session.exec(select(Post).order_by(Post.updated_at.desc()))
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    q: str | None = Query(default=None, max_length=200),
+) -> PaginatedPostAdmins:
+    count_stmt = _apply_post_search(select(func.count()).select_from(Post), q)
+    total = int((await session.exec(count_stmt)).one())
+    offset = (page - 1) * page_size
+    stmt = _apply_post_search(select(Post), q).order_by(
+        Post.is_pinned.desc(),
+        Post.updated_at.desc(),
+        Post.id.desc(),
+    ).offset(offset).limit(page_size)
+    result = await session.exec(stmt)
     posts = list(result.all())
-    return [await to_post_admin(session, post) for post in posts]
+    return PaginatedPostAdmins(
+        items=[await to_post_admin(session, post) for post in posts],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/posts/stats", response_model=PostStats)
+async def post_stats(session: SessionDep, _: CurrentUserDep) -> PostStats:
+    total = int((await session.exec(select(func.count()).select_from(Post))).one())
+    published = int(
+        (await session.exec(select(func.count()).select_from(Post).where(Post.status == "published"))).one()
+    )
+    draft = int((await session.exec(select(func.count()).select_from(Post).where(Post.status == "draft"))).one())
+    return PostStats(total=total, published=published, draft=draft)
 
 
 @router.post("/posts", response_model=PostAdmin, status_code=status.HTTP_201_CREATED)
@@ -51,6 +92,8 @@ async def create_post(
     )
     apply_markdown(post, payload.content_md)
     apply_publish_state(post, payload.status)
+    if payload.is_pinned:
+        apply_pin_state(post, True)
     session.add(post)
     await session.flush()
     await sync_tags(session, post.id or 0, payload.tag_slugs)
@@ -97,6 +140,8 @@ async def update_post(
     if payload.status is not None:
         validate_status(payload.status)
         apply_publish_state(post, payload.status)
+    if payload.is_pinned is not None:
+        apply_pin_state(post, payload.is_pinned)
     if payload.tag_slugs is not None:
         await sync_tags(session, post.id or 0, payload.tag_slugs)
     post.touch_updated()

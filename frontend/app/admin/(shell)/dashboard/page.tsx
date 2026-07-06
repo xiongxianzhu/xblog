@@ -9,21 +9,20 @@ import { AdminPanel } from "@/components/admin/admin-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listAdminPosts, listPageViewStats } from "@/lib/api";
+import { getAdminPostStats, listAdminPosts, listPageViewStats } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 export default function AdminDashboardPage() {
-  const { data: posts, isLoading: postsLoading } = useSWR("admin-posts", listAdminPosts);
+  const { data: postStats, isLoading: statsLoading } = useSWR("admin-post-stats", getAdminPostStats);
+  const { data: recentData, isLoading: recentLoading } = useSWR(
+    "admin-dashboard-recent-posts",
+    () => listAdminPosts(1, 5),
+  );
   const { data: pageviews, isLoading: viewsLoading } = useSWR("admin-pageviews", listPageViewStats);
 
-  const publishedCount = (posts ?? []).filter((post) => post.status === "published").length;
-  const draftCount = (posts ?? []).filter((post) => post.status === "draft").length;
+  const recentPosts = recentData?.items ?? [];
   const totalViews = (pageviews ?? []).reduce((sum, row) => sum + row.count, 0);
-  const recentPosts = [...(posts ?? [])]
-    .sort((a, b) => new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime())
-    .slice(0, 5);
-
-  const loading = postsLoading || viewsLoading;
+  const loading = statsLoading || recentLoading || viewsLoading;
 
   return (
     <div>
@@ -55,9 +54,9 @@ export default function AdminDashboardPage() {
                 <FileTextIcon className="size-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <p className="font-mono text-3xl font-semibold">{(posts ?? []).length}</p>
+                <p className="font-mono text-3xl font-semibold">{postStats?.total ?? 0}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  已发布 {publishedCount} · 草稿 {draftCount}
+                  已发布 {postStats?.published ?? 0} · 草稿 {postStats?.draft ?? 0}
                 </p>
               </CardContent>
             </Card>

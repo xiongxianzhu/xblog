@@ -38,6 +38,8 @@ class Post(TimestampMixin, SQLModel, table=True):
     cover_url: str | None = Field(default=None, max_length=500)
     status: str = Field(default="draft", max_length=20, index=True)
     published_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    is_pinned: bool = Field(default=False, index=True)
+    pinned_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
     def touch_updated(self) -> None:
         self.updated_at = now()

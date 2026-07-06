@@ -8,8 +8,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.site_setting import SiteSetting
 from app.services.uploads import delete_site_logo_file, is_managed_site_logo_url
 from app.schemas.site_theme import (
+    DEFAULT_POSTS_PER_PAGE,
     DEFAULT_SITE_NAME,
     DEFAULT_SITE_TAGLINE,
+    MAX_POSTS_PER_PAGE,
+    MIN_POSTS_PER_PAGE,
     SiteThemePalette,
     SiteThemePublic,
     SiteThemeMode,
@@ -22,6 +25,7 @@ SITE_NAME_KEY = "site.brand.name"
 SITE_TAGLINE_KEY = "site.brand.tagline"
 SITE_LOGO_URL_KEY = "site.brand.logo_url"
 SITE_ICP_NUMBER_KEY = "site.brand.icp_number"
+POSTS_PER_PAGE_KEY = "site.content.posts_per_page"
 
 DEFAULT_MODE: SiteThemeMode = "light"
 DEFAULT_PALETTE: SiteThemePalette = "editorial"
@@ -58,6 +62,20 @@ def _normalize_palette(raw: str | None) -> SiteThemePalette:
     return DEFAULT_PALETTE
 
 
+def _normalize_posts_per_page(raw: str | None) -> int:
+    if raw is None:
+        return DEFAULT_POSTS_PER_PAGE
+    try:
+        value = int(raw.strip())
+    except ValueError:
+        return DEFAULT_POSTS_PER_PAGE
+    return min(MAX_POSTS_PER_PAGE, max(MIN_POSTS_PER_PAGE, value))
+
+
+async def get_posts_per_page(session: AsyncSession) -> int:
+    return _normalize_posts_per_page(await _get_value(session, POSTS_PER_PAGE_KEY))
+
+
 async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
     mode = _normalize_mode(await _get_value(session, THEME_MODE_KEY))
     palette = _normalize_palette(await _get_value(session, THEME_PALETTE_KEY))
@@ -69,6 +87,7 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
     site_logo_url = raw_logo.strip() if raw_logo and raw_logo.strip() else None
     raw_icp = await _get_value(session, SITE_ICP_NUMBER_KEY)
     site_icp_number = raw_icp.strip() if raw_icp and raw_icp.strip() else None
+    posts_per_page = _normalize_posts_per_page(await _get_value(session, POSTS_PER_PAGE_KEY))
     return SiteThemePublic(
         mode=mode,
         palette=palette,
@@ -76,6 +95,7 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
         site_tagline=site_tagline,
         site_logo_url=site_logo_url,
         site_icp_number=site_icp_number,
+        posts_per_page=posts_per_page,
     )
 
 
@@ -97,5 +117,7 @@ async def update_site_theme(session: AsyncSession, payload: SiteThemeUpdate) -> 
     if payload.site_icp_number is not None:
         icp = payload.site_icp_number.strip()
         await _set_value(session, SITE_ICP_NUMBER_KEY, icp)
+    if payload.posts_per_page is not None:
+        await _set_value(session, POSTS_PER_PAGE_KEY, str(payload.posts_per_page))
     await session.commit()
     return await get_site_theme(session)

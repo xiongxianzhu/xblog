@@ -8,6 +8,7 @@ import { ArticleCover } from "@/components/article-cover";
 import { ArticleToc } from "@/components/article-toc";
 import { GiscusComments } from "@/components/giscus";
 import { PageViewTracker } from "@/components/page-view-tracker";
+import { PostNavigation } from "@/components/post-navigation";
 import { ProseHtml } from "@/components/prose-html";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
@@ -99,6 +100,14 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="site-glass-panel article-body-panel px-5 py-8 sm:px-8 sm:py-10">
             <ProseHtml html={contentHtml} className="article-prose" colorMode={siteTheme.mode} />
           </div>
+
+          <PostNavigation
+            previousPost={post.previous_post}
+            nextPost={post.next_post}
+            previousLabel={t("postNavPrevious")}
+            nextLabel={t("postNavNext")}
+            ariaLabel={t("postNavAria")}
+          />
 
           <section className="site-glass-panel flex flex-col gap-4 px-5 py-8 sm:px-8">
             <h2 className="font-serif text-2xl font-semibold">{t("comments")}</h2>

@@ -48,6 +48,14 @@ class UserActiveUpdate(SQLModel):
     is_active: bool
 
 
+class PaginatedUsers(SQLModel):
+    items: list[UserAdmin]
+    total: int
+    page: int
+    page_size: int
+    active_count: int
+
+
 class AvatarUploadResponse(SQLModel):
     avatar_url: str
 

@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
 import { adminSelectContentClass, useAdminShellElement } from "@/lib/admin-shell-portal";
+import { siteSelectContentClass, useSiteShellElement } from "@/lib/site-shell-portal";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -40,8 +41,10 @@ const SelectContent = React.forwardRef<
   SelectContentProps
 >(({ className, container, children, position = "popper", ...props }, ref) => {
   const adminShell = useAdminShellElement();
-  const portalContainer = container ?? adminShell ?? undefined;
+  const siteShell = useSiteShellElement();
+  const portalContainer = container ?? adminShell ?? siteShell ?? undefined;
   const adminThemed = Boolean(adminShell && container === undefined);
+  const siteThemed = Boolean(siteShell && !adminShell && container === undefined);
 
   return (
     <SelectPrimitive.Portal container={portalContainer}>
@@ -52,6 +55,7 @@ const SelectContent = React.forwardRef<
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           adminThemed && adminSelectContentClass,
+          siteThemed && siteSelectContentClass,
           className,
         )}
       position={position}

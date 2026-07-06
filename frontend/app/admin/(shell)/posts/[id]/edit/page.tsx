@@ -58,6 +58,7 @@ export default function EditPostPage() {
           cover_url: post.cover_url ?? "",
           status: post.status,
           tags: post.tags.map((tag) => tag.name),
+          is_pinned: post.is_pinned,
         }}
         onSubmit={handleSubmit}
         onSuccess={() => void handleSuccess()}

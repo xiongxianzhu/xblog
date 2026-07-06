@@ -9,6 +9,16 @@ export function resolvePublicAssetUrl(url: string | null | undefined): string | 
   return trimmed;
 }
 
+/** 站点 LOGO 用作 favicon 时的路由地址（由 /site-icon 动态输出）。 */
+export function getSiteIconDescriptor(url: string | null | undefined) {
+  const resolved = resolvePublicAssetUrl(url);
+  if (!resolved) return null;
+
+  return {
+    url: `/site-icon?v=${encodeURIComponent(resolved)}`,
+  };
+}
+
 /** 后台预览：相对路径走当前站点 origin，便于本地上传封面即时预览。 */
 export function resolveAdminAssetPreviewUrl(url: string | null | undefined): string | null {
   const resolved = resolvePublicAssetUrl(url);

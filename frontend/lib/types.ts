@@ -11,11 +11,27 @@ export type PostSummary = {
   excerpt: string | null;
   cover_url: string | null;
   published_at: string | null;
+  is_pinned: boolean;
   tags: TagPublic[];
+};
+
+export type PostNeighbor = {
+  title: string;
+  slug: string;
+  published_at: string | null;
+};
+
+export type PaginatedPostList = {
+  items: PostSummary[];
+  total: number;
+  page: number;
+  page_size: number;
 };
 
 export type PostPublic = PostSummary & {
   content_html: string;
+  previous_post: PostNeighbor | null;
+  next_post: PostNeighbor | null;
 };
 
 export type PostAdmin = PostSummary & {

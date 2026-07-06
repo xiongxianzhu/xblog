@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, PinIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { discardManagedPostCover } from "@/lib/pending-upload-cleanup";
@@ -33,6 +34,7 @@ type PostFormValues = {
   cover_url: string;
   status: "draft" | "published";
   tags: string[];
+  is_pinned: boolean;
 };
 
 type Props = {
@@ -49,6 +51,7 @@ const defaultValues: PostFormValues = {
   cover_url: "",
   status: "draft",
   tags: [],
+  is_pinned: false,
 };
 
 export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
@@ -92,6 +95,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
         excerpt: values.excerpt || null,
         cover_url: values.cover_url.trim() || null,
         tag_slugs: tags,
+        is_pinned: values.is_pinned,
       });
       savedCoverUrlRef.current = values.cover_url.trim();
       setSavedCoverUrl(values.cover_url.trim());
@@ -190,6 +194,22 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                 </FieldDescription>
               </Field>
             </div>
+
+            <Field className="flex flex-row items-center justify-between gap-4 rounded-md border border-border/60 px-4 py-3">
+              <div className="space-y-1">
+                <FieldLabel htmlFor="is-pinned" className="flex items-center gap-2">
+                  <PinIcon className="size-4 text-primary" />
+                  置顶文章
+                </FieldLabel>
+                <FieldDescription>置顶后将在公开站博客列表与标签页优先展示。</FieldDescription>
+              </div>
+              <Switch
+                id="is-pinned"
+                checked={values.is_pinned}
+                disabled={submitting}
+                onCheckedChange={(checked) => updateField("is_pinned", checked)}
+              />
+            </Field>
 
             <Separator />
 

@@ -3,6 +3,7 @@ import { Geist_Mono, Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { getPublicSiteTheme } from "@/lib/site-theme";
+import { getSiteIconDescriptor } from "@/lib/public-asset-url";
 
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteName = siteTheme.site_name;
   const description = siteTheme.site_tagline || t("siteDescription");
   const openGraphLocale = locale === "zh-TW" ? "zh_TW" : locale === "en" ? "en_US" : "zh_CN";
+  const siteIcon = getSiteIconDescriptor(siteTheme.site_logo_url);
 
   return {
     title: {
@@ -42,6 +44,15 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName,
       description,
     },
+    ...(siteIcon
+      ? {
+          icons: {
+            icon: [siteIcon],
+            shortcut: [siteIcon],
+            apple: [siteIcon],
+          },
+        }
+      : {}),
   };
 }
 

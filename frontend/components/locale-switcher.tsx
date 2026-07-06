@@ -14,7 +14,8 @@ import {
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import { locales, localeLabels, type AppLocale } from "@/i18n/routing";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { setAppLocale } from "@/lib/locale-actions";
+import { setAdminLocale, setSiteLocale } from "@/lib/locale-actions";
+import { siteSelectItemClass } from "@/lib/site-shell-portal";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -102,14 +103,18 @@ export function LocaleSwitcher({ className, compact }: LocaleSwitcherProps) {
 
     if (isAdmin) {
       startTransition(() => {
-        void setAppLocale(next).then(() => {
+        void setAdminLocale(next).then(() => {
           nextRouter.refresh();
         });
       });
       return;
     }
 
-    router.replace(pathname, { locale: next });
+    startTransition(() => {
+      void setSiteLocale(next).then(() => {
+        router.replace(pathname, { locale: next });
+      });
+    });
   }
 
   if (isAdmin) {
@@ -130,9 +135,10 @@ export function LocaleSwitcher({ className, compact }: LocaleSwitcherProps) {
       <SelectTrigger
         aria-label={t("label")}
         className={cn(
+          "site-locale-trigger rounded-sm border-border/70 bg-background/60 backdrop-blur-sm",
           compact
-            ? "h-8 w-auto min-w-[7.5rem] shrink-0 border-border/70 px-2.5 text-xs"
-            : "h-9 w-auto min-w-[8rem] border-border/70 text-sm",
+            ? "h-8 w-auto min-w-[7.5rem] shrink-0 px-2.5 text-xs"
+            : "h-9 w-auto min-w-[8rem] text-sm",
           className,
         )}
       >
@@ -140,7 +146,7 @@ export function LocaleSwitcher({ className, compact }: LocaleSwitcherProps) {
       </SelectTrigger>
       <SelectContent align="end">
         {locales.map((item) => (
-          <SelectItem key={item} value={item}>
+          <SelectItem key={item} value={item} className={siteSelectItemClass}>
             {localeLabels[item]}
           </SelectItem>
         ))}

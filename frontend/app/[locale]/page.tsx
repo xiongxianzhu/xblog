@@ -18,7 +18,7 @@ export default async function HomePage({ params }: Props) {
   setRequestLocale(locale);
   const t = await getTranslations("home");
 
-  const posts = await listPosts(1, 5);
+  const { items: posts } = await listPosts(1, 5);
 
   return (
     <div className="page-enter">

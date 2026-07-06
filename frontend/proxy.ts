@@ -1,7 +1,7 @@
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { LOCALE_COOKIE_NAME, LOCALE_COOKIE_MAX_AGE, locales, routing } from "./i18n/routing";
+import { ADMIN_LOCALE_COOKIE_NAME, LOCALE_COOKIE_MAX_AGE, locales, routing } from "./i18n/routing";
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -11,8 +11,17 @@ function isAdminPathname(pathname: string): boolean {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
+function isSiteIconPath(pathname: string): boolean {
+  return pathname === "/site-icon" || pathname === "/favicon.ico";
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (isSiteIconPath(pathname)) {
+    return NextResponse.next();
+  }
+
   const adminMatch = pathname.match(localeAdminPath);
 
   if (adminMatch) {
@@ -20,7 +29,7 @@ export function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = adminPath;
     const response = NextResponse.redirect(url);
-    response.cookies.set(LOCALE_COOKIE_NAME, locale, {
+    response.cookies.set(ADMIN_LOCALE_COOKIE_NAME, locale, {
       path: "/",
       maxAge: LOCALE_COOKIE_MAX_AGE,
       sameSite: "lax",
@@ -42,5 +51,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/admin", "/admin/:path*", "/(zh-CN|zh-TW|en)/:path*", "/((?!api|_next|_vercel|.*\\..*).*)"],
+  matcher: [
+    "/",
+    "/admin",
+    "/admin/:path*",
+    "/(zh-CN|zh-TW|en)/:path*",
+    "/((?!api|_next|_vercel|site-icon|favicon\\.ico|.*\\..*).*)",
+  ],
 };

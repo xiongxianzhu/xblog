@@ -13,6 +13,8 @@ type SiteLogoEditorProps = {
   disabled?: boolean;
 };
 
+const MAX_SITE_LOGO_BYTES = 5 * 1024 * 1024;
+
 export function SiteLogoEditor({ siteLogoUrl, onChange, disabled }: SiteLogoEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -28,8 +30,8 @@ export function SiteLogoEditor({ siteLogoUrl, onChange, disabled }: SiteLogoEdit
       setError("请选择图片文件");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setError("图片不能超过 2MB");
+    if (file.size > MAX_SITE_LOGO_BYTES) {
+      setError("图片不能超过 5MB");
       return;
     }
 
@@ -104,7 +106,7 @@ export function SiteLogoEditor({ siteLogoUrl, onChange, disabled }: SiteLogoEdit
             </Button>
           ) : null}
         </div>
-        <p className="text-xs text-muted-foreground">支持 JPG、PNG、WebP、GIF，最大 2MB。上传后会覆盖下方 URL 字段。</p>
+        <p className="text-xs text-muted-foreground">支持 JPG、PNG、WebP、GIF，最大 5MB。上传后会覆盖下方 URL 字段。</p>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <input
           ref={inputRef}

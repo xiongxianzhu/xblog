@@ -10,9 +10,16 @@ import { SiteThemeSettingsPanel } from "@/components/theme/theme-settings-panel"
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { getAdminSiteTheme, updateAdminSiteTheme } from "@/lib/api";
-import type { SitePublicTheme } from "@/lib/themes";
+import { PUBLIC_POSTS_PER_PAGE_OPTIONS, type SitePublicTheme } from "@/lib/themes";
 import type { SitePaletteId } from "@/lib/themes";
 
 type PublicSiteColorMode = SitePublicTheme["mode"];
@@ -86,6 +93,11 @@ export function PublicSiteThemeSettings() {
   function handlePaletteChange(palette: SitePaletteId) {
     if (!data || saving) return;
     void persist({ ...data, palette });
+  }
+
+  function handlePostsPerPageChange(postsPerPage: number) {
+    if (!data || saving) return;
+    void persist({ ...data, posts_per_page: postsPerPage });
   }
 
   if (isLoading) {
@@ -176,6 +188,37 @@ export function PublicSiteThemeSettings() {
             />
           </div>
         </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">博客列表</h3>
+          <p className="mt-1 text-sm text-muted-foreground">控制公开站博客页与标签归档页每页显示的文章数量。</p>
+        </div>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="posts-per-page">每页文章数</FieldLabel>
+            <Select
+              value={String(data.posts_per_page)}
+              onValueChange={(value) => handlePostsPerPageChange(Number(value))}
+              disabled={saving}
+            >
+              <SelectTrigger id="posts-per-page" className="w-[8rem]" aria-label="每页文章数">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PUBLIC_POSTS_PER_PAGE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} 篇
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>切换后立即保存，公开站分页将按此条数展示。</FieldDescription>
+          </Field>
+        </FieldGroup>
       </div>
 
       <Separator />

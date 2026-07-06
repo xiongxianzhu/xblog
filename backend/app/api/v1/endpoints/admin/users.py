@@ -2,22 +2,57 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Query, Request, status
+from sqlalchemy import func, or_
 from sqlmodel import select
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.user import User
-from app.schemas.auth import UserActiveUpdate, UserAdmin
+from app.schemas.auth import PaginatedUsers, UserActiveUpdate, UserAdmin
 from app.services import audit_logs
 from app.services import users as users_service
 
 router = APIRouter()
 
 
-@router.get("/users", response_model=list[UserAdmin])
-async def list_users(session: SessionDep, _: CurrentUserDep) -> list[UserAdmin]:
-    result = await session.exec(select(User).order_by(User.created_at.desc()))
-    return [users_service.user_to_admin(user) for user in result.all() if user.id is not None]
+def _apply_user_search(stmt, q: str | None):
+    if not q or not q.strip():
+        return stmt
+    term = f"%{q.strip()}%"
+    return stmt.where(
+        or_(
+            User.username.ilike(term),
+            User.nickname.ilike(term),
+            User.phone.ilike(term),
+            User.email.ilike(term),
+        )
+    )
+
+
+@router.get("/users", response_model=PaginatedUsers)
+async def list_users(
+    session: SessionDep,
+    _: CurrentUserDep,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    q: str | None = Query(default=None, max_length=200),
+) -> PaginatedUsers:
+    count_stmt = _apply_user_search(select(func.count()).select_from(User), q)
+    total = int((await session.exec(count_stmt)).one())
+    active_count = int(
+        (await session.exec(select(func.count()).select_from(User).where(User.is_active.is_(True)))).one()
+    )
+    offset = (page - 1) * page_size
+    stmt = _apply_user_search(select(User), q).order_by(User.created_at.desc()).offset(offset).limit(page_size)
+    result = await session.exec(stmt)
+    users = [users_service.user_to_admin(user) for user in result.all() if user.id is not None]
+    return PaginatedUsers(
+        items=users,
+        total=total,
+        page=page,
+        page_size=page_size,
+        active_count=active_count,
+    )
 
 
 @router.patch("/users/{user_id}", response_model=UserAdmin)

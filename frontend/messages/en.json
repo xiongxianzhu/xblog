@@ -52,7 +52,13 @@
     "emptyDescription": "Published posts will appear here.",
     "postNotFound": "Post not found",
     "comments": "Comments",
-    "toc": "On this page"
+    "toc": "On this page",
+    "paginationPrev": "Previous",
+    "paginationNext": "Next",
+    "paginationPage": "Page {page} of {totalPages}",
+    "postNavPrevious": "Previous post",
+    "postNavNext": "Next post",
+    "postNavAria": "Post navigation"
   },
   "about": {
     "fallbackTitle": "About",
@@ -99,7 +105,8 @@
     "mermaidPanUp": "Pan up",
     "mermaidPanDown": "Pan down",
     "mermaidPanLeft": "Pan left",
-    "mermaidPanRight": "Pan right"
+    "mermaidPanRight": "Pan right",
+    "backToTop": "Back to top"
   },
   "admin": {
     "nav": {

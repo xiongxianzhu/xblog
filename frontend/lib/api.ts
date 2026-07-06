@@ -1,6 +1,7 @@
 import type {
   FriendLinkPublic,
   PagePublic,
+  PaginatedPostList,
   PostPublic,
   PostSummary,
 } from "@/lib/types";
@@ -204,8 +205,42 @@ export async function fetchAuth<T>(
   return parseResponse<T>(response);
 }
 
-export function listPosts(page = 1, pageSize = 10) {
-  return fetchPublicSafe<PostSummary[]>("/public/posts", [], { page, page_size: pageSize });
+function normalizePostList(
+  data: PaginatedPostList | PostSummary[],
+  page: number,
+  pageSize?: number,
+): PaginatedPostList {
+  if (Array.isArray(data)) {
+    const effectivePageSize = pageSize ?? 10;
+    const hasMore = data.length === effectivePageSize;
+    return {
+      items: data,
+      total: hasMore ? page * effectivePageSize + 1 : (page - 1) * effectivePageSize + data.length,
+      page,
+      page_size: effectivePageSize,
+    };
+  }
+
+  return {
+    items: data.items ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? page,
+    page_size: data.page_size ?? pageSize ?? 10,
+  };
+}
+
+export async function listPosts(page = 1, pageSize?: number): Promise<PaginatedPostList> {
+  const params: Record<string, string | number | undefined> = { page };
+  if (pageSize !== undefined) {
+    params.page_size = pageSize;
+  }
+  const fallbackPageSize = pageSize ?? 10;
+  const data = await fetchPublicSafe<PaginatedPostList | PostSummary[]>(
+    "/public/posts",
+    { items: [], total: 0, page, page_size: fallbackPageSize },
+    params,
+  );
+  return normalizePostList(data, page, fallbackPageSize);
 }
 
 export function getPost(slug: string) {
@@ -470,8 +505,16 @@ export function listPageViewStats() {
   return fetchAuth<{ path: string; count: number }[]>("/admin/pageviews");
 }
 
-export function listAdminUsers() {
-  return fetchAuth<AdminUser[]>("/admin/users");
+export type PaginatedUsers = PaginatedResponse<AdminUser> & {
+  active_count: number;
+};
+
+export function listAdminUsers(page = 1, pageSize = 20, q?: string) {
+  return fetchAuth<PaginatedUsers>("/admin/users", undefined, false, {
+    page,
+    page_size: pageSize,
+    q: q?.trim() || undefined,
+  });
 }
 
 export function updateAdminUserActive(id: number, is_active: boolean) {
@@ -530,8 +573,22 @@ export function listOperationLogs(page = 1, pageSize = 20) {
   });
 }
 
-export function listAdminPosts() {
-  return fetchAuth<import("@/lib/types").PostAdmin[]>("/admin/posts");
+export type PostStats = {
+  total: number;
+  published: number;
+  draft: number;
+};
+
+export function getAdminPostStats() {
+  return fetchAuth<PostStats>("/admin/posts/stats");
+}
+
+export function listAdminPosts(page = 1, pageSize = 20, q?: string) {
+  return fetchAuth<PaginatedResponse<import("@/lib/types").PostAdmin>>("/admin/posts", undefined, false, {
+    page,
+    page_size: pageSize,
+    q: q?.trim() || undefined,
+  });
 }
 
 export function getAdminPost(id: number) {

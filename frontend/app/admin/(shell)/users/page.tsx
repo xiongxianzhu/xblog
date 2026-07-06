@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { BanIcon, Loader2Icon, Trash2Icon, UserCheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
+import {
+  ADMIN_DEFAULT_PAGE_SIZE,
+  AdminPagination,
+} from "@/components/admin/admin-pagination";
 import { UserAvatar } from "@/components/admin/user-avatar";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { deleteAdminUser, getMe, listAdminUsers, type ProfileGender, updateAdminUserActive } from "@/lib/api";
-import { matchQuery } from "@/lib/match-query";
 import { formatDateTime } from "@/lib/utils";
 
 function displayField(value: string | null | undefined) {
@@ -35,35 +38,29 @@ function displayGender(value: ProfileGender | null | undefined) {
 }
 
 export default function AdminUsersPage() {
-  const { data: users, error, isLoading, mutate } = useSWR("admin-users", listAdminUsers);
-  const { data: me } = useSWR("auth-me", getMe);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
+  const { data, error, isLoading, mutate } = useSWR(
+    ["admin-users", page, pageSize, search],
+    () => listAdminUsers(page, pageSize, search),
+  );
+  const { data: me } = useSWR("auth-me", getMe);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; username: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      (users ?? []).filter((user) =>
-        matchQuery(
-          search,
-          user.username,
-          user.nickname,
-          user.phone,
-          user.email,
-          displayGender(user.gender),
-          user.birth_date,
-          "管理员",
-          user.is_active ? "正常" : "已禁用",
-        ),
-      ),
-    [users, search],
-  );
+  const users = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const activeCount = data?.active_count ?? 0;
+  const isOnlyUser = total <= 1;
 
-  const activeCount = useMemo(() => (users ?? []).filter((user) => user.is_active).length, [users]);
-  const isOnlyUser = (users ?? []).length <= 1;
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
 
-  async function handleToggleActive(user: (typeof filtered)[number]) {
+  async function handleToggleActive(user: (typeof users)[number]) {
     const nextActive = !user.is_active;
     setTogglingId(user.id);
     try {
@@ -106,15 +103,15 @@ export default function AdminUsersPage() {
       />
 
       <div className="mb-4">
-        <AdminListSearch value={search} onChange={setSearch} placeholder="搜索用户名、昵称、手机号、邮箱…" />
+        <AdminListSearch value={search} onChange={handleSearchChange} placeholder="搜索用户名、昵称、手机号、邮箱…" />
       </div>
 
       {isLoading ? (
         <Skeleton className="h-40 w-full" />
       ) : error ? (
         <p className="text-sm text-destructive">加载失败，请刷新页面。</p>
-      ) : filtered.length === 0 ? (
-        <EmptyState title={(users ?? []).length === 0 ? "暂无用户" : "无匹配结果"} description="试试其他关键词。" />
+      ) : total === 0 ? (
+        <EmptyState title={search.trim() ? "无匹配结果" : "暂无用户"} description="试试其他关键词。" />
       ) : (
         <Card>
           <CardHeader>
@@ -140,7 +137,7 @@ export default function AdminUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((user) => {
+                {users.map((user) => {
                   const isSelf = me?.username === user.username;
                   const canDisable = user.is_active && activeCount > 1;
                   const canDelete = !isOnlyUser;
@@ -224,6 +221,17 @@ export default function AdminUsersPage() {
                 })}
               </TableBody>
             </Table>
+            <AdminPagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(next) => {
+                setPageSize(next);
+                setPage(1);
+              }}
+              disabled={isLoading}
+            />
           </CardContent>
         </Card>
       )}

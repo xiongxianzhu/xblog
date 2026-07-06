@@ -29,6 +29,7 @@ export type SitePublicTheme = {
   site_tagline: string;
   site_logo_url: string | null;
   site_icp_number: string | null;
+  posts_per_page: number;
 };
 
 export const DEFAULT_SITE_THEME: SitePublicTheme = {
@@ -38,7 +39,10 @@ export const DEFAULT_SITE_THEME: SitePublicTheme = {
   site_tagline: "Ink & Paper",
   site_logo_url: null,
   site_icp_number: null,
+  posts_per_page: 10,
 };
+
+export const PUBLIC_POSTS_PER_PAGE_OPTIONS = [5, 10, 15, 20, 30, 50] as const;
 
 export const ADMIN_THEME_STORAGE_KEY = "xblog-admin-theme-v2";
 

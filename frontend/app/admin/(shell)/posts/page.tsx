@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { useMemo, useState } from "react";
-import { PenLineIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
+import { useState } from "react";
+import { PenLineIcon, PinIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { AdminListSearch } from "@/components/admin/admin-list-search";
-
+import {
+  ADMIN_DEFAULT_PAGE_SIZE,
+  AdminPagination,
+} from "@/components/admin/admin-pagination";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminPanel } from "@/components/admin/admin-panel";
 import { EmptyState } from "@/components/empty-state";
@@ -25,30 +28,29 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deletePost, listAdminPosts, updatePost } from "@/lib/api";
-import { matchQuery } from "@/lib/match-query";
 import { formatDate } from "@/lib/utils";
 
 export default function AdminPostsPage() {
   const tFeedback = useTranslations("admin.feedback");
-  const { data: posts, error, isLoading, mutate } = useSWR("admin-posts", listAdminPosts);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
+  const { data, error, isLoading, mutate } = useSWR(
+    ["admin-posts", page, pageSize, search],
+    () => listAdminPosts(page, pageSize, search),
+  );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [pinningId, setPinningId] = useState<number | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      (posts ?? []).filter((post) =>
-        matchQuery(
-          search,
-          post.title,
-          post.slug,
-          post.excerpt,
-          post.status === "published" ? "已发布" : "草稿",
-        ),
-      ),
-    [posts, search],
-  );
+  const posts = data?.items ?? [];
+  const total = data?.total ?? 0;
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
 
   async function confirmDelete() {
     if (deleteId === null) return;
@@ -79,6 +81,23 @@ export default function AdminPostsPage() {
     }
   }
 
+  async function handleTogglePin(id: number, title: string, isPinned: boolean) {
+    setPinningId(id);
+    try {
+      await updatePost(id, { is_pinned: !isPinned });
+      await mutate();
+      toast.success(!isPinned ? "已置顶" : "已取消置顶", {
+        description: `文章「${title}」${!isPinned ? "将在列表优先展示" : "已恢复普通排序"}。`,
+      });
+    } catch (err) {
+      toast.error("操作失败", {
+        description: err instanceof Error ? err.message : "请稍后重试",
+      });
+    } finally {
+      setPinningId(null);
+    }
+  }
+
   if (error) {
     return (
       <div className="flex flex-col items-center gap-4 py-12 text-center">
@@ -106,7 +125,7 @@ export default function AdminPostsPage() {
       />
 
       <div className="mb-4">
-        <AdminListSearch value={search} onChange={setSearch} placeholder="搜索标题、slug、摘要…" />
+        <AdminListSearch value={search} onChange={handleSearchChange} placeholder="搜索标题、slug、摘要…" />
       </div>
 
       {isLoading ? (
@@ -117,15 +136,14 @@ export default function AdminPostsPage() {
         </div>
       ) : null}
 
-      {!isLoading && (posts ?? []).length === 0 ? (
-        <EmptyState title="暂无文章" description="点击「新建文章」开始写作。" />
+      {!isLoading && total === 0 ? (
+        <EmptyState
+          title={search.trim() ? "无匹配结果" : "暂无文章"}
+          description={search.trim() ? "试试其他关键词。" : "点击「新建文章」开始写作。"}
+        />
       ) : null}
 
-      {!isLoading && (posts ?? []).length > 0 && filtered.length === 0 ? (
-        <EmptyState title="无匹配结果" description="试试其他关键词。" />
-      ) : null}
-
-      {!isLoading && filtered.length > 0 ? (
+      {!isLoading && posts.length > 0 ? (
         <AdminPanel>
           <Table>
             <TableHeader>
@@ -137,11 +155,19 @@ export default function AdminPostsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((post) => (
+              {posts.map((post) => (
                 <TableRow key={post.id}>
                   <TableCell className="max-w-[12rem] sm:max-w-[240px]">
                     <div className="flex min-w-0 flex-col gap-1">
-                      <span className="truncate font-medium">{post.title}</span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-medium">{post.title}</span>
+                        {post.is_pinned ? (
+                          <Badge variant="outline" className="shrink-0 gap-1 px-1.5 py-0 text-[10px]">
+                            <PinIcon className="size-3" />
+                            置顶
+                          </Badge>
+                        ) : null}
+                      </div>
                       <div className="flex flex-wrap items-center gap-2 sm:hidden">
                         <Badge variant={post.status === "published" ? "default" : "muted"}>
                           {post.status === "published" ? "已发布" : "草稿"}
@@ -162,6 +188,17 @@ export default function AdminPostsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-2 sm:px-3"
+                        aria-label={post.is_pinned ? `取消置顶 ${post.title}` : `置顶 ${post.title}`}
+                        disabled={pinningId === post.id}
+                        onClick={() => void handleTogglePin(post.id, post.title, post.is_pinned)}
+                      >
+                        <PinIcon className={`size-4 sm:mr-1 ${post.is_pinned ? "fill-current text-primary" : ""}`} />
+                        <span className="hidden sm:inline">{post.is_pinned ? "取消置顶" : "置顶"}</span>
+                      </Button>
                       {post.status !== "published" ? (
                         <Button
                           variant="ghost"
@@ -199,6 +236,17 @@ export default function AdminPostsPage() {
               ))}
             </TableBody>
           </Table>
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={(next) => {
+              setPageSize(next);
+              setPage(1);
+            }}
+            disabled={isLoading}
+          />
         </AdminPanel>
       ) : null}
 
