@@ -3,7 +3,14 @@
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
-import { Separator } from "@/components/ui/separator";
+
+const footerNavItems = [
+  { href: "/blog", labelKey: "blog" },
+  { href: "/about", labelKey: "about" },
+  { href: "/projects", labelKey: "projects" },
+  { href: "/links", labelKey: "links" },
+  { href: "/search", labelKey: "search" },
+] as const;
 
 type SiteFooterProps = {
   siteName: string;
@@ -16,43 +23,65 @@ export function SiteFooter({ siteName, siteIcpNumber }: SiteFooterProps) {
   const icpNumber = siteIcpNumber?.trim() || null;
 
   return (
-    <footer className="site-glass-bar border-t">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-10 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-serif text-lg font-semibold">{siteName}</p>
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <Link href="/blog" className="transition-colors hover:text-primary">
-              {tNav("blog")}
-            </Link>
-            <Link href="/rss.xml" className="transition-colors hover:text-primary">
-              {t("rss")}
-            </Link>
-            <Link href="/sitemap.xml" className="transition-colors hover:text-primary">
-              {t("sitemap")}
-            </Link>
+    <footer className="site-footer">
+      <div className="article-layout mx-auto w-full px-4 py-12 sm:px-6 lg:py-16">
+        <div className="site-footer-panel">
+          <div className="site-footer-topline" aria-hidden />
+
+          <div className="site-footer-main">
+            <div className="site-footer-brand-block">
+              <p className="site-footer-kicker">Colophon</p>
+              <p className="site-footer-brand">{siteName}</p>
+              <p className="site-footer-copy">{t("copyright", { year: new Date().getFullYear(), siteName })}</p>
+            </div>
+
+            <div className="site-footer-groups">
+              <nav className="site-footer-nav" aria-label={tNav("menu")}>
+                <p className="site-footer-heading">Navigate</p>
+                <div className="site-footer-link-grid">
+                  {footerNavItems.map((item) => (
+                    <Link key={item.href} href={item.href} className="site-footer-link">
+                      {tNav(item.labelKey)}
+                    </Link>
+                  ))}
+                </div>
+              </nav>
+
+              <nav className="site-footer-nav" aria-label="Feeds">
+                <p className="site-footer-heading">Feeds</p>
+                <div className="site-footer-link-grid">
+                  <Link href="/rss.xml" className="site-footer-link">
+                    {t("rss")}
+                  </Link>
+                  <Link href="/sitemap.xml" className="site-footer-link">
+                    {t("sitemap")}
+                  </Link>
+                </div>
+              </nav>
+            </div>
           </div>
-        </div>
-        <Separator />
-        <div className="flex flex-col gap-1 text-center text-xs text-muted-foreground sm:text-left">
-          <p>{t("copyright", { year: new Date().getFullYear(), siteName })}</p>
-          {icpNumber ? (
-            <a
-              href="https://beian.miit.gov.cn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 transition-colors hover:text-primary sm:justify-start"
-            >
-              <img
-                src="/beian-ghs.png"
-                alt=""
-                width={16}
-                height={16}
-                className="size-4 shrink-0"
-                aria-hidden
-              />
-              {icpNumber}
-            </a>
-          ) : null}
+
+          <div className="site-footer-bottom">
+            <p className="site-footer-mark">Published with care.</p>
+            {icpNumber ? (
+              <a
+                href="https://beian.miit.gov.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-footer-icp"
+              >
+                <img
+                  src="/beian-ghs.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="size-4 shrink-0"
+                  aria-hidden
+                />
+                {icpNumber}
+              </a>
+            ) : null}
+          </div>
         </div>
       </div>
     </footer>

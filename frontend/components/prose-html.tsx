@@ -59,8 +59,8 @@ export function ProseHtml({ html, className, colorMode }: ProseHtmlProps) {
     panRight: t("mermaidPanRight"),
   };
 
-  const enhanceCleanupRef = useRef<(() => void) | undefined>();
-  const mermaidCleanupRef = useRef<(() => void) | undefined>();
+  const enhanceCleanupRef = useRef<(() => void) | undefined>(undefined);
+  const mermaidCleanupRef = useRef<(() => void) | undefined>(undefined);
   const mermaidRenderGenerationRef = useRef(0);
 
   useInsertionEffect(() => {

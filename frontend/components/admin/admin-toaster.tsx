@@ -26,8 +26,8 @@ export function AdminToaster() {
 
   useEffect(() => {
     function syncThemeVars() {
-      const shell = document.querySelector("[data-admin-shell]");
-      const toaster = document.querySelector("[data-sonner-toaster]");
+      const shell = document.querySelector<HTMLElement>("[data-admin-shell]");
+      const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]");
       if (!shell || !toaster) return;
 
       const styles = getComputedStyle(shell);
@@ -38,7 +38,7 @@ export function AdminToaster() {
 
     syncThemeVars();
 
-    const shell = document.querySelector("[data-admin-shell]");
+    const shell = document.querySelector<HTMLElement>("[data-admin-shell]");
     if (!shell) return;
 
     const observer = new MutationObserver(syncThemeVars);

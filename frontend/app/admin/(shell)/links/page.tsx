@@ -120,7 +120,7 @@ export default function AdminLinksPage() {
     setForm({
       name: link.name,
       url: link.url,
-      logo_url: link.logo_url,
+      logo_url: link.logo_url ?? "",
       description: link.description ?? "",
       sort_order: String(link.sort_order),
     });

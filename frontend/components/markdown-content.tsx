@@ -109,7 +109,7 @@ const MarkdownProse = memo(function MarkdownProse({
     [codeLabelsRef],
   );
 
-  const mermaidCleanupRef = useRef<(() => void) | undefined>();
+  const mermaidCleanupRef = useRef<(() => void) | undefined>(undefined);
   const mermaidRenderGenerationRef = useRef(0);
 
   // Mermaid 会命令式替换 pre；在 React 提交 DOM 变更前先还原，避免 removeChild 报错。
