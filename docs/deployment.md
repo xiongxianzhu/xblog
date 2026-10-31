@@ -252,18 +252,200 @@ sudo systemctl start xblog-web
 
 首次构建需要开发依赖中的 TypeScript、Tailwind 等工具，不能在构建前只安装生产依赖。`After=xblog-api.service` 只保证启动顺序，不保证 API 已就绪，应先完成下一节的直连检查。
 
-### 3.4. 配置 nginx 与 HTTPS
+### 3.4. 用 Certbot 签发免费 SSL 证书
 
-按 [nginx 配置说明](../deploy/nginx/README.md) 安装模板，替换域名和证书路径。模板默认启用 HTTP，HTTPS 段只是注释示例，复制文件不会自动获得证书。通过服务器既有证书流程完成证书签发、续期和 80→443 跳转。
+域名示例为 `blog.example.com`，实际操作时全部替换为自己控制的域名。以下主流程使用 Let's Encrypt + Certbot Standalone，只申请证书，不自动修改 nginx。申请和续期会临时占用 80 端口，因此需要停止 nginx，其承载的所有站点都会短暂中断；安排在维护窗口执行。应用的 10241/10242 端口无需停止或公开。
 
-在系统实际加载的配置文件中保留以下行为：`/api/` 代理 API、`/` 代理 Web、上传大小限制 `32m`、AI 流式请求关闭缓冲且读写超时 300 秒。应用图片上限仍为 5 MiB，nginx 放宽不改变应用限制。
+#### 网络与安装准备
+
+- 域名 A 记录指向服务器公网 IPv4；如果配置 AAAA，IPv6 也须能到达该服务器。
+- 云安全组和系统防火墙允许公网 TCP 80、443。HTTP-01 必须使用公网 80，不能改用应用端口。
+- 确认 nginx 已安装且由 `nginx.service` 管理，管理员 PATH 可找到 nginx；自定义安装路径时同步调整以下 hook。
+
+在具备 sudo 权限的账号下检查现有安装和调度：
+
+```bash
+command -v certbot || true
+systemctl list-timers --all
+sudo crontab -l
+sudo ls /etc/cron.d/
+```
+
+没有已有 Certbot 时，Ubuntu/Debian 使用软件包安装：
+
+```bash
+sudo apt update
+sudo apt install -y certbot
+sudo /usr/bin/certbot --version
+sudo /usr/bin/certbot plugins
+```
+
+预期包含 standalone 插件。此方式不依赖 appuser 的 Python 或 uv，也不安装 nginx 插件。已有 snap、独立虚拟环境或其他来源的安装时，继续使用已确认的工具路径，保留 `/etc/letsencrypt`，不要重复安装或重复调度。
+
+#### 首次签发
+
+先确认当前 nginx 配置可用并保留备份。在维护窗口执行：
 
 ```bash
 sudo nginx -t
-sudo systemctl reload nginx
+sudo systemctl stop nginx
+sudo ss -ltnp 'sport = :80'
+sudo /usr/bin/certbot certonly --standalone \
+  --cert-name blog.example.com -d blog.example.com
+sudo /usr/bin/certbot certificates
 ```
 
-仅在 `nginx -t` 成功后 reload。若需从公网访问 ISR，应显式添加指向 Web 的精确匹配规则；本文主路径只使用内网回调，不需要公开它。
+`ss` 应无 80 端口监听者，再执行签发；仍有占用时先确认所属服务。按提示填写真实邮箱并同意条款。签发失败时保留原 HTTP 配置，执行 `sudo nginx -t && sudo systemctl start nginx` 恢复原服务，检查日志后再重试。
+
+确认生成的证书域名、路径和有效期：
+
+```bash
+sudo test -r /etc/letsencrypt/live/blog.example.com/fullchain.pem
+sudo test -r /etc/letsencrypt/live/blog.example.com/privkey.pem
+sudo openssl x509 -in /etc/letsencrypt/live/blog.example.com/fullchain.pem \
+  -noout -subject -issuer -dates -ext subjectAltName
+```
+
+预期 SAN 包含实际域名。以 `certbot certificates` 输出的路径为准，已有同名证书可能带后缀。私钥保持 root 管理，不复制进仓库或改成全员可读。
+
+#### 配置 nginx HTTPS
+
+在系统实际加载的 xblog 站点文件中修改 [nginx 模板](../deploy/nginx/xblog.conf)，保留原有 upstream：Web 为 `127.0.0.1:10241`，API 为 `127.0.0.1:10242`。证书存在后再启用 HTTPS，步骤如下：
+
+1. 将 HTTPS 注释示例转换为实际 server 块，替换域名及证书路径。
+2. 保留 `/api/`、`/` 两个完整 location、代理头、`client_max_body_size 32m`、SSE 关闭缓冲和 300 秒读写超时。
+3. 将原有 80 端口的应用代理 server 改为 HTTPS 跳转，避免同域名重复 server 块。
+
+HTTPS server 的 TLS 部分使用：
+
+```nginx
+listen 443 ssl;
+listen [::]:443 ssl;
+server_name blog.example.com;
+ssl_certificate /etc/letsencrypt/live/blog.example.com/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/blog.example.com/privkey.pem;
+ssl_protocols TLSv1.2 TLSv1.3;
+```
+
+这只是 HTTPS server 内的 TLS 片段，不能替代完整站点配置。Standalone 不保证生成模板引用的 `/etc/letsencrypt/options-ssl-nginx.conf` 和 `ssl-dhparams.pem`；按本流程部署时删除这两条引用，使用上述 TLS 配置。HTTP 跳转 server 为：
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name blog.example.com;
+    return 301 https://blog.example.com$request_uri;
+}
+```
+
+确保该站点文件被 nginx 主配置加载，再检查并恢复服务：
+
+```bash
+sudo nginx -t && sudo systemctl start nginx
+sudo systemctl status nginx --no-pager
+curl -I http://blog.example.com/
+curl --fail --location https://blog.example.com/
+curl --fail https://blog.example.com/api/v1/public/health
+```
+
+HTTP 应跳转 HTTPS，HTTPS 不应出现证书信任错误；不使用 `curl -k` 绕过检查。后续配置更新使用 `sudo nginx -t && sudo systemctl reload nginx`。配置校验失败时恢复备份的 HTTP 配置后再启动，不继续加载错误配置。
+
+同步确认 `COOKIE_SECURE=true`、`FRONTEND_URL` 和 `NEXT_PUBLIC_SITE_URL` 使用正式 HTTPS 域名。`REVALIDATE_URL` 仍直连 `http://127.0.0.1:10241/api/revalidate`；公网 `/api/` 由 nginx 转发到后端。
+
+#### SSL 证书自动续期（Standalone）
+
+先在维护窗口测试。dry-run 不替换生产证书，但会实际执行停启 hook：
+
+```bash
+sudo /usr/bin/certbot renew --cert-name blog.example.com --dry-run \
+  --pre-hook "systemctl stop nginx" \
+  --post-hook "nginx -t && systemctl start nginx"
+sudo systemctl status nginx --no-pager
+```
+
+预期模拟续期成功且 nginx 恢复运行。post hook 在续期尝试失败后也会运行；不要用仅在成功续期时执行的 deploy hook 代替恢复服务。进程被强制中断或配置错误时，仍需手动检查并恢复 nginx。
+
+下面选择独立 cron 管理该证书。仅适用于新服务器且没有其他证书依赖现有调度的情况：先停用软件包自带的 certbot.timer，检查 `/etc/cron.d/certbot` 是否还有有效续期任务；存在时先将该任务停用，确保没有重复调度。已有其他证书时保留其任务，先统一各证书的续期方式，不直接停用全局调度。
+
+```bash
+sudo systemctl disable --now certbot.timer
+sudo apt install -y cron
+sudo systemctl enable --now cron
+sudo crontab -e
+```
+
+在 root crontab 添加以下条目（已有相同任务则修改，不重复添加）：
+
+```cron
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+17 3,15 * * * /usr/bin/certbot renew --cert-name blog.example.com --quiet --pre-hook "systemctl stop nginx" --post-hook "nginx -t && systemctl start nginx"
+```
+
+按服务器本地时区每天 03:17、15:17 检查两次；运行 `timedatectl` 确认时区。不要在定时任务中添加 `--force-renewal`。renew 仅在证书需要续期时发起续期，相关停启 hook 也在需要续期时执行。定时服务、Certbot 和 nginx 的路径需与实际安装一致。检查 `/var/log/letsencrypt/letsencrypt.log`、证书到期日和 nginx 状态，不以定时任务存在代替续期成功。更换认证方式需使用 Certbot 支持的重新配置流程，仅修改 cron 不会改变证书已保存的认证方式。
+
+配置完成后检查调度、日志与当前证书：
+
+```bash
+sudo crontab -l
+sudo systemctl is-active cron
+sudo journalctl -u cron --since today --no-pager
+sudo tail -n 100 /var/log/letsencrypt/letsencrypt.log
+sudo /usr/bin/certbot certificates
+sudo openssl x509 -in /etc/letsencrypt/live/blog.example.com/fullchain.pem \
+  -noout -dates
+```
+
+预期 root crontab 只有一个管理该证书的任务，cron 为 active，dry-run 成功且 nginx 已恢复。cron 执行记录是否出现在 journal 取决于发行版日志配置，必要时检查 `/var/log/syslog`。`No renewals were attempted` 通常表示尚未达到续期条件，不是签发失败；退出码 0 也不代表本次一定换发了证书。
+
+如需检查 nginx 当前实际提供的证书，在服务器或外部客户端执行：
+
+```bash
+openssl s_client -connect blog.example.com:443 -servername blog.example.com </dev/null 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+```
+
+实际证书有效期应与 nginx 使用的证书一致；若前方使用 CDN，该命令看到的是 CDN 的证书，应分别核对源站和 CDN。续期失败时检查 DNS、80 端口、安全组及 Certbot 日志；nginx 未恢复时先运行 `sudo nginx -t && sudo systemctl start nginx`。修复后重新 dry-run，不删除证书目录或反复强制签发。
+
+#### 通配符证书：使用 DNS-01
+
+Certbot 支持 `*.example.com`，但必须采用 DNS-01，不能使用上面的 Standalone HTTP-01。该通配符覆盖 `blog.example.com` 等一级子域，不覆盖根域名 `example.com` 或 `a.blog.example.com`；需要根域名时一起申请。
+
+首次手工 DNS 验证示例：
+
+```bash
+sudo /usr/bin/certbot certonly --manual --preferred-challenges dns \
+  --cert-name example.com -d example.com -d '*.example.com'
+```
+
+按提示在 DNS 控制台添加 `_acme-challenge.example.com` 的 TXT 记录，待公网 DNS 可查询到指定值后再继续。可能要求同名多个 TXT 值，应按提示同时保留，不能覆盖前一个尚未完成的验证值。DNS 验证不需要停止 nginx 或开放验证端口。
+
+签发后将 nginx 证书路径改为 `/etc/letsencrypt/live/example.com/fullchain.pem` 和 `privkey.pem`，检查后 reload。证书覆盖范围不等于 nginx 自动接入所有子域，仍须分别配置 DNS 和 server_name。
+
+手工添加 TXT 的证书不能直接依靠普通 `certbot renew` 无人值守续期。生产通配符应安装 DNS 服务商对应的 Certbot DNS 插件，使用受限 DNS API 凭据，并按插件说明配置凭据文件权限与传播等待时间；本项目未指定 DNS 服务商，因此不提供假定适用的插件参数。自动化后用 `renew --cert-name example.com --dry-run` 验证，并为该证书设置成功续期后的 nginx reload hook，无需沿用 Standalone 的 stop/start hook。不要把上面的 blog.example.com cron 原样用于手工 DNS 证书。
+
+#### 通配符证书自动续期（DNS 插件）
+
+仅在 DNS 插件已完成签发或重新配置、凭据文件可由 root 读取，且证书的续期配置已保存该插件参数后，使用下面的流程。手工添加 TXT 的 manual 证书不满足此前提；单纯添加 cron 不会自动操作 DNS。
+
+先测试 DNS 验证和 nginx 重载：
+
+```bash
+sudo /usr/bin/certbot renew --cert-name example.com --dry-run \
+  --deploy-hook "nginx -t && systemctl reload nginx"
+```
+
+dry-run 默认不执行 deploy hook。Certbot 版本支持 `--run-deploy-hooks` 时，可追加该参数测试完整流程；否则在 dry-run 成功后单独执行 `sudo nginx -t && sudo systemctl reload nginx` 验证重载。DNS 验证不需要停止 nginx；如从 Standalone 迁移，先清理该证书旧的 stop/start hook。
+
+确认没有其他调度管理该证书后，在 root crontab 中使用以下任务；这与 Standalone 任务按实际证书方案选择，不为同一证书重复配置：
+
+```cron
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+27 3,15 * * * /usr/bin/certbot renew --cert-name example.com --quiet --deploy-hook "nginx -t && systemctl reload nginx"
+```
+
+成功续期后重载 nginx，新证书才会用于后续连接。沿用前述 cron 状态和日志检查，将证书路径改为 `/etc/letsencrypt/live/example.com/fullchain.pem`。DNS API 凭据过期、权限不足或 TXT 传播超时会阻止自动续期；更换凭据或 DNS 服务商后须重新 dry-run。
+
+依据：[Certbot Standalone 与续期](https://eff-certbot.readthedocs.io/en/stable/using.html)、[Let's Encrypt 验证类型](https://letsencrypt.org/docs/challenge-types/)。本节仅为操作说明，未在服务器执行签发、续期或服务停启。
 
 ## 4. 验证
 
