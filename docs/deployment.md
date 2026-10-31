@@ -25,6 +25,66 @@
 
 模板中的 `/api/` 会转给 FastAPI，因此不能直接把 `REVALIDATE_URL` 设置成公网域名下的 `/api/revalidate`。该模板下 AI complete 直接进入 FastAPI；前端同路径 BFF 并不经过生产入口。后端 `/docs`、`/openapi.json` 也不会由根路径代理自动公开。
 
+### 1.1. 安装系统依赖与 PostgreSQL
+
+以下安装主路径适用于 Ubuntu 22.04+ / Debian 12+，使用发行版软件包；先确认系统：
+
+```bash
+cat /etc/os-release
+```
+
+在具备 sudo 权限的运维账号下执行：
+
+```bash
+sudo apt update
+sudo apt install -y git curl ca-certificates openssl postgresql postgresql-client postgresql-contrib
+sudo systemctl enable --now postgresql
+sudo systemctl status postgresql --no-pager
+pg_lsclusters
+pg_isready -h 127.0.0.1 -p 5432
+sudo -u postgres psql -X -d postgres -c "SELECT version();"
+```
+
+预期 `pg_lsclusters` 中目标集群为 online，端口为 5432，`pg_isready` 显示 accepting connections，SQL 返回实际服务端版本。Debian/Ubuntu 的 postgresql 总服务可能显示 active (exited)，不能只凭该状态判断数据库进程就绪。若集群存在但未启动，可执行 `sudo pg_ctlcluster <主版本> <集群名> start`，两个参数取自 `pg_lsclusters`；已有数据目录不要重新 initdb。
+
+仓库未固定 PostgreSQL 主版本，安装结果取决于发行版。若需要指定主版本，按 PostgreSQL 官方 [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/) 或 [Debian](https://www.postgresql.org/download/linux/debian/) 安装说明使用官方仓库，并在迁移前核对版本与备份兼容性。
+
+Alibaba Cloud Linux 等使用 dnf 的发行版不适用本节 apt 命令。其他发行版应先按对应安装方式准备数据库，再继续本文的建用户、建库和部署步骤。远程数据库只需在应用机安装对应 PostgreSQL 客户端，无需启动本地数据库服务。
+
+### 1.2. 创建部署账号
+
+继续在运维账号下执行；已有 appuser 时只检查，不重新创建或修改其权限：
+
+```bash
+id appuser || sudo useradd --create-home --user-group --shell /bin/bash appuser
+getent passwd appuser
+getent group appuser
+```
+
+预期用户和同名组存在，家目录为 `/home/appuser`。项目默认放在 `/home/appuser/xblog`，应由 appuser 读取和维护；系统服务管理仍由具备 sudo 权限的运维账号执行，不要求给 appuser 额外 sudo 权限。
+
+### 1.3. 安装 uv 与 Python 3.14
+
+使用 uv 管理 Python，按 [uv 安装说明](https://docs.astral.sh/uv/getting-started/installation/) 和 [Python 管理说明](https://docs.astral.sh/uv/guides/install-python/) 执行。先切换到应用账号，避免解释器安装到 root 家目录导致服务账号无法访问：
+
+```bash
+sudo -iu appuser
+curl -LsSf https://astral.sh/uv/install.sh | sh
+. "$HOME/.local/bin/env"
+uv --version
+command -v uv
+uv python install 3.14
+uv python find 3.14
+uv run --no-project --python 3.14 python --version
+exit
+```
+
+预期 uv 可执行，解释器为 Python 3.14.x；项目的 `backend/.python-version` 指定 3.14。无需替换系统 Python，也无需通过 apt 安装 Python 3.14。uv 安装器会提供适合当前平台的程序；记录实际 uv 和 Python 补丁版本用于部署追踪。
+
+默认用户级安装的 uv 路径为 `/home/appuser/.local/bin/uv`，本文 unit 和 cron 已统一使用该路径。若自定义安装位置，以 appuser 下 `command -v uv` 的结果为准，并同步调整配置。systemd 不加载交互 shell 的 PATH，因此 ExecStart 使用绝对路径。
+
+完成这些步骤后，再准备项目代码、填写第 2 节配置，并按第 3.1 节创建数据库用户和数据库。Node.js、pnpm 与 nginx 仍需满足前置条件，本节只安装 uv、Python 和 PostgreSQL。
+
 ## 2. 配置
 
 首次部署时，从仓库根目录执行，已有配置不会被覆盖：
@@ -154,11 +214,11 @@ uv run --frozen --no-dev python -m app.cli seed-pages
 
 先编辑 `/home/appuser/xblog/deploy/systemd/xblog-api.service` 和 `xblog-web.service`：核对 User、Group、WorkingDirectory、EnvironmentFile、ExecStart。API 模板通过下面的 `uv run --no-sync` 命令启动 Uvicorn，使用 4 个 worker。Web 仍使用本地 `node_modules/.bin/next`，systemd 的 PATH 必须能够找到 Node。
 
-先确认服务账号可执行的 uv 绝对路径。下文 `/usr/local/bin/uv` 仅为示例，systemd 和 cron 都要替换为实际路径，并确保服务账号可读取项目虚拟环境和 Python 解释器。依赖已由部署步骤安装，常驻服务使用 `--no-sync`，避免启动时同步依赖：
+API 使用 appuser 安装的 `/home/appuser/.local/bin/uv`，确保该账号可读取项目虚拟环境和 Python 解释器。依赖已由部署步骤安装，常驻服务使用 `--no-sync`，避免启动时同步依赖：
 
 ```ini
 WorkingDirectory=/home/appuser/xblog/backend
-ExecStart=/usr/local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
 ```
 
 从仓库根目录安装并先启动 API：
@@ -275,7 +335,7 @@ uv run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600
 确认预览后，可在服务账号 crontab 配置以下每小时任务。uv 绝对路径按前述配置替换；这里同样使用 `--no-sync` 运行部署时已安装的环境。该命令不自动读取 systemd EnvironmentFile，但会从工作目录加载 `.env`：
 
 ```cron
-15 * * * * cd /home/appuser/xblog/backend && /usr/local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600
+15 * * * * cd /home/appuser/xblog/backend && /home/appuser/.local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600
 ```
 
 TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小时。监控 cron 输出；不要扩展成全上传目录删除。

@@ -5,7 +5,7 @@ xblog 生产环境用 systemd 守护 API 与 Next.js。默认仓库目录为 `/h
 ## 前置条件
 
 - `appuser` 用户和用户组已存在；该账号可读取项目、环境文件和 Python 解释器，并写入上传目录、虚拟环境及 Next.js 缓存目录。
-- 在 appuser 账号下安装依赖。API 模板使用 `/usr/local/bin/uv`，这是示例绝对路径；通过 `command -v uv` 核实实际位置后同步修改 `ExecStart` 与 cron。若 uv 安装在用户目录，可填写实际的 `/home/appuser/.local/bin/uv`。
+- 在 appuser 账号下安装 uv、Python 和项目依赖。API 模板使用用户级安装路径 `/home/appuser/.local/bin/uv`；自定义安装位置时，按 `command -v uv` 结果同步修改 `ExecStart` 与 cron。
 - Web 模板通过本地 Next.js 启动，systemd 的 PATH 必须能找到 Node；交互 shell 中的 Node 版本管理器配置不会自动加载。
 - 前后端 `.env` 已配置，PostgreSQL 可连接，迁移前完成必要备份。远程数据库部署应调整 API unit 的 `postgresql.service` 依赖。
 
@@ -23,7 +23,7 @@ xblog 生产环境用 systemd 守护 API 与 Next.js。默认仓库目录为 `/h
 2. 核对 `xblog-api.service`、`xblog-web.service` 的用户、工作目录、环境文件和启动路径。API 启动命令为：
 
    ```ini
-   ExecStart=/usr/local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+   ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
    ```
 
    `--no-sync` 使用部署时已安装的虚拟环境，不在服务启动时同步依赖。更新版本时须先重新执行 `uv sync --frozen --no-dev`。

@@ -184,9 +184,9 @@ def upload_root(tmp_path, monkeypatch):
 VPS cron（每小时）：
 
 ```cron
-15 * * * * cd /home/appuser/xblog/backend && /usr/local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600 >> /home/appuser/xblog-cleanup.log 2>&1
+15 * * * * cd /home/appuser/xblog/backend && /home/appuser/.local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600 >> /home/appuser/xblog-cleanup.log 2>&1
 ```
 
-以 `appuser` 的 crontab 运行；`/usr/local/bin/uv` 替换为该账号可执行的实际绝对路径。先在 backend 目录执行 `uv sync --frozen --no-dev`，定时任务通过 `--no-sync` 使用已安装环境。日志写入 appuser 家目录。
+以 `appuser` 的 crontab 运行；默认使用该账号的 `/home/appuser/.local/bin/uv`，自定义安装时同步调整路径。先在 backend 目录执行 `uv sync --frozen --no-dev`，定时任务通过 `--no-sync` 使用已安装环境。日志写入 appuser 家目录。
 
 首次上线建议先 `--dry-run` 确认输出符合预期。

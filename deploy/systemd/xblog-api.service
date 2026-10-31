@@ -9,7 +9,7 @@ User=appuser
 Group=appuser
 WorkingDirectory=/home/appuser/xblog/backend
 EnvironmentFile=/home/appuser/xblog/backend/.env
-ExecStart=/usr/local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
 Restart=on-failure
 RestartSec=5
 
