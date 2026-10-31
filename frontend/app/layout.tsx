@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
+import localFont from "next/font/local";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { getPublicSiteTheme } from "@/lib/site-theme";
@@ -7,21 +7,30 @@ import { getSiteIconDescriptor } from "@/lib/public-asset-url";
 
 import "./globals.css";
 
-const notoSans = Noto_Sans_SC({
+// Google Fonts 官方可变字体；字体文件及 OFL 许可证随项目分发。
+const notoSans = localFont({
+  src: "./fonts/NotoSansSC.woff2",
   variable: "--font-noto-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: "400 600",
+  style: "normal",
+  display: "swap",
 });
 
-const notoSerif = Noto_Serif_SC({
+const notoSerif = localFont({
+  src: "./fonts/NotoSerifSC.woff2",
   variable: "--font-noto-serif",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: "500 700",
+  style: "normal",
+  display: "swap",
+  adjustFontFallback: "Times New Roman",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMono.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
+  style: "normal",
+  display: "swap",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
