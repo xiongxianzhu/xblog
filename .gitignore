@@ -20,6 +20,8 @@ ehthumbs.db
 
 *.log
 logs/
+# 后台日志页面是源码，不属于运行日志
+!frontend/app/admin/(shell)/logs/
 tmp/
 temp/
 *.tmp
