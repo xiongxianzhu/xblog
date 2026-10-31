@@ -15,7 +15,7 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 2. 后端 `backend/.env` 与前端 `frontend/.env` 已配置；生产建议：
    - `COOKIE_SECURE=true`
    - `REVALIDATE_SECRET` 前后端一致
-   - `REVALIDATE_URL=https://你的域名/api/revalidate`
+   - `REVALIDATE_URL=http://127.0.0.1:3000/api/revalidate`（直连 Next.js，公网 `/api/` 由本模板转发到 FastAPI）
    - `NEXT_PUBLIC_SITE_URL=https://你的域名`
 
 ## 安装示例配置
@@ -23,6 +23,7 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 1. 复制并编辑站点配置（替换 `example.com`）：
 
    ```bash
+   cd /home/appuser/xblog
    sudo cp deploy/nginx/xblog.conf /etc/nginx/sites-available/xblog.conf
    sudo nano /etc/nginx/sites-available/xblog.conf
    ```

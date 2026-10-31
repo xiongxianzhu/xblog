@@ -4,12 +4,12 @@ After=network.target xblog-api.service
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=/srv/xblog/frontend
+User=appuser
+Group=appuser
+WorkingDirectory=/home/appuser/xblog/frontend
 Environment=NODE_ENV=production
-EnvironmentFile=-/srv/xblog/frontend/.env
-ExecStart=/srv/xblog/frontend/node_modules/.bin/next start -H 127.0.0.1 -p 3000
+EnvironmentFile=-/home/appuser/xblog/frontend/.env
+ExecStart=/home/appuser/xblog/frontend/node_modules/.bin/next start -H 127.0.0.1 -p 3000
 Restart=on-failure
 RestartSec=5
 

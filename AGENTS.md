@@ -1,429 +1,199 @@
-<p align="center">
-  <a href="https://github.com/xiongxianzhu/xblog"><img src="https://img.shields.io/badge/GitHub-xblog-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/></a>
-  <a href="docs/prd-xblog.md"><img src="https://img.shields.io/badge/PRD-v2.10-B54A3A?style=for-the-badge" alt="PRD v2.10"/></a>
-  <a href="https://github.com/xiongxianzhu/xblog/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT"/></a>
-</p>
+# AGENTS.md
 
-<h1 align="center">AGENTS.md</h1>
+xblog 编码助手与贡献者协作规范。
 
-<p align="center">
-  <strong>面向 AI 编码助手与仓库贡献者的协作手册</strong><br/>
-  <sub>Cursor Agent · 自动化 PR · 新成员 onboarding</sub>
-</p>
+[项目说明](README.md) · [PRD](docs/prd.md) · [贡献指南](CONTRIBUTING.md) · [Git 工作流](docs/git-workflow.md) · [后端](backend/README.md) · [前端](frontend/README.md)
 
-<p align="center">
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.2-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js"/></a>
-  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/></a>
-  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/></a>
-</p>
+## 项目结构
 
-<p align="center">
-  <a href="CONTRIBUTING.md"><b>贡献指南</b></a>
-  &nbsp;·&nbsp;
-  <a href="docs/git-workflow.md"><b>Git 工作流</b></a>
-  &nbsp;·&nbsp;
-  <a href="README.md"><b>根 README</b></a>
-  &nbsp;·&nbsp;
-  <a href="docs/prd-xblog.md"><b>PRD</b></a>
-  &nbsp;·&nbsp;
-  <a href="backend/README.md"><b>后端</b></a>
-  &nbsp;·&nbsp;
-  <a href="frontend/README.md"><b>前端</b></a>
-</p>
+xblog 是自托管个人博客 Monorepo。
 
-<p align="center"><sub>— · — · —</sub></p>
+| 目录 | 职责 |
+| --- | --- |
+| `backend/` | FastAPI、PostgreSQL、JWT Cookie、Markdown 渲染 |
+| `frontend/` | Next.js 公开页与管理后台 |
+| `deploy/` | nginx、systemd 配置示例 |
+| `docs/` | 需求、接口、数据库、部署与任务文档 |
+| `docs/superpowers/` | 功能设计与实施计划 |
 
----
+后端按 `models`、`schemas`、`services`、`api/v1` 分层；迁移在 `backend/alembic/`，测试在 `backend/tests/`。前端页面在 `app/`，组件在 `components/`，请求与公共逻辑在 `lib/`。
 
-## 目录
+## 工作约束
 
-- [项目概览](#-项目概览)
-- [开始工作前](#-开始工作前)
-- [本地开发](#-本地开发)
-- [目录结构](#-目录结构)
-- [API 分层](#-api-分层)
-- [主题系统（易踩坑）](#-主题系统易踩坑)
-- [内容与公开页](#-内容与公开页)
-- [环境变量](#-环境变量)
-- [Git 规范](#-git-规范)
-- [编码原则](#-编码原则)
-- [常见任务](#-常见任务)
-- [部署检查清单](#-部署检查清单)
+- 编码前阅读 [PRD](docs/prd.md) 相关章节，明确改动范围：公开页、后台、API、迁移或部署。
+- 开发和生产数据库使用 PostgreSQL，不以 SQLite 替代。现有内存测试不能替代 PostgreSQL 验收。
+- 只改任务相关内容，不顺手重构，不增加推测性抽象。
+- 沿用现有命名、目录、shadcn/ui 和 Tailwind 风格。
+- 公开页优先 Server Component；后台交互使用 Client Component 和 SWR。
+- 内容变更需检查 ISR 刷新链路，复用现有 revalidate 实现。
+- 新增数据库字段必须提供 Alembic 迁移，不只修改模型。
+- 用户未要求时，不主动新增 Markdown 文档。
+- 不提交 `.env`、密钥、真实用户数据或上传文件；上传目录仅保留 `.gitkeep`。
 
----
+## 本地开发与检查
 
-## 📌 项目概览
+环境要求：Python 3.14+、uv、Node.js 20.9+、pnpm 9+、PostgreSQL。
 
-<p align="center"><strong>xblog</strong> — 自托管个人博客 Monorepo</p>
-
-| | 部分 | 路径 | 职责 |
-|:-:|:---|:---|:---|
-| 🔧 | 后端 API | `backend/` | FastAPI · PostgreSQL · JWT Cookie · Markdown |
-| 🌐 | 前端站点 | `frontend/` | Next.js 公开页（`app/[locale]/` + ISR）+ `/admin`（无 locale） |
-| 🚀 | 部署 | `deploy/` | nginx · systemd 示例 |
-| 📋 | 需求文档 | `docs/prd-xblog.md` | 产品与技术决策的**权威来源** |
-
-<p align="center"><sub>生产路由：<code>/</code> → Next.js :3000 · <code>/api/</code> → FastAPI :8000（nginx 同域反代）</sub></p>
-
----
-
-## ⚠️ 开始工作前
-
-> **动手写代码之前，先确认这三件事。**
-
-1. 阅读 [`docs/prd-xblog.md`](docs/prd-xblog.md) 中与任务相关的章节
-2. 明确改动层级：公开页 / 后台 / API / 迁移 / 部署——**不要跨层乱改**
-3. 数据库只用 **PostgreSQL**（PRD 禁止 SQLite 作为目标环境）
-
-| 🚫 禁止提交 | 说明 |
-|------------|------|
-| `backend/.env`、`frontend/.env` | 含密钥与连接串 |
-| `uploads/` 用户文件 | 仅保留 `.gitkeep` |
-| 真实用户数据 | 隐私与合规 |
-
----
-
-## 🛠 本地开发
-
-### 前置
-
-| Python + uv | Node.js + pnpm | PostgreSQL |
-|:-----------:|:--------------:|:----------:|
-| 3.14+ | 20+ / 9+ | 运行中 |
-
-### 后端
+在 `backend/` 执行：
 
 ```bash
-cd backend
 make install
-make setup          # .env.example → .env
+make setup
 # 编辑 .env：SECRET_KEY、DATABASE_URL
 make migrate
-make dev            # → http://127.0.0.1:8000
+make dev
 ```
 
-<p align="center"><sub>端点 · <code>GET /api/v1/public/health</code> 健康检查 · <code>/docs</code> OpenAPI</sub></p>
+API 默认监听 `127.0.0.1:8000`；健康检查为 `/api/v1/public/health`，接口文档为 `/docs`。健康检查只验证进程响应。
 
-### 前端
+在 `frontend/` 执行：
 
 ```bash
-cd frontend
 pnpm install
-pnpm dev            # → http://localhost:3000
+pnpm dev
 ```
 
-<p align="center"><sub><code>/api/*</code> 由 <a href="frontend/next.config.ts">next.config.ts</a> 代理到 <code>BACKEND_URL</code>（默认 localhost:8000）</sub></p>
+前端默认监听 `localhost:3000`。[next.config.ts](frontend/next.config.ts) 将 `/api/*` 代理到 `BACKEND_URL`。
 
-### 质量门禁
+提交前执行对应检查，分别在各目录运行：
 
 ```bash
-cd backend  && make check              # ruff + mypy + pytest
-cd frontend && pnpm lint && pnpm build
+# backend/
+make check
+
+# frontend/
+pnpm lint
+pnpm build
 ```
 
----
+`make check` 包含 Ruff、mypy 和 pytest。未执行的检查应注明，不将代码或测试文件存在视为验收通过。
 
-## 📁 目录结构
+## API 分层
 
-```text
-xblog/
-├── AGENTS.md                ← 本文件
-├── docs/superpowers/        # 功能 design spec · implementation plan
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/          # public · admin · auth · ai
-│   │   ├── core/            # config · security
-│   │   ├── db/              # session
-│   │   ├── models/          # SQLModel
-│   │   ├── schemas/         # Pydantic
-│   │   └── services/        # 业务逻辑 · ai/ · upload_cleanup · revalidate …
-│   ├── alembic/             # 001–013 迁移
-│   └── tests/
-├── frontend/
-│   ├── app/                 # App Router · [locale]/ · admin/
-│   ├── components/          # site/ · admin/ · giscus · article-toc · post-card …
-│   ├── i18n/                # next-intl 路由与 request
-│   ├── messages/            # zh-CN · zh-TW · en 文案
-│   ├── proxy.ts             # locale 中间件 · admin 重定向
-│   └── lib/                 # api · themes · site-theme · ai-api · pending-upload-cleanup
-└── deploy/
-```
-
----
-
-## 🔌 API 分层
-
-<p align="center"><sub>注册入口 → <a href="backend/app/api/v1/router.py"><code>backend/app/api/v1/router.py</code></a></sub></p>
+路由入口：[backend/app/api/v1/router.py](backend/app/api/v1/router.py)。完整契约见 [api.md](docs/api.md)。
 
 | 前缀 | 认证 | 用途 |
-|------|:----:|------|
-| `/api/v1/public/*` | 无 | 文章、搜索、友链、公开站主题与品牌 |
-| `/api/v1/auth/*` | 登录流 | Cookie + JWT · 短信 · OAuth · 资料 |
-| `/api/v1/admin/*` | 管理员 Cookie | CRUD、用户、站点设置、AI 网关 |
+| --- | --- | --- |
+| `/api/v1/public/*` | 无 | 公开文章、搜索、友链、主题与访问上报 |
+| `/api/v1/auth/*` | 按接口要求 | 登录、Cookie 会话、短信、OAuth、个人资料 |
+| `/api/v1/admin/*` | 管理员 Cookie | 内容管理、用户、站点设置、AI 网关 |
 
-> ⚠️ **写操作只放 admin**。不要在 public 路由暴露 POST/PATCH/DELETE。
+内容管理写操作放在 admin，不向 public 新增内容增删改接口。现有匿名 pageviews 上报不授权公开内容写入。
 
----
+## 主题与缓存
 
-## 🎨 主题系统（易踩坑）
-
-公开页与后台主题 **完全独立**：
+公开站与后台主题独立，不能互相覆盖。
 
 | 范围 | 存储 | DOM 作用域 |
-|------|------|-----------|
-| 公开站 | DB `site_settings` + API | `[data-site-shell]` · `data-site-palette` · 站点名称/副标题/LOGO/**备案号** |
-| 管理后台 | `localStorage` `xblog-admin-theme-v2` | `[data-admin-shell]` · **7 款** palette（与公开站 ID 一致） |
+| --- | --- | --- |
+| 公开站 | `site_settings`，包含主题、名称、副标题、LOGO、备案号 | `[data-site-shell]`、`data-site-palette` |
+| 后台 | localStorage：`xblog-admin-theme-v2` | `[data-admin-shell]` |
 
-### 刷新链路
+两者使用相同的 7 款配色 ID。公开站不使用访客 localStorage 保存主题。
 
-```mermaid
-sequenceDiagram
-  participant Admin as /admin/settings
-  participant API as FastAPI
-  participant DB as PostgreSQL
-  participant Rev as /api/revalidate
-  participant Layout as layout.tsx
+保存公开主题的链路：后台 PATCH → 数据库 → 后端调用 `/api/revalidate` → Next.js 失效 `site-theme` tag 与布局缓存。
 
-  Admin->>API: PATCH /admin/site-theme
-  API->>DB: 写入 site_settings
-  API->>Rev: POST（REVALIDATE_SECRET）
-  Rev->>Layout: revalidateTag("site-theme")
-  Layout->>API: GET /public/site-theme
-```
-
-| 环境 | 行为 |
-|------|------|
-| **开发** | `getPublicSiteTheme()` 用 `cache: "no-store"`，保存后刷新即可 |
-| **生产** | 必须配置 `REVALIDATE_SECRET` + `REVALIDATE_URL`，否则页面长时间 stale |
-
-> Next.js 16：`revalidateTag(tag, "max")` 需要**第二个参数**。
-
-**关键文件**
+- 开发环境每次读取主题，保存后刷新即可。
+- 生产环境必须配置双端一致的 `REVALIDATE_SECRET`，`REVALIDATE_URL` 直连 Next.js；否则可能保留旧缓存。
+- 回调使用 `revalidateTag(tag, "max")`，保留第二个参数。
 
 | 文件 | 职责 |
-|------|------|
-| [`frontend/lib/site-theme.ts`](frontend/lib/site-theme.ts) | 服务端拉取 + 缓存 tag |
-| [`frontend/app/api/revalidate/route.ts`](frontend/app/api/revalidate/route.ts) | ISR 回调 |
-| [`backend/app/services/revalidate.py`](backend/app/services/revalidate.py) | 触发 revalidate |
-| [`frontend/lib/themes.ts`](frontend/lib/themes.ts) | 7 款 palette 元数据 |
-| [`backend/app/services/site_settings.py`](backend/app/services/site_settings.py) | 读写主题与站点品牌 |
+| --- | --- |
+| [frontend/lib/site-theme.ts](frontend/lib/site-theme.ts) | 服务端主题读取与缓存 |
+| [frontend/lib/themes.ts](frontend/lib/themes.ts) | 配色定义 |
+| [frontend/app/api/revalidate/route.ts](frontend/app/api/revalidate/route.ts) | 缓存失效回调 |
+| [backend/app/services/revalidate.py](backend/app/services/revalidate.py) | 发送回调 |
+| [backend/app/services/site_settings.py](backend/app/services/site_settings.py) | 主题与品牌配置 |
 
----
+## 国际化
 
-## 📄 内容与公开页
+- 公开页位于 `frontend/app/[locale]/`，由 URL locale 和 next-intl 解析语言。
+- 后台位于 `/admin/*`，不加 `[locale]`，语言读取 `NEXT_LOCALE` cookie。
+- `frontend/proxy.ts` 将 `/{locale}/admin/*` 重定向到 `/admin/*`，并为后台请求注入 `x-pathname`。
+- 文案位于 `frontend/messages/{zh-CN,zh-TW,en}.json`；切换逻辑见 `locale-switcher.tsx`、`locale-actions.ts`。
 
-近期能力速查（改前先读对应文件）：
+## 功能修改入口
 
-| 能力 | 后端 | 前端 |
-|------|------|------|
-| 文章封面 | `POST/DELETE /admin/posts/cover` · `services/uploads.py` · PATCH 时删旧文件 | `post-cover-editor.tsx` · `pending-upload-cleanup.ts` |
-| 友链 LOGO | `POST/DELETE /admin/links/logo` · `uploads/link-logos/` | `friend-link-logo-editor.tsx` · 公开页 `links/page.tsx` |
-| 上传兜底 | `services/upload_cleanup.py` · `cli cleanup-uploads` | 前端即时 DELETE；cron 扫 `covers/` + `link-logos/` |
-| 标签 | `services/posts.py` → `get_or_create_tag` / `sync_tags` | `tags/[slug]/page.tsx` · `decodeRouteParam` |
-| 代码块语言 | — | `prose-code-blocks.ts` · 读 `data-code-language` |
-| 文章 TOC | `prepareArticleContent` 解析 heading | `article-toc.tsx` · 详情页 `xl:sticky` 侧栏 |
-| 备案号页脚 | `site_settings` · `site_icp_number` | `site-footer.tsx` · `public/beian-ghs.png` |
-| Giscus | — | `giscus.tsx`（iframe wrapper）· **勿**在父页写 `.gsc-*` 期望生效 |
-| 编辑底栏 | — | `post-editor-form.tsx` · `.admin-editor-actions` 固定底部 |
-| Turnstile | `login_guard.py` · `GET /auth/login-guard` · `auth_settings` 开关 | `admin-login-screen.tsx` · `admin-turnstile.tsx` |
-| 审计日志 | `audit_logs.py` · `GET /admin/logs/login|operations` | `admin-pagination.tsx` · `lib/api.ts` 分页请求 |
+下表后端路径相对 `backend/app/`，前端路径相对 `frontend/`；组件简称可在 `components/` 下定位。
 
-**Giscus 注意**：`giscus.app/client.js` 会清空 `.giscus` 子节点再插入 iframe；宽度对齐靠插入后包一层 `div` + `[data-site-shell] .giscus > div`。改 iframe **内部**样式需 custom theme CSS URL。
+| 功能 | 后端入口 | 前端入口 |
+| --- | --- | --- |
+| 文章封面 | `api/v1/endpoints/admin/posts.py`、`services/uploads.py` | `post-cover-editor.tsx`、`pending-upload-cleanup.ts` |
+| 友链 LOGO 与简介 | `api/v1/endpoints/admin/links.py`、`models/friend_link.py` | `friend-link-logo-editor.tsx`、`app/[locale]/links/page.tsx` |
+| 标签 | `services/posts.py`：`sync_tags` | `app/[locale]/tags/[slug]/page.tsx`、`decodeRouteParam` |
+| 上传清理 | `services/upload_cleanup.py`、`cli.py` | `lib/pending-upload-cleanup.ts` |
+| 代码块语言 | — | `lib/prose-code-blocks.ts`，读取 `data-code-language` |
+| 文章目录 | — | `lib/article-headings.ts`：`prepareArticleContent`、`article-toc.tsx` |
+| 备案号 | `services/site_settings.py`：`site_icp_number` | `site-footer.tsx`、`public/beian-ghs.png` |
+| 评论 | — | `giscus.tsx` |
+| 编辑底栏 | — | `post-editor-form.tsx`、`.admin-editor-actions` |
+| 登录防护 | `services/login_guard.py`、`services/auth_settings.py` | `admin-login-screen.tsx`、`admin-turnstile.tsx` |
+| 审计日志 | `services/audit_logs.py`、`api/v1/endpoints/admin/logs.py` | `admin-pagination.tsx`、`lib/api.ts`；菜单存在不代表列表页已实现 |
 
-**封面 / LOGO 删除（三层互补）**：
+### 上传与清理
 
-1. **即时**：取消、关弹窗、离开编辑页 → 前端 `pending-upload-cleanup.ts` 调 `DELETE` API  
-2. **保存时**：PATCH 换封面/LOGO 或置空 → 后端删旧 managed 文件（已有）  
-3. **兜底**：关浏览器/崩溃 → `uv run python -m app.cli cleanup-uploads`（cron，默认 1h TTL）
+封面和友链 LOGO 的清理分三层：
 
-编辑页「移除」仅清空表单；未保存的本地上传靠 1 清理，不靠 PATCH。
+1. 取消、关闭弹窗或离开编辑页时，前端删除未保存上传。
+2. 保存替换或移除图片时，后端按具体接口逻辑清理旧 managed 文件。
+3. 浏览器关闭或崩溃留下的孤儿文件，由 CLI 定时清理。
 
----
-
-## 🌍 国际化（i18n）
-
-| 区域 | 路由 | 语言解析 |
-|------|------|----------|
-| 公开站 | `app/[locale]/…` | URL locale + next-intl |
-| 管理后台 | `/admin/*`（**无** locale 前缀） | `NEXT_LOCALE` cookie · `i18n/request.ts` |
-
-- `proxy.ts`：将 `/{locale}/admin/*` **重定向**至 `/admin/*`；admin 请求注入 `x-pathname`。
-- 文案：`frontend/messages/{zh-CN,zh-TW,en}.json`；切换见 `locale-switcher.tsx` + `locale-actions.ts`。
-- **勿**在 admin 路由下加 `[locale]` 段。
-
----
-
-## 🔐 环境变量
-
-<details>
-<summary><strong>backend/.env</strong></summary>
-
-| 变量 | 说明 |
-|------|------|
-| `SECRET_KEY` | JWT 签名（生产必须随机强密钥） |
-| `DATABASE_URL` | `postgresql+asyncpg://...` |
-| `CORS_ORIGINS` | 开发默认 `http://localhost:3000` |
-| `REVALIDATE_SECRET` | 与 frontend 一致 |
-| `REVALIDATE_URL` | 如 `http://localhost:3000/api/revalidate` |
-| `AI_KEY_ENCRYPTION_SECRET` | AI Key 加密（可选） |
-| `GITHUB_CLIENT_*` / `WECHAT_*` | OAuth（可选） |
-| `SMS_PROVIDER` | 短信验证码；开发用 `dev`（验证码打日志） |
-| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile |
-| `LOGIN_CAPTCHA_AFTER_FAILURES` 等 | 登录失败触发验证码 · 限流（见 `.env.example`） |
-
-模板 → [`backend/.env.example`](backend/.env.example)
-
-</details>
-
-<details>
-<summary><strong>frontend/.env</strong>（复制 <code>.env.example</code>）</summary>
-
-| 变量 | 说明 |
-|------|------|
-| `BACKEND_URL` | 服务端 fetch 与 rewrite 目标 |
-| `REVALIDATE_SECRET` | 与 backend 一致 |
-| `NEXT_PUBLIC_SITE_URL` | sitemap、RSS 绝对 URL |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | 与 backend `TURNSTILE_SITE_KEY` 相同 |
-| `NEXT_PUBLIC_GISCUS_*` | Giscus 评论（可选，见 `.env.example` 完整字段） |
-
-</details>
-
----
-
-## 🌿 Git 规范
-
-> 完整流程见 [CONTRIBUTING.md](CONTRIBUTING.md) · [docs/git-workflow.md](docs/git-workflow.md)
-
-| 类型 | 分支示例 |
-|------|----------|
-| 新功能 | `feat/<功能名>` |
-| 修复 | `fix/<问题描述>` |
-| 文档 | `docs/<主题>` |
-| 重构 | `refactor/<描述>` |
-| 其他 | `chore/` · `test/` · `ci/` · `build/` |
-
-**Commit**：Conventional Commits，**描述用简体中文**；可选范围如 `feat(backend):`、`fix(frontend):`。
-
-```text
-feat: 支持公开站主题预设
-fix(frontend): 修复 Giscus 环境变量未生效
-docs: 补充 Git 工作流与贡献指南
+```bash
+# backend/
+uv run python -m app.cli cleanup-uploads --max-age 3600 --dry-run
 ```
 
-**PR**：从 `main` 切分支 → 本地检查 → 开 PR → Squash merge。使用 [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md)。
+仅扫描 `uploads/covers/`、`uploads/link-logos/`，分别核对 `posts.cover_url`、`friend_links.logo_url`；不扩展为全盘清理。默认 TTL 为 3600 秒，实际清理时间还受定时周期影响。编辑器“移除”只改变表单，不代表已保存到数据库。
 
-### Agent 行为准则
+图片展示使用 `resolvePublicAssetUrl`；中文标签 slug 需编码和解码。相关测试：`test_post_cover.py`、`test_post_tags.py`、`test_upload_cleanup.py`。设计见 [上传清理说明](docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md)。
 
-- 未经用户明确要求 → **不要** `git commit` / `git push`
-- 改动保持 **最小范围**，不顺手重构无关代码
-- 新增 DB 字段 → **必须** Alembic 迁移（`make revision MSG="..."` → `make migrate`）
+### Giscus
 
----
+`giscus.app/client.js` 会清空 `.giscus` 子节点后插入 iframe。宽度对齐使用插入后的包装层和 `[data-site-shell] .giscus > div`；iframe 内部样式需自定义主题 CSS URL，父页 `.gsc-*` 选择器不会生效。
 
-## 📐 编码原则
+### Turnstile
 
-| # | 原则 |
-|:-:|------|
-| 1 | **先简单** — 只实现任务所需，不加 speculative 抽象 |
-| 2 | **跟现有风格** — shadcn/ui + Tailwind，命名与目录一致 |
-| 3 | **RSC 优先** — 公开页用 Server Component；后台交互用 Client + SWR |
-| 4 | **ISR 联动** — 内容变更后触发 revalidate（文章、主题等已有模式可复用） |
-| 5 | **少写文档** — 用户未要求时不主动新建 Markdown |
+配置后端 `TURNSTILE_*` 与前端 `NEXT_PUBLIC_TURNSTILE_SITE_KEY`，再在后台登录方式设置中启用。防护启用时，密码失败达到阈值后要求验证，找回密码始终要求验证。前端通过 `GET /api/v1/auth/login-guard?username=` 决定是否展示验证码。
 
----
+### AI 助手
 
-## 🧭 常见任务
+- 网关：`backend/app/services/ai/gateway.py`；接口：`POST /api/v1/admin/ai/complete`。
+- SSE 事件：`delta`、`thinking`、`done`、`error`；支持 `skill_ids` 多 Skill。
+- 前端 BFF：`frontend/app/api/v1/admin/ai/complete/route.ts`；生产请求是否经过 BFF 由 nginx 路由决定。
+- 组件：`ai-composer.tsx`、`editor-ai-assistant-layout.tsx`、`ai-assistant-panel.tsx`。
+- 内置 Skill：`blog-chat-zh`、`blog-polish-zh`、`blog-generate-zh`、`blog-format-zh`、`blog-excerpt-zh`。
+- 默认 Skill 存于 `ai_skill_default`，修改时同步检查设置页。设计见 [AI Composer](docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md)。
 
-<details>
-<summary><strong>新增 API 字段</strong></summary>
+## 常见改动流程
 
-1. `models/` → `schemas/` → `services/` → `endpoints/`
-2. Alembic 迁移
-3. 前端 `lib/types.ts` / `lib/api.ts` + 页面
-4. `make check` + `pnpm build`
+| 任务 | 必查内容 |
+| --- | --- |
+| 新增 API 字段 | 模型、schema、服务、路由、必要迁移、前端类型与请求、对应页面及测试 |
+| 新增公开页 | `app/[locale]/<route>/page.tsx`、metadata、sitemap、三种语言文案、site 样式变量 |
+| 新增后台菜单 | `lib/admin-nav.ts`、`app/admin/(shell)/<page>/page.tsx`、管理接口与 Cookie 权限 |
 
-</details>
+## 配置与部署
 
-<details>
-<summary><strong>新增公开页路由</strong></summary>
+环境变量以 [后端模板](backend/.env.example)、[前端模板](frontend/.env.example) 和配置代码为准。详细步骤见 [deployment.md](docs/deployment.md)。
 
-1. `frontend/app/[locale]/<route>/page.tsx`
-2. SEO：metadata + sitemap 联动
-3. 文案加入 `messages/*.json`
-4. 样式走 `globals.css` site 变量，避免硬编码颜色
+- 默认目录 `/home/appuser/xblog`，服务用户和用户组 `appuser`。
+- 生产依赖使用 `uv sync --frozen --no-dev`；迁移使用 `uv run --frozen --no-dev alembic upgrade head`。
+- API 常驻进程使用 `uv run --no-sync uvicorn`，前端构建后使用 `next start`，由 systemd 管理。
+- nginx 将 `/` 转发至 3000，`/api/` 转发至 8000；ISR 回调使用 `http://127.0.0.1:3000/api/revalidate`。
+- 生产启用 HTTPS、`COOKIE_SECURE=true`，使用强随机 `SECRET_KEY`；前后端 `REVALIDATE_SECRET` 保持一致。
+- AI 加密配置需随数据库备份保留；更换密钥前确认旧 Key 的恢复方案。
+- 按需配置 OAuth、SMTP、Giscus、Turnstile。短信 aliyun 分支目前仅记录日志，不视为生产发送能力。
+- 配置上传清理 cron，并验证数据库、上传文件和配置的配套备份恢复。
 
-</details>
+模板见 [systemd 部署](deploy/systemd/README.md)。不要把模板存在视为服务已部署。
 
-<details>
-<summary><strong>新增后台菜单</strong></summary>
+## Git 规范
 
-1. `lib/admin-nav.ts` 导航项
-2. `app/admin/(shell)/<page>/page.tsx`
-3. 对应 admin API + Cookie 权限
+- 未经用户明确要求，不执行 `git commit` 或 `git push`。
+- 用户明确调用 `git-commit` Skill 时，提交当前任务相关改动后推送当前分支。
+- 只提交任务相关改动，不混入用户的其他修改。
+- 分支按类型命名：`feat/`、`fix/`、`docs/`、`refactor/`、`chore/`、`test/`、`ci/`、`build/`。
+- Commit 使用 Conventional Commits，描述用简体中文，例如 `fix(frontend): 修复评论区宽度`。
+- PR 从 `main` 分支开始，完成本地检查后使用 [PR 模板](.github/PULL_REQUEST_TEMPLATE.md)，按项目流程 Squash merge。
 
-</details>
-
-<details>
-<summary><strong>文章封面 / 标签 / 友链 LOGO</strong></summary>
-
-1. 封面：`models/post.cover_url` · `admin/posts.py` upload/PATCH · `uploads/covers/`
-2. 友链 LOGO：`admin/links/logo` · `uploads/link-logos/` · `friend_link.description`（迁移 013）
-3. 未保存清理：前端 `pending-upload-cleanup.ts` · 后端 `upload_cleanup.py` + CLI
-4. 标签：`sync_tags` 自动创建 · 中文 slug 走 URL 编码 · 标签页解码 `decodeRouteParam`
-5. 公开页：`resolvePublicAssetUrl` · ISR 与 revalidate 同文章发布链路
-6. 测试：`test_post_cover.py` · `test_post_tags.py` · `test_upload_cleanup.py`
-
-</details>
-
-<details>
-<summary><strong>Turnstile 登录防护</strong></summary>
-
-- 配置：`TURNSTILE_*` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` · 后台 **设置 → 登录方式** 启用
-- 逻辑：`login_guard.py` · 密码失败 N 次后必填 · 找回密码始终验证
-- 前端：`GET /auth/login-guard?username=` 决定登录页是否渲染 Turnstile
-
-</details>
-
-<details>
-<summary><strong>AI 助手相关</strong></summary>
-
-- 后端：`services/ai/gateway.py` · `POST /admin/ai/complete`（SSE：`delta` / `thinking` / `done` · 支持 `skill_ids` 多 Skill）
-- 前端 BFF：`app/api/v1/admin/ai/complete/route.ts`
-- UI：`ai-composer.tsx`（Skill Chip、`/` 列表、快捷按钮、模型选择）· `editor-ai-assistant-layout.tsx` · `ai-assistant-panel.tsx`
-- 内置 Skill：`blog-chat-zh` · `blog-polish-zh` · `blog-generate-zh` · `blog-format-zh` · `blog-excerpt-zh`
-- 设计 spec：[`docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md`](docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md)
-- 改 Skill 默认：`ai_skill_default` 表 + 设置页
-
-</details>
-
-<details>
-<summary><strong>上传孤儿清理</strong></summary>
-
-- 范围：仅 `uploads/covers/`、`uploads/link-logos/`（非全盘扫描）
-- 服务：`services/upload_cleanup.py` · 对比 `posts.cover_url` / `friend_links.logo_url`
-- CLI：`uv run python -m app.cli cleanup-uploads [--max-age 3600] [--dry-run]`
-- 测试：`tests/test_upload_cleanup.py`
-- 设计：[`docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md`](docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md)
-
-</details>
-
----
-
-## ✅ 部署检查清单
-
-- [ ] `uv sync --frozen --no-dev` + `alembic upgrade head`
-- [ ] `pnpm build` + `next start`（systemd）
-- [ ] nginx：`/` → 3000，`/api/` → 8000
-- [ ] HTTPS · `COOKIE_SECURE=true` · 强 `SECRET_KEY`
-- [ ] `REVALIDATE_SECRET` 前后端一致
-- [ ] Turnstile 生产 Key 与后台开关按需配置
-- [ ] 生产 cron：`cleanup-uploads`（见 [backend/README.md](backend/README.md)）
-
-<p align="center">详细流程 → <a href="deploy/systemd/README.md"><b>deploy/systemd/README.md</b></a></p>
-
----
-
-<p align="center">
-  <sub><a href="LICENSE"><b>MIT License</b></a></sub>
-</p>
+数据库字段变更需新增迁移：`make revision MSG="描述"`，检查生成内容后再按授权执行 `make migrate`。完整协作流程见 [贡献指南](CONTRIBUTING.md) 和 [Git 工作流](docs/git-workflow.md)。

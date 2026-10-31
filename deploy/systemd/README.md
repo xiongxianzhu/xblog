@@ -1,29 +1,58 @@
 # systemd 部署
 
-Monorepo 生产环境用 **systemd** 守护 API 与 Next.js 进程（不用 supervisor）。
+xblog 生产环境用 systemd 守护 API 与 Next.js。默认仓库目录为 `/home/appuser/xblog`，两个服务均使用 `appuser` 用户和用户组。完整配置、首次初始化、验收与恢复步骤见 [部署文档](../../docs/deployment.md)。
+
+## 前置条件
+
+- `appuser` 用户和用户组已存在；该账号可读取项目、环境文件和 Python 解释器，并写入上传目录、虚拟环境及 Next.js 缓存目录。
+- 在 appuser 账号下安装依赖。API 模板使用 `/usr/local/bin/uv`，这是示例绝对路径；通过 `command -v uv` 核实实际位置后同步修改 `ExecStart` 与 cron。若 uv 安装在用户目录，可填写实际的 `/home/appuser/.local/bin/uv`。
+- Web 模板通过本地 Next.js 启动，systemd 的 PATH 必须能找到 Node；交互 shell 中的 Node 版本管理器配置不会自动加载。
+- 前后端 `.env` 已配置，PostgreSQL 可连接，迁移前完成必要备份。远程数据库部署应调整 API unit 的 `postgresql.service` 依赖。
 
 ## 安装步骤
 
-1. 将仓库部署到 VPS（示例路径 `/srv/xblog`），并完成 `backend/.env`、`frontend/.env` 与构建：
+1. 在 appuser 账号下安装生产后端依赖并迁移：
 
    ```bash
-   cd /srv/xblog/backend && uv sync --frozen --no-dev && uv run alembic upgrade head
-   cd /srv/xblog/frontend && pnpm install --frozen-lockfile && pnpm build
+   cd /home/appuser/xblog/backend
+   uv sync --frozen --no-dev
+   uv run --frozen --no-dev alembic upgrade head
+   uv run --frozen --no-dev alembic current
    ```
 
-2. 编辑本目录下 `xblog-api.service`、`xblog-web.service` 中的路径、用户、`ExecStart`。
+2. 核对 `xblog-api.service`、`xblog-web.service` 的用户、工作目录、环境文件和启动路径。API 启动命令为：
 
-3. 安装 unit 文件：
+   ```ini
+   ExecStart=/usr/local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+   ```
+
+   `--no-sync` 使用部署时已安装的虚拟环境，不在服务启动时同步依赖。更新版本时须先重新执行 `uv sync --frozen --no-dev`。
+
+3. 从仓库根目录安装 unit，先启动 API：
 
    ```bash
+   cd /home/appuser/xblog
    sudo cp deploy/systemd/xblog-api.service /etc/systemd/system/
    sudo cp deploy/systemd/xblog-web.service /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable xblog-api xblog-web
-   sudo systemctl start xblog-api xblog-web
+   sudo systemctl start xblog-api
    ```
 
-4. 查看状态与日志：
+4. 确认 API 与数据库可用后，在 appuser 账号下构建前端并启动 Web：
+
+   ```bash
+   curl --fail http://127.0.0.1:8000/api/v1/public/health
+   curl --fail http://127.0.0.1:8000/api/v1/public/posts
+   cd /home/appuser/xblog/frontend
+   pnpm install --frozen-lockfile
+   pnpm build
+   sudo systemctl start xblog-web
+   ```
+
+   health 仅检查进程响应；posts 用于检查数据库访问。首次初始化管理员与固定页见主部署文档。systemd 的 After 只保证顺序，不代表 API 已就绪。
+
+5. 检查服务状态与日志：
 
    ```bash
    sudo systemctl status xblog-api xblog-web
@@ -31,4 +60,6 @@ Monorepo 生产环境用 **systemd** 守护 API 与 Next.js 进程（不用 supe
    sudo journalctl -u xblog-web -f
    ```
 
-nginx 反向代理配置见 [`deploy/nginx/`](../nginx/README.md)（示例文件 `xblog.conf`）。
+预期两个服务均为 active，监听回环地址的 8000 / 3000。本文命令为操作说明，不代表已在服务器执行。
+
+nginx 反向代理配置见 [nginx 部署](../nginx/README.md)。`REVALIDATE_URL` 使用 `http://127.0.0.1:3000/api/revalidate`，避免公网 `/api/` 规则把回调转发给 FastAPI。

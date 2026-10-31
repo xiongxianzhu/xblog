@@ -210,7 +210,7 @@ xblog/
 |------|--------|------|
 | [AGENTS.md](AGENTS.md) | AI / 新贡献者 | 目录约定、环境变量、主题 ISR、Git 规范 |
 | [llms.txt](llms.txt) | LLM / AI 工具 | 仓库导航索引（llms.txt 规范，链到核心文档与入口代码） |
-| [docs/prd-xblog.md](docs/prd-xblog.md) | 产品 / 架构 | 需求、验收标准、技术决策 |
+| [docs/prd-xblog.md](docs/prd.md) | 产品 / 架构 | 需求、验收标准、技术决策 |
 | [docs/superpowers/](docs/superpowers/specs/) | 功能设计 | AI Composer、登录防护、上传清理等 spec/plan |
 | [backend/README.md](backend/README.md) | 后端开发 | API、迁移、`cleanup-uploads`、部署、排错 |
 | [frontend/README.md](frontend/README.md) | 前端开发 | 路由、主题、构建、排错 |
