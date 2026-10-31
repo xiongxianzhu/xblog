@@ -84,12 +84,12 @@ make install && make setup && make migrate && make dev
 uv sync
 cp .env.example .env
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --port 10242
 ```
 
 </details>
 
-<p align="center"><sub>Swagger UI → <a href="http://127.0.0.1:8000/docs"><code>http://127.0.0.1:8000/docs</code></a> · 健康检查 <code>GET /api/v1/public/health</code></sub></p>
+<p align="center"><sub>Swagger UI → <a href="http://127.0.0.1:10242/docs"><code>http://127.0.0.1:10242/docs</code></a> · 健康检查 <code>GET /api/v1/public/health</code></sub></p>
 
 ---
 
@@ -98,9 +98,9 @@ uv run uvicorn app.main:app --reload
 <p align="center"><sub><code>pyproject.toml</code> → <code>[tool.fastapi] entrypoint = "app.main:app"</code></sub></p>
 
 ```bash
-uv run fastapi dev                              # 开发（热重载）
+uv run fastapi dev --port 10242                 # 开发（热重载）
 uv run fastapi dev --host 0.0.0.0 --port 8080   # 自定义端口
-uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
+uv run fastapi run --host 127.0.0.1 --port 10242 --workers 4  # 生产
 ```
 
 <p align="center">生产推荐 systemd → <a href="../deploy/systemd/README.md"><b>deploy/systemd/</b></a></p>
@@ -118,13 +118,13 @@ uv run fastapi run --host 127.0.0.1 --port 8000 --workers 4  # 生产
 | `APP_ENV` | | 默认 `development` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | | JWT 访问令牌有效期 |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | | 刷新令牌有效期 |
-| `CORS_ORIGINS` | 开发 | 默认 `http://localhost:3000` |
+| `CORS_ORIGINS` | 开发 | 默认 `http://localhost:10241` |
 | `COOKIE_SECURE` / `COOKIE_DOMAIN` | 生产 | HTTPS 与 Cookie 域 |
 | `REVALIDATE_SECRET` | 生产 | 与 `frontend/.env` 一致 |
-| `REVALIDATE_URL` | 生产 | 如 `http://localhost:3000/api/revalidate` |
+| `REVALIDATE_URL` | 生产 | 如 `http://localhost:10241/api/revalidate` |
 | `UPLOAD_DIR` | | 上传根目录，默认 `uploads`（Skill 包、**封面** `covers/`、**友链 LOGO** `link-logos/`） |
 | `AI_KEY_ENCRYPTION_SECRET` | | AI 写作 Key 加密；留空则派生自 `SECRET_KEY` |
-| `FRONTEND_URL` | OAuth | 回调跳转目标，如 `http://localhost:3000` |
+| `FRONTEND_URL` | OAuth | 回调跳转目标，如 `http://localhost:10241` |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | | GitHub OAuth（可选） |
 | `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | | 微信 OAuth（可选） |
 | `SMS_PROVIDER` | | 短信：`dev`（开发，验证码写日志）或 `aliyun` |
@@ -253,8 +253,8 @@ make migrate
 
 ```text
 ① uv sync --frozen --no-dev && alembic upgrade head
-② systemd: uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
-③ nginx 反代 /api/ → :8000
+② systemd: uvicorn app.main:app --host 127.0.0.1 --port 10242 --workers 4
+③ nginx 反代 /api/ → :10242
 ```
 
 | 资源 | 路径 |

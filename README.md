@@ -86,8 +86,8 @@ flowchart LR
 
   subgraph VPS["VPS"]
     N["nginx"]
-    W["Next.js :3000"]
-    B["FastAPI :8000"]
+    W["Next.js :10241"]
+    B["FastAPI :10242"]
     DB[(PostgreSQL)]
   end
 
@@ -99,7 +99,7 @@ flowchart LR
   B --> DB
 ```
 
-<p align="center"><sub><b>同域路由</b>：/ → Next.js · /api/ → FastAPI · 开发时 Next 代理 /api/* 到 localhost:8000</sub></p>
+<p align="center"><sub><b>同域路由</b>：/ → Next.js · /api/ → FastAPI · 开发时 Next 代理 /api/* 到 localhost:10242</sub></p>
 
 ---
 
@@ -127,7 +127,7 @@ make install && make setup
 make migrate && make dev
 ```
 
-<p align="center">→ API 文档：<a href="http://127.0.0.1:8000/docs"><code>http://127.0.0.1:8000/docs</code></a></p>
+<p align="center">→ API 文档：<a href="http://127.0.0.1:10242/docs"><code>http://127.0.0.1:10242/docs</code></a></p>
 
 ### 3 · 前端
 
@@ -138,11 +138,11 @@ pnpm install && pnpm dev
 
 | 地址 | 用途 |
 |------|------|
-| <http://localhost:3000> | 公开站（默认 locale） |
-| <http://localhost:3000/zh-TW/blog> | 公开站（指定语言） |
-| <http://localhost:3000/admin> | 管理后台（无 locale 前缀） |
+| <http://localhost:10241> | 公开站（默认 locale） |
+| <http://localhost:10241/zh-TW/blog> | 公开站（指定语言） |
+| <http://localhost:10241/admin> | 管理后台（无 locale 前缀） |
 
-> 💡 后端端口非 `8000` 时，在 `frontend/.env` 设置 `BACKEND_URL`。
+> 💡 后端端口非 `10242` 时，在 `frontend/.env` 设置 `BACKEND_URL`。
 
 ### 4 · 可选：Giscus 评论
 
@@ -245,7 +245,7 @@ git push -u origin feat/your-feature
 ① 配置 backend/.env + frontend/.env（含 REVALIDATE_SECRET）
 ② uv sync --frozen --no-dev && alembic upgrade head
 ③ pnpm build && next start（systemd）
-④ nginx：/ → :3000，/api/ → :8000
+④ nginx：/ → :10241，/api/ → :10242
 ⑤ 可选：cron 每小时 `cleanup-uploads`（见 backend/README.md）
 ```
 

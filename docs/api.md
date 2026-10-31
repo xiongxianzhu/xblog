@@ -17,7 +17,7 @@
 
 面向前端和内部调用方。依据 [路由入口](../backend/app/api/v1/router.py)、[参数模型](../backend/app/schemas/)、[响应中间件](../backend/app/core/response.py) 与服务实现。需求背景见 [PRD](prd.md)，部署路径见 [部署文档](deployment.md)。
 
-- 后端基地址：本地 `http://127.0.0.1:8000`，生产示例 `https://blog.example.com`。下文使用完整路径；locale 不进入 API 路径。
+- 后端基地址：本地 `http://127.0.0.1:10242`，生产示例 `https://blog.example.com`。下文使用完整路径；locale 不进入 API 路径。
 - 后端提供 `/docs` 和 `/openapi.json`；仓库 nginx 配置不会把这两个根路径转发到后端，应在内网直连查看。
 - 普通成功响应为 `{code: 0, msg: "ok", data: ...}`；失败通常为 `{code: -1, msg: ..., data: {}}`。HTTP 状态码仍保留错误语义。声明 204 的接口经中间件转换为 HTTP 200。
 - 响应表的默认值指模型默认，不保证每次响应固定该值。可空与可省略不同；PATCH 的 null 语义由具体业务处理决定。
@@ -33,8 +33,8 @@
 ```bash
 curl -c cookies.txt -H 'Content-Type: application/json' \
   -d '{"username":"writer","password":"ExamplePassword123!"}' \
-  http://127.0.0.1:8000/api/v1/auth/login
-curl -b cookies.txt http://127.0.0.1:8000/api/v1/auth/me
+  http://127.0.0.1:10242/api/v1/auth/login
+curl -b cookies.txt http://127.0.0.1:10242/api/v1/auth/me
 ```
 
 示例账号需先由 CLI 创建。multipart 上传交由客户端生成 boundary，不手写 JSON 文件体。

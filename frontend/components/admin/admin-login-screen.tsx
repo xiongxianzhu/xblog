@@ -32,7 +32,7 @@ type LoginTab = "password" | "sms";
 
 function getLoginErrorMessage(error: unknown): string {
   if (error instanceof TypeError) {
-    return "无法连接后端，请确认 backend 已启动（uvicorn :8000）且 frontend 已重启";
+    return "无法连接后端，请确认 backend 已启动（uvicorn :10242）且 frontend 已重启";
   }
   if (error instanceof ApiError) {
     const messageMap: Record<string, string> = {

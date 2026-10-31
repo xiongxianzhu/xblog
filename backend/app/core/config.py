@@ -22,14 +22,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://xblog:xblog@localhost:5432/xblog"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:10241"
     cookie_secure: bool = False
     cookie_domain: str | None = None
     revalidate_secret: str = ""
-    revalidate_url: str = "http://localhost:3000/api/revalidate"
+    revalidate_url: str = "http://localhost:10241/api/revalidate"
     upload_dir: str = "uploads"
     ai_key_encryption_secret: str = ""
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:10241"
     github_client_id: str = ""
     github_client_secret: str = ""
     wechat_app_id: str = ""

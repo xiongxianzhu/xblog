@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
+const backendUrl = process.env.BACKEND_URL ?? "http://localhost:10242";
 
 /** 将 AI complete SSE 原样透传，避免 rewrite 缓冲导致无法流式显示。 */
 export async function POST(request: NextRequest) {

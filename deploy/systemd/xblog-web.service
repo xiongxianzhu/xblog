@@ -9,7 +9,7 @@ Group=appuser
 WorkingDirectory=/home/appuser/xblog/frontend
 Environment=NODE_ENV=production
 EnvironmentFile=-/home/appuser/xblog/frontend/.env
-ExecStart=/home/appuser/xblog/frontend/node_modules/.bin/next start -H 127.0.0.1 -p 3000
+ExecStart=/usr/local/bin/pnpm start -H 127.0.0.1
 Restart=on-failure
 RestartSec=5
 

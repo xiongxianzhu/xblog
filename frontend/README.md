@@ -72,7 +72,7 @@ pnpm install
 pnpm dev
 ```
 
-<p align="center"><sub>公开站 <a href="http://localhost:3000"><code>localhost:3000</code></a> · 后台 <a href="http://localhost:3000/admin"><code>localhost:3000/admin</code></a></sub></p>
+<p align="center"><sub>公开站 <a href="http://localhost:10241"><code>localhost:10241</code></a> · 后台 <a href="http://localhost:10241/admin"><code>localhost:10241/admin</code></a></sub></p>
 
 **构建与生产**：
 
@@ -88,7 +88,7 @@ pnpm lint && pnpm build && pnpm start
 
 | 变量 | 说明 |
 |------|------|
-| `BACKEND_URL` | 服务端 fetch 与 `/api` rewrite 目标，默认 `http://localhost:8000` |
+| `BACKEND_URL` | 服务端 fetch 与 `/api` rewrite 目标，默认 `http://localhost:10242` |
 | `REVALIDATE_SECRET` | 与 backend 一致，供 `/api/revalidate` 校验 |
 | `NEXT_PUBLIC_SITE_URL` | 站点绝对 URL（sitemap、RSS） |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile 站点 Key（与 backend `TURNSTILE_SITE_KEY` 相同） |

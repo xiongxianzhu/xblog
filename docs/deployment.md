@@ -12,16 +12,16 @@
 | Node.js / pnpm | 锁定 Next.js 要求 Node.js >=20.9.0；项目约定 pnpm >=9，未固定具体包管理器版本 |
 | PostgreSQL | 开发和生产目标数据库；主版本未在仓库锁定，部署前确认目标实例和备份工具兼容 |
 | nginx / systemd | nginx 负责入口与 TLS，systemd 运行两个应用进程 |
-| DNS / 网络 | 域名指向服务器；公开 80/443，3000/8000 仅监听回环；数据库仅向所需应用开放 |
+| DNS / 网络 | 域名指向服务器；公开 80/443，10241/10242 仅监听回环；数据库仅向所需应用开放 |
 | 持久化 | PostgreSQL、backend/uploads/、前后端环境文件；发布版本时保留并备份 |
 
 详细版本依据见 [技术栈](tech-stack.md)。现有 [systemd 模板](../deploy/systemd/) 与 [nginx 模板](../deploy/nginx/xblog.conf) 是部署起点，不是已启用的生产配置。
 
 | 请求 | 目标 |
 | --- | --- |
-| `/`、公开页、`/admin/*` | `127.0.0.1:3000`，Next.js |
-| `/api/v1/*`、`/api/v1/uploads/*` | `127.0.0.1:8000`，FastAPI |
-| `/api/revalidate` | Next.js 专有回调，应通过内网 `127.0.0.1:3000` 调用 |
+| `/`、公开页、`/admin/*` | `127.0.0.1:10241`，Next.js |
+| `/api/v1/*`、`/api/v1/uploads/*` | `127.0.0.1:10242`，FastAPI |
+| `/api/revalidate` | Next.js 专有回调，应通过内网 `127.0.0.1:10241` 调用 |
 
 模板中的 `/api/` 会转给 FastAPI，因此不能直接把 `REVALIDATE_URL` 设置成公网域名下的 `/api/revalidate`。该模板下 AI complete 直接进入 FastAPI；前端同路径 BFF 并不经过生产入口。后端 `/docs`、`/openapi.json` 也不会由根路径代理自动公开。
 
@@ -108,10 +108,10 @@ test -f frontend/.env || cp frontend/.env.example frontend/.env
 | DATABASE_URL | 必填，实际数据库账号与地址 | `postgresql+asyncpg://用户:密码@主机:5432/数据库`；不要使用模板密码 |
 | COOKIE_SECURE | true | 默认 false；启用后登录依赖 HTTPS |
 | COOKIE_DOMAIN | 通常留空 | host-only；仅需跨子域时设置匹配域名 |
-| CORS_ORIGINS | 实际站点 Origin | 默认 http://localhost:3000；多项逗号分隔 |
+| CORS_ORIGINS | 实际站点 Origin | 默认 http://localhost:10241；多项逗号分隔 |
 | FRONTEND_URL | https://blog.example.com | OAuth 和密码重置跳转目标 |
 | REVALIDATE_SECRET | 与前端一致的独立随机值 | 不填则跳过刷新 |
-| REVALIDATE_URL | http://127.0.0.1:3000/api/revalidate | 直连 Next.js，避免被 nginx 转发到后端 |
+| REVALIDATE_URL | http://127.0.0.1:10241/api/revalidate | 直连 Next.js，避免被 nginx 转发到后端 |
 | UPLOAD_DIR | uploads 或绝对持久化路径 | 默认 uploads，服务账号必须可写 |
 | AI_KEY_ENCRYPTION_SECRET | 使用 AI 时建议独立设置并备份 | 配置类支持，但环境模板未列出；不填则使用 SECRET_KEY 派生加密密钥 |
 | ACCESS_TOKEN_EXPIRE_MINUTES | 按需 | 默认 30 |
@@ -125,7 +125,7 @@ test -f frontend/.env || cp frontend/.env.example frontend/.env
 
 | 名称 | 配置 | 用途 |
 | --- | --- | --- |
-| BACKEND_URL | http://127.0.0.1:8000 | 服务端请求与开发代理的后端地址 |
+| BACKEND_URL | http://127.0.0.1:10242 | 服务端请求与开发代理的后端地址 |
 | NEXT_PUBLIC_SITE_URL | https://blog.example.com | sitemap、RSS、Open Graph 的绝对地址 |
 | REVALIDATE_SECRET | 与后端完全一致 | ISR 回调校验 |
 | NEXT_PUBLIC_TURNSTILE_SITE_KEY | 启用防护时填写 | 与后端公开 Site Key 一致 |
@@ -212,14 +212,23 @@ uv run --frozen --no-dev python -m app.cli seed-pages
 
 ### 3.3. 启动 API 并构建前端
 
-先编辑 `/home/appuser/xblog/deploy/systemd/xblog-api.service` 和 `xblog-web.service`：核对 User、Group、WorkingDirectory、EnvironmentFile、ExecStart。API 模板通过下面的 `uv run --no-sync` 命令启动 Uvicorn，使用 4 个 worker。Web 仍使用本地 `node_modules/.bin/next`，systemd 的 PATH 必须能够找到 Node。
+先编辑 `/home/appuser/xblog/deploy/systemd/xblog-api.service` 和 `xblog-web.service`：核对 User、Group、WorkingDirectory、EnvironmentFile、ExecStart。API 模板通过下面的 `uv run --no-sync` 命令启动 Uvicorn，使用 4 个 worker。Web 使用 `/usr/local/bin/pnpm start` 调用前端 package.json 的 `start` 脚本；systemd 的 PATH 仍须能够找到 Node。
 
 API 使用 appuser 安装的 `/home/appuser/.local/bin/uv`，确保该账号可读取项目虚拟环境和 Python 解释器。依赖已由部署步骤安装，常驻服务使用 `--no-sync`，避免启动时同步依赖：
 
 ```ini
 WorkingDirectory=/home/appuser/xblog/backend
-ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 10242 --workers 4
 ```
+
+Web 的启动配置如下，参数传递给 `next start`，保持回环监听和 10241 端口：
+
+```ini
+WorkingDirectory=/home/appuser/xblog/frontend
+ExecStart=/usr/local/bin/pnpm start -H 127.0.0.1
+```
+
+部署前确认 appuser 可执行 `/usr/local/bin/pnpm`；若实际安装位置不同，同步修改 unit。修改 unit 后执行 `daemon-reload`，已有服务需重启才会使用新启动命令。
 
 从仓库根目录安装并先启动 API：
 
@@ -261,9 +270,9 @@ sudo systemctl reload nginx
 以下都是预期检查结果，本文未执行服务器验收。
 
 ```bash
-curl --fail http://127.0.0.1:8000/api/v1/public/health
-curl --fail http://127.0.0.1:8000/api/v1/public/posts
-curl --fail http://127.0.0.1:8000/api/v1/public/site-theme
+curl --fail http://127.0.0.1:10242/api/v1/public/health
+curl --fail http://127.0.0.1:10242/api/v1/public/posts
+curl --fail http://127.0.0.1:10242/api/v1/public/site-theme
 curl --fail --location https://blog.example.com/
 sudo systemctl status xblog-api xblog-web
 ```
@@ -324,6 +333,26 @@ sudo journalctl -u xblog-web -n 100 --no-pager
 
 nginx 模板日志为 `/var/log/nginx/xblog.access.log` 和 `/var/log/nginx/xblog.error.log`。
 
+按端口查询监听进程，在 Linux 服务器执行：
+
+```bash
+# 前端：10241
+sudo ss -ltnp 'sport = :10241'
+
+# 后端：10242
+sudo ss -ltnp 'sport = :10242'
+
+# 同时检查前后端
+sudo ss -ltnp '( sport = :10241 or sport = :10242 )'
+
+# PostgreSQL：5432
+sudo ss -ltnp 'sport = :5432'
+```
+
+`-l` 仅显示监听套接字，`-t` 查询 TCP，`-n` 显示数字地址和端口，`-p` 显示进程名称、PID 和文件描述符。使用 sudo 可查看其他用户的进程信息。
+
+检查 `Local Address:Port` 和 `Process` 列：按本文 systemd 配置，前后端应分别监听 `127.0.0.1:10241`、`127.0.0.1:10242`。没有匹配记录表示当前没有该 TCP 端口的监听；端口被其他进程占用时，先根据 PID 确认进程归属，再处理对应服务。端口处于 LISTEN 不代表业务或数据库访问正常，仍需执行第 4 节接口检查。
+
 未引用上传清理仅覆盖 `covers/`、`link-logos/`，不包含头像、站点 LOGO 和 Skill。先在后端工作目录预览，再由具备文件和数据库权限的服务账号执行：
 
 ```bash
@@ -342,10 +371,10 @@ TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小�
 
 | 现象 | 检查位置 | 处理动作 |
 | --- | --- | --- |
-| 502 / 服务反复退出 | systemd 日志、ExecStart、Node PATH、工作目录 | 修正路径和读取权限；确认 3000/8000 监听 |
+| 502 / 服务反复退出 | systemd 日志、ExecStart、Node PATH、工作目录 | 修正路径和读取权限；确认 10241/10242 监听 |
 | health 成功但内容接口失败 | API 日志、DATABASE_URL、迁移版本 | 检查数据库连接与迁移，不把 health 当数据库探活 |
 | 登录后立即退出 | HTTPS、Cookie Secure/Domain、代理域名 | 修正 Cookie 与域名配置，保留生产 HTTPS |
-| 主题保存成功但公开页旧 | REVALIDATE_URL、双端密钥、API 回调日志 | 确认直连 3000；生产缓存与开发行为不同 |
+| 主题保存成功但公开页旧 | REVALIDATE_URL、双端密钥、API 回调日志 | 确认直连 10241；生产缓存与开发行为不同 |
 | 前端环境变量修改无效 | 构建时间、NEXT_PUBLIC_*、rewrite | 重新构建并重启 Web |
 | AI 输出最后一次性出现 | nginx SSE 设置 | 保留 proxy_buffering off、proxy_cache off 和超时配置 |
 | AI Key 解密失败 | 原 AI_KEY_ENCRYPTION_SECRET / SECRET_KEY | 恢复配套密钥或重新录入提供商 Key |

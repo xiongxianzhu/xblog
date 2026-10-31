@@ -12,12 +12,12 @@ export type { SitePublicTheme };
 
 const API_PREFIX = "/api/v1";
 
-/** 浏览器用当前页面 origin（:3000）；服务端组件直连 backend（:8000）。 */
+/** 浏览器用当前页面 origin（:10241）；服务端组件直连 backend（:10242）。 */
 function getRequestOrigin(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:10242";
 }
 
 function buildUrl(path: string, params?: Record<string, string | number | undefined>): string {

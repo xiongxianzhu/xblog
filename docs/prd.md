@@ -230,7 +230,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **Acceptance Criteria**
 
 - [ ] `GET /api/v1/public/health` 返回 `{"status":"ok"}`。
-- [ ] 同域路由：`/` → Next.js `:3000`，`/api/` → FastAPI `:8000`（nginx 反代）。
+- [ ] 同域路由：`/` → Next.js `:10241`，`/api/` → FastAPI `:10242`（nginx 反代）。
 - [ ] 生产环境 `COOKIE_SECURE=true`；`deploy/` 含 nginx 与 systemd 配置说明。
 
 
@@ -490,7 +490,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
            │                               │
     ┌──────▼──────┐                 ┌──────▼──────┐
     │  Next.js    │                 │  FastAPI    │
-    │  :3000      │                 │  :8000      │
+    │  :10241      │                 │  :10242      │
     │  frontend/  │                 │  backend/   │
     └──────┬──────┘                 └──────┬──────┘
            │         Cookie + fetch       │
@@ -692,8 +692,8 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 **路由映射（生产）**
 
 ```text
-https://<domain>/              → Next.js :3000
-https://<domain>/api/          → FastAPI  :8000
+https://<domain>/              → Next.js :10241
+https://<domain>/api/          → FastAPI  :10242
 https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · link-logos/ · skills/）
 ```
 
@@ -862,7 +862,7 @@ pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --no
 
 | #   | 事项                                                                              |
 | --- | ------------------------------------------------------------------------------- |
-| 1   | `cd frontend && pnpm dev`，确认 [http://localhost:3000](http://localhost:3000) 可访问 |
+| 1   | `cd frontend && pnpm dev`，确认 [http://localhost:10241](http://localhost:10241) 可访问 |
 | 2   | 复制 `frontend/.env.example` → `frontend/.env`                              |
 | 3   | 确认根 `.gitignore` 忽略 `node_modules/`、`.next/` 及 Python 工具缓存（可与 US-8 根规则合并）                                    |
 | 4   | 删除误生成的 `package-lock.json`（仅保留 `pnpm-lock.yaml`）                                |
@@ -906,7 +906,7 @@ uv run python -m app.cli create-admin --username <你的用户名>
 ```bash
 cd backend
 uv sync                                    # 依赖变更时
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 10242
 ```
 
 **终端 2 — 前端**
@@ -921,7 +921,7 @@ pnpm dev
 
 确保 PostgreSQL 已启动。
 
-验证：[http://localhost:8000/api/v1/public/health](http://localhost:8000/api/v1/public/health) 与 [http://localhost:3000](http://localhost:3000) 均可访问。
+验证：[http://localhost:10242/api/v1/public/health](http://localhost:10242/api/v1/public/health) 与 [http://localhost:10241](http://localhost:10241) 均可访问。
 
 ### 6.8 第三方：Giscus 评论（MVP 可选配置）
 
@@ -948,7 +948,7 @@ pnpm dev
 | 3   | `git pull` 获取代码                                  | 在服务器克隆或拉取 xblog                                 |
 | 4   | 后端：`uv sync`、`alembic upgrade head`、create-admin | 同 §6.5、§6.6                                     |
 | 5   | 前端：`pnpm install`、`pnpm build`                   | 生产构建产物                                          |
-| 6   | 配置 **nginx**                                     | `/` → `:3000`，`/api/` → `:8000`，`/uploads/` 静态  |
+| 6   | 配置 **nginx**                                     | `/` → `:10241`，`/api/` → `:10242`，`/uploads/` 静态  |
 | 7   | 配置 **systemd**                                | 守护 uvicorn 与 `next start`                       |
 | 8   | **HTTPS**                                        | certbot / Let's Encrypt；设置 `COOKIE_SECURE=true` |
 | 9   | **ISR 回调**                                     | 前后端配置成对的 revalidate 密钥与 URL（值由作者生成，不写进 PRD） |
@@ -1002,15 +1002,15 @@ pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --no
 
 ```bash
 cd frontend && pnpm dev
-# http://localhost:3000 可见默认页
+# http://localhost:10241 可见默认页
 ```
 
 **骨架阶段配置**
 
 1. 维护 `frontend/.env.example`（提交 Git），作者复制为 `frontend/.env`：
   ```env
-   BACKEND_URL=http://localhost:8000
-   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   BACKEND_URL=http://localhost:10242
+   NEXT_PUBLIC_SITE_URL=http://localhost:10241
    REVALIDATE_SECRET=change-me-revalidate
    # NEXT_PUBLIC_GISCUS_* 见 .env.example 完整列表
   ```

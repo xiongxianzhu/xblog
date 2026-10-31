@@ -11,7 +11,7 @@ import {
 const API_PREFIX = "/api/v1";
 
 function getServerOrigin(): string {
-  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:10242";
 }
 
 function normalizeTheme(raw: Partial<SitePublicTheme> | null | undefined): SitePublicTheme {

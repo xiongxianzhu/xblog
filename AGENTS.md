@@ -44,7 +44,7 @@ make migrate
 make dev
 ```
 
-API 默认监听 `127.0.0.1:8000`；健康检查为 `/api/v1/public/health`，接口文档为 `/docs`。健康检查只验证进程响应。
+API 默认监听 `127.0.0.1:10242`；健康检查为 `/api/v1/public/health`，接口文档为 `/docs`。健康检查只验证进程响应。
 
 在 `frontend/` 执行：
 
@@ -53,7 +53,7 @@ pnpm install
 pnpm dev
 ```
 
-前端默认监听 `localhost:3000`。[next.config.ts](frontend/next.config.ts) 将 `/api/*` 代理到 `BACKEND_URL`。
+前端默认监听 `localhost:10241`。[next.config.ts](frontend/next.config.ts) 将 `/api/*` 代理到 `BACKEND_URL`。
 
 提交前执行对应检查，分别在各目录运行：
 
@@ -178,8 +178,8 @@ uv run python -m app.cli cleanup-uploads --max-age 3600 --dry-run
 
 - 默认目录 `/home/appuser/xblog`，服务用户和用户组 `appuser`。
 - 生产依赖使用 `uv sync --frozen --no-dev`；迁移使用 `uv run --frozen --no-dev alembic upgrade head`。
-- API 常驻进程使用 `uv run --no-sync uvicorn`，前端构建后使用 `next start`，由 systemd 管理。
-- nginx 将 `/` 转发至 3000，`/api/` 转发至 8000；ISR 回调使用 `http://127.0.0.1:3000/api/revalidate`。
+- API 常驻进程使用 `uv run --no-sync uvicorn`，前端构建后使用 `/usr/local/bin/pnpm start`，由 systemd 管理。
+- nginx 将 `/` 转发至 10241，`/api/` 转发至 10242；ISR 回调使用 `http://127.0.0.1:10241/api/revalidate`。
 - 生产启用 HTTPS、`COOKIE_SECURE=true`，使用强随机 `SECRET_KEY`；前后端 `REVALIDATE_SECRET` 保持一致。
 - AI 加密配置需随数据库备份保留；更换密钥前确认旧 Key 的恢复方案。
 - 按需配置 OAuth、SMTP、Giscus、Turnstile。短信 aliyun 分支目前仅记录日志，不视为生产发送能力。

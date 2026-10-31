@@ -6,7 +6,7 @@ import { getPublicSiteTheme } from "@/lib/site-theme";
 export const dynamic = "force-dynamic";
 
 function getBackendOrigin(): string {
-  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:10242";
 }
 
 async function fetchLogo(sourceUrl: string) {

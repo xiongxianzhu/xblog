@@ -3,7 +3,7 @@
 UV ?= uv
 APP := app.main:app
 HOST ?= 127.0.0.1
-PORT ?= 8000
+PORT ?= 10242
 MSG ?= update
 
 help: ## 显示可用命令

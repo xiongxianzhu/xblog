@@ -3,7 +3,7 @@ import { getPublicSiteTheme } from "@/lib/site-theme";
 
 export async function GET() {
   const [{ items: posts }, siteTheme] = await Promise.all([listPosts(1, 100), getPublicSiteTheme()]);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:10241";
   const channelTitle = siteTheme.site_name;
   const channelDescription = siteTheme.site_tagline || "个人博客 RSS";
 
