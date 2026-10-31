@@ -9,6 +9,7 @@ import { SiteBrand } from "@/components/site-brand";
 import { SiteSearchForm } from "@/components/site-search-form";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import NextLink from "next/link";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -39,9 +40,12 @@ function NavLink({
   onNavigate?: () => void;
   className?: string;
 }) {
+  const LinkComponent = href === "/admin" ? NextLink : Link;
+
   return (
-    <Link
+    <LinkComponent
       href={href}
+      prefetch={href === "/admin" ? false : undefined}
       onClick={onNavigate}
       className={cn(
         "rounded-sm transition-colors",
@@ -50,7 +54,7 @@ function NavLink({
       )}
     >
       {label}
-    </Link>
+    </LinkComponent>
   );
 }
 
@@ -121,12 +125,13 @@ export function SiteHeader({ siteName, siteTagline, siteLogoUrl }: SiteHeaderPro
                 />
               );
             })}
-            <Link
+            <NextLink
               href="/admin"
+              prefetch={false}
               className="ml-1 rounded-sm border border-border/70 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
             >
               {t("admin")}
-            </Link>
+            </NextLink>
           </nav>
 
           <div className="ml-2 flex items-center gap-2 border-l border-border/50 pl-3">

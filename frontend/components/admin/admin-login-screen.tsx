@@ -379,6 +379,7 @@ export function AdminLoginScreen() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         <Link
           href="/"
+          prefetch={false}
           className="admin-login-back inline-flex items-center gap-1 transition-colors duration-150 hover:text-foreground"
         >
           返回站点

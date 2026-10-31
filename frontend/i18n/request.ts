@@ -34,13 +34,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
 
   if (isAdminPathname(pathname)) {
-    const adminLocale = readCookieLocale(cookieStore, [ADMIN_LOCALE_COOKIE_NAME]);
-
-    if (adminLocale) {
-      locale = adminLocale;
-    } else if (!locale || !locales.includes(locale as AppLocale)) {
-      locale = defaultLocale;
-    }
+    // Never inherit a public-route locale in the admin area.
+    locale = readCookieLocale(cookieStore, [ADMIN_LOCALE_COOKIE_NAME]) ?? defaultLocale;
   } else if (!locale || !locales.includes(locale as AppLocale)) {
     const siteLocale = readCookieLocale(cookieStore, [SITE_LOCALE_COOKIE_NAME]);
 

@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { useAdminTheme } from "@/components/admin/theme-provider";
-import { Link as LocaleLink } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
@@ -329,8 +328,9 @@ export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminS
       </nav>
 
       <div className={cn("border-t border-border/80 p-2.5", collapsed && !isDrawer && "px-1.5")}>
-        <LocaleLink
+        <Link
           href="/"
+          prefetch={false}
           title={collapsed && !isDrawer ? t("backToSite") : undefined}
           onClick={onNavigate}
           className={cn(
@@ -340,7 +340,7 @@ export function AdminSidebar({ onNavigate, className, variant = "rail" }: AdminS
         >
           <HouseIcon className="size-4 shrink-0" />
           {!collapsed || isDrawer ? <span>{t("backToSite")}</span> : null}
-        </LocaleLink>
+        </Link>
 
         {variant === "rail" ? (
           <Button
