@@ -9,6 +9,7 @@ from app.api.deps import CurrentUserDep, SessionDep
 from app.models.friend_link import FriendLink
 from app.schemas.common import MessageResponse
 from app.schemas.link import FriendLinkCreate, FriendLinkLogoUpload, FriendLinkPublic, FriendLinkUpdate
+from app.services.revalidate import trigger_revalidate
 from app.services.uploads import (
     delete_friend_link_logo_file,
     is_managed_friend_link_logo_url,
@@ -54,6 +55,8 @@ async def create_link(
     session.add(link)
     await session.flush()
     await session.refresh(link)
+    await session.commit()
+    await trigger_revalidate(["/links"])
     return link
 
 
@@ -79,6 +82,8 @@ async def update_link(
         setattr(link, key, value)
     await session.flush()
     await session.refresh(link)
+    await session.commit()
+    await trigger_revalidate(["/links"])
     return link
 
 
@@ -90,4 +95,6 @@ async def delete_link(link_id: int, session: SessionDep, _: CurrentUserDep) -> M
     if link.logo_url and is_managed_friend_link_logo_url(link.logo_url):
         delete_friend_link_logo_file(link.logo_url)
     await session.delete(link)
+    await session.commit()
+    await trigger_revalidate(["/links"])
     return MessageResponse(message="deleted")

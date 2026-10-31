@@ -98,8 +98,9 @@ async def create_post(
     await session.flush()
     await sync_tags(session, post.id or 0, payload.tag_slugs)
     await session.refresh(post)
+    await session.commit()
     if payload.status == "published":
-        await trigger_revalidate(["/", "/blog", f"/blog/{post.slug}"])
+        await trigger_revalidate(["/"], layout=True)
     return await to_post_admin(session, post)
 
 
@@ -121,6 +122,7 @@ async def update_post(
     post = await session.get(Post, post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    was_published = post.status == "published"
     if payload.slug and payload.slug != post.slug:
         existing = await session.exec(select(Post).where(Post.slug == payload.slug))
         if existing.first():
@@ -147,8 +149,10 @@ async def update_post(
     post.touch_updated()
     await session.flush()
     await session.refresh(post)
-    if payload.status == "published" or post.status == "published":
-        await trigger_revalidate(["/", "/blog", f"/blog/{post.slug}"])
+    await session.commit()
+    if was_published or post.status == "published":
+        # Article changes affect lists, tags, old slugs and neighboring articles.
+        await trigger_revalidate(["/"], layout=True)
     return await to_post_admin(session, post)
 
 
@@ -176,5 +180,9 @@ async def delete_post(post_id: int, session: SessionDep, _: CurrentUserDep) -> M
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     if is_managed_post_cover_url(post.cover_url):
         delete_post_cover_file(post.cover_url)
+    was_published = post.status == "published"
     await session.delete(post)
+    await session.commit()
+    if was_published:
+        await trigger_revalidate(["/"], layout=True)
     return MessageResponse(message="deleted")

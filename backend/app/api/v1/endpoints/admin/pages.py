@@ -10,6 +10,7 @@ from app.core.timezone import now
 from app.models.page import Page
 from app.schemas.page import PageAdmin, PageUpdate
 from app.services.markdown import render_markdown
+from app.services.revalidate import trigger_revalidate
 
 router = APIRouter()
 
@@ -42,7 +43,7 @@ async def update_page(
     page.updated_at = now()
     await session.flush()
     await session.refresh(page)
-    from app.services.revalidate import trigger_revalidate
+    await session.commit()
 
     await trigger_revalidate([f"/{slug}"])
     return page
