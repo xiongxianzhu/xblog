@@ -1,12 +1,16 @@
 # xblog API 文档
 
-> 文档版本：1.0.0
+> 文档版本：1.1.0
 > 创建日期：2026-10-31
-> 更新日期：2026-10-31
+> 更新日期：2026-11-01
 > 文档语法：Markdown
 > 范围：当前工作区实现；示例均为虚构数据，不代表线上状态。
 
 ## 修改记录
+
+### 1.1.0
+
+- 2026-11-01：源码迁至 apps/api；缓存回调覆盖三种语言路径并立即过期主题 tag，paths 返回实际展开路径，业务 API 路径不变。
 
 ### 1.0.0
 
@@ -15,7 +19,7 @@
 
 ## 说明
 
-面向前端和内部调用方。依据 [路由入口](../backend/app/api/v1/router.py)、[参数模型](../backend/app/schemas/)、[响应中间件](../backend/app/core/response.py) 与服务实现。需求背景见 [PRD](prd.md)，部署路径见 [部署文档](deployment.md)。
+面向前端和内部调用方。依据 [路由入口](../apps/api/app/api/v1/router.py)、[参数模型](../apps/api/app/schemas/)、[响应中间件](../apps/api/app/core/response.py) 与服务实现。需求背景见 [PRD](prd.md)，部署路径见 [部署文档](deployment.md)。
 
 - 后端基地址：本地 `http://127.0.0.1:10242`，生产示例 `https://blog.example.com`。下文使用完整路径；locale 不进入 API 路径。
 - 后端提供 `/docs` 和 `/openapi.json`；仓库 nginx 配置不会把这两个根路径转发到后端，应在内网直连查看。
@@ -5838,9 +5842,9 @@ done 的 JSON 示例：
 | 参数 | 类型 | 默认值 | 备注 |
 | --- | --- | --- | --- |
 | revalidated | bool | — | true 表示已调用失效函数，不表示所有页面已重新渲染 |
-| paths | array<string> | — | 实际处理的路径 |
+| paths | array<string> | — | 实际展开并去重的路径，包含默认路径及三语言路径；RSS/sitemap不加语言前缀 |
 | layout | bool | — | 是否处理 layout |
-| tags | array<string> | — | 实际处理的标签；使用 revalidateTag(tag, "max") |
+| tags | array<string> | — | 实际处理的标签；使用 revalidateTag(tag, { expire: 0 }) |
 
 成功：HTTP 200。
 
@@ -5849,7 +5853,13 @@ done 的 JSON 示例：
     "revalidated": true,
     "paths": [
         "/",
-        "/blog"
+        "/zh-CN",
+        "/zh-TW",
+        "/en",
+        "/blog",
+        "/zh-CN/blog",
+        "/zh-TW/blog",
+        "/en/blog"
     ],
     "layout": true,
     "tags": [

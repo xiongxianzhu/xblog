@@ -6,10 +6,10 @@ After=network.target xblog-api.service
 Type=simple
 User=appuser
 Group=appuser
-WorkingDirectory=/home/appuser/xblog/frontend
+WorkingDirectory=/home/appuser/xblog/apps/web
 Environment=NODE_ENV=production
-EnvironmentFile=-/home/appuser/xblog/frontend/.env
-ExecStart=/usr/local/bin/pnpm start -H 127.0.0.1
+EnvironmentFile=-/home/appuser/xblog/apps/web/.env
+ExecStart=/usr/local/bin/pnpm start
 Restart=on-failure
 RestartSec=5
 

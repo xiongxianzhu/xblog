@@ -5,6 +5,7 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 | 路径 | 上游 | 进程 |
 |------|------|------|
 | `/` | `127.0.0.1:10241` | `next start`（见 `deploy/systemd/xblog-web.service`） |
+| `/admin/` | apps/admin/dist | Ant Design 静态 SPA |
 | `/api/` | `127.0.0.1:10242` | `uvicorn`（见 `deploy/systemd/xblog-api.service`） |
 
 > 开发环境由 Next.js `rewrites` 把 `/api/*` 代理到 `BACKEND_URL`；**生产环境应让 nginx 直连 FastAPI**，避免多一层 Node 转发。
@@ -12,7 +13,7 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 ## 前置
 
 1. 已完成 [systemd 部署](../systemd/README.md)：`xblog-api`、`xblog-web` 在本机监听 `10242` / `10241`。
-2. 后端 `backend/.env` 与前端 `frontend/.env` 已配置；生产建议：
+2. 后端 `apps/api/.env` 与前端 `apps/web/.env` 已配置；生产建议：
    - `COOKIE_SECURE=true`
    - `REVALIDATE_SECRET` 前后端一致
    - `REVALIDATE_URL=http://127.0.0.1:10241/api/revalidate`（直连 Next.js，公网 `/api/` 由本模板转发到 FastAPI）
@@ -45,12 +46,11 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 
 ## HTTPS（Let's Encrypt）
 
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d example.com
-```
+按 [部署文档](../../docs/deployment.md) 的 Certbot Standalone 或 DNS-01 流程签发并配置续期。证书准备好后，启用 `xblog.conf` 底部的 HTTPS 示例，替换域名和证书路径，再执行 `nginx -t`。
 
-证书签发后，可按 `xblog.conf` 底部注释块整理 HTTPS server，或直接使用 certbot 自动插入的 SSL 段。启用 HTTPS 后记得同步更新前后端 env 中的 URL 与 `COOKIE_SECURE=true`。
+模板直接配置 `ssl_protocols TLSv1.2 TLSv1.3`，不依赖 `options-ssl-nginx.conf` 或 `ssl-dhparams.pem`。旧配置仍引用不存在的这两个文件时，删除对应 include、ssl_dhparam 行，不必创建空文件。
+
+nginx 1.25.1 起可在 HTTPS server 中使用 `listen 443 ssl;` 配合 `http2 on;`。确认版本和 HTTP/2 模块后再启用；基础模板不要求 HTTP/2。启用 HTTPS 后同步更新前后端 URL 与 `COOKIE_SECURE=true`。
 
 ## 配置说明
 
@@ -67,3 +67,5 @@ sudo certbot --nginx -d example.com
 | 上传 413 | 增大 `client_max_body_size` |
 | AI 流式卡住 | 确认 `/api/` 块已设 `proxy_buffering off` |
 | Cookie 登录失败 | HTTPS 站点需 `COOKIE_SECURE=true`；检查 `X-Forwarded-Proto` |
+
+管理端深链接 `/admin/posts`、`/admin/logs/login` 回退到 index.html，`/admin/assets/` 下不存在的资源必须返回 404。本地三应用联调使用 [dev.conf](dev.conf) 的 10240 入口，Vite HMR 路径为 `/admin/hmr`。

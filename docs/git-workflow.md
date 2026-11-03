@@ -9,7 +9,7 @@
   &nbsp;·&nbsp;
   <a href="../AGENTS.md"><b>AGENTS.md</b></a>
   &nbsp;·&nbsp;
-  <a href="prd-xblog.md"><b>PRD</b></a>
+  <a href="prd.md"><b>PRD</b></a>
 </p>
 
 ---
@@ -197,7 +197,7 @@ git push origin v0.2.0
 
 | 🚫 | 原因 |
 |----|------|
-| 提交 `backend/.env` / `frontend/.env` | 含密钥 |
+| 提交 `apps/api/.env` / `apps/web/.env` | 含密钥 |
 | Force push 到 `main` | 破坏协作历史 |
 | 巨型 PR（>500 行无说明） | 难以 Review |
 | 未跑检查就提 PR | 浪费 Review 轮次 |
@@ -236,7 +236,7 @@ cd frontend && pnpm lint && pnpm build
 |------|------|
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | 贡献入口 |
 | [AGENTS.md](../AGENTS.md) | AI 助手与开发者速查 |
-| [prd-xblog.md](prd-xblog.md) | 产品需求与验收 |
+| [prd.md](prd.md) | 产品需求与验收 |
 
 ---
 

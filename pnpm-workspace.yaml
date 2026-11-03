@@ -1,0 +1,15 @@
+packages:
+  - apps/web
+  - apps/admin
+  - packages/*
+
+registry: https://registry.npmmirror.com/
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  "@parcel/watcher": true
+  "@swc/core": true
+
+minimumReleaseAgeExclude:
+  - lucide-react@1.66.0

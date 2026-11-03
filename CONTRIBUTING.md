@@ -15,7 +15,7 @@
   &nbsp;·&nbsp;
   <a href="AGENTS.md"><b>AGENTS.md</b></a>
   &nbsp;·&nbsp;
-  <a href="docs/prd-xblog.md"><b>PRD</b></a>
+  <a href="docs/prd.md"><b>PRD</b></a>
 </p>
 
 <p align="center"><sub>— · — · —</sub></p>
@@ -25,8 +25,8 @@
 ## 开始之前
 
 1. 阅读 [README.md](README.md) 完成本地环境搭建。
-2. 较大改动前先浏览 [docs/prd-xblog.md](docs/prd-xblog.md) 或开 Issue 讨论。
-3. **切勿**提交 `backend/.env`、`frontend/.env`、密钥、私人数据或 `uploads/` 用户文件。
+2. 较大改动前先浏览 [docs/prd.md](docs/prd.md) 或开 Issue 讨论。
+3. **切勿**提交 `apps/api/.env`、`apps/web/.env`、密钥、私人数据或 `uploads/` 用户文件。
 
 ---
 
@@ -123,10 +123,12 @@ docs: 补充 Git 工作流与 PR 模板
 
 ```bash
 # 后端
-cd backend && make check
+uv run --directory apps/api ruff check .
+uv run --directory apps/api mypy
+uv run --directory apps/api pytest
 
 # 前端
-cd frontend && pnpm lint && pnpm build
+pnpm check && pnpm typecheck && pnpm test && pnpm build
 ```
 
 ---

@@ -1,0 +1,119 @@
+import { useState } from "react";
+import useSWR from "swr";
+
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Switch } from "@/components/ui/switch";
+import { getAdminAuthSettings, updateAdminAuthSettings } from "@/lib/api";
+
+export function AuthSettingsPanel() {
+  const { data, error, isLoading, mutate } = useSWR("admin-auth-settings", getAdminAuthSettings);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function toggle(
+    key: "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled",
+    value: boolean,
+  ) {
+    if (!data || saving) return;
+    setSaving(key);
+    setMessage(null);
+    try {
+      const saved = await updateAdminAuthSettings({ [key]: value });
+      await mutate(saved, false);
+      setMessage("登录方式已更新。");
+    } catch {
+      setMessage("保存失败，请稍后重试。");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">加载登录配置…</p>;
+  }
+
+  if (error || !data) {
+    return <p className="text-sm text-destructive">加载失败，请刷新页面。</p>;
+  }
+
+  return (
+    <div className="space-y-5">
+      <FieldGroup className="gap-5">
+        <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="sms-enabled">手机验证码登录</FieldLabel>
+            <FieldDescription>
+              {data.sms_configured
+                ? "开启后登录页显示手机号 + 验证码；需先在个人资料绑定手机号。"
+                : "请先在 apps/api/.env 配置 SMS_PROVIDER（开发环境默认 dev，验证码输出到后端日志）。"}
+            </FieldDescription>
+          </div>
+          <Switch
+            id="sms-enabled"
+            checked={data.sms_enabled}
+            disabled={!data.sms_configured || saving === "sms_enabled"}
+            onCheckedChange={(checked) => void toggle("sms_enabled", checked)}
+          />
+        </Field>
+
+        <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="github-enabled">GitHub 登录</FieldLabel>
+            <FieldDescription>
+              {data.github_configured
+                ? "开启后登录页与个人资料页显示 GitHub 登录/绑定入口。"
+                : "请先在 apps/api/.env 配置 GITHUB_CLIENT_ID 与 GITHUB_CLIENT_SECRET。"}
+            </FieldDescription>
+          </div>
+          <Switch
+            id="github-enabled"
+            checked={data.github_enabled}
+            disabled={!data.github_configured || saving === "github_enabled"}
+            onCheckedChange={(checked) => void toggle("github_enabled", checked)}
+          />
+        </Field>
+
+        <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="wechat-enabled">微信登录</FieldLabel>
+            <FieldDescription>
+              {data.wechat_configured
+                ? "开启后登录页与个人资料页显示微信登录/绑定入口。"
+                : "请先在 apps/api/.env 配置 WECHAT_APP_ID 与 WECHAT_APP_SECRET。"}
+            </FieldDescription>
+          </div>
+          <Switch
+            id="wechat-enabled"
+            checked={data.wechat_enabled}
+            disabled={!data.wechat_configured || saving === "wechat_enabled"}
+            onCheckedChange={(checked) => void toggle("wechat_enabled", checked)}
+          />
+        </Field>
+
+        <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="turnstile-enabled">Turnstile 人机验证</FieldLabel>
+            <FieldDescription>
+              {data.turnstile_configured
+                ? "开启后，密码登录连续失败时将要求验证；找回密码始终要求验证。"
+                : "请先在 apps/api/.env 配置 TURNSTILE_SITE_KEY 与 TURNSTILE_SECRET_KEY；apps/admin/.env 的 VITE_TURNSTILE_SITE_KEY 为可选回退。"}
+            </FieldDescription>
+          </div>
+          <Switch
+            id="turnstile-enabled"
+            checked={data.turnstile_enabled}
+            disabled={!data.turnstile_configured || saving === "turnstile_enabled"}
+            onCheckedChange={(checked) => void toggle("turnstile_enabled", checked)}
+          />
+        </Field>
+      </FieldGroup>
+
+      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        默认仅开放账号密码登录。Turnstile
+        需在环境变量中配置密钥后，再在此开启；关闭后仅保留登录限流，不显示验证码。
+      </p>
+    </div>
+  );
+}

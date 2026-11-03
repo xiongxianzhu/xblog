@@ -1,15 +1,15 @@
 # xblog 数据库结构
 
-本文描述当前迁移链 `001_xblog` → `014_post_pinned` 的 PostgreSQL 目标结构，并对照 SQLModel 模型与业务代码。核对日期：2026-10-31。共 16 张业务表、113 个字段；不包含 Alembic 自己维护的版本表。未连接实际数据库，未执行迁移，不能据本文判断生产库已达到该版本。
+本文描述当前迁移链 `001_xblog` → `014_post_pinned` 的 PostgreSQL 目标结构，并对照 SQLModel 模型与业务代码。核对日期：2026-11-01。共 16 张业务表、113 个字段；不包含 Alembic 自己维护的版本表。已在隔离 PostgreSQL18.4 验证从空库迁移至该版本；未连接生产库，不能据本文判断现网版本。
 
 ## 1. 依据与约定
 
-- 结构以 [迁移文件](../backend/alembic/versions/) 为主，应用默认值以 [模型](../backend/app/models/) 为主；不一致项集中列在第 6 节。
-- PostgreSQL 主版本、数据库编码与排序规则未在仓库固定。连接使用 `postgresql+asyncpg://`；会话为 SQLModel AsyncSession，见 [session.py](../backend/app/db/session.py)。
+- 结构以 [迁移文件](../apps/api/alembic/versions/) 为主，应用默认值以 [模型](../apps/api/app/models/) 为主；不一致项集中列在第 6 节。
+- PostgreSQL 主版本、数据库编码与排序规则未在仓库固定。连接使用 `postgresql+asyncpg://`；会话为 SQLModel AsyncSession，见 [session.py](../apps/api/app/db/session.py)。
 - 下表“可空”是迁移定义。Python 的 `int | None` 主键用于插入前尚未分配 ID，不代表数据库主键允许 NULL。
 - 单列整数 id 主键在 PostgreSQL 建表时由序列生成；UUID 主键由应用 uuid4() 生成，迁移未提供 UUID server default。联合主键的两个 ID 均由调用方提供。
 - 应用默认与数据库默认分开列出。“无”表示未声明默认；可空列省略后可为 NULL，非空列若无数据库默认需显式提供。空字符串、NULL、0 含义不同。
-- `TIMESTAMP WITH TIME ZONE` 字段通过应用 [now()](../backend/app/core/timezone.py) 使用 Asia/Shanghai；数据库会话显示时区未固定。出生日期使用 DATE。没有自动更新时间触发器，TimestampMixin 也没有 onupdate。
+- `TIMESTAMP WITH TIME ZONE` 字段通过应用 [now()](../apps/api/app/core/timezone.py) 使用 Asia/Shanghai；数据库会话显示时区未固定。出生日期使用 DATE。没有自动更新时间触发器，TimestampMixin 也没有 onupdate。
 - 未声明 PostgreSQL ENUM、CHECK、软删除标志、金额字段或多租户字段。状态枚举和跨字段规则主要由服务层保证。
 
 ## 2. 关系与删除行为
@@ -35,7 +35,7 @@
 
 ### 3.1. `users` — 管理员账号
 
-身份、账号启用状态与第三方绑定；不包含 role 字段。 模型：[user.py](../backend/app/models/user.py)。
+身份、账号启用状态与第三方绑定；不包含 role 字段。 模型：[user.py](../apps/api/app/models/user.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -69,7 +69,7 @@
 
 ### 3.2. `posts` — 文章
 
-保存原文、渲染结果、发布及置顶状态。 模型：[post.py](../backend/app/models/post.py)。
+保存原文、渲染结果、发布及置顶状态。 模型：[post.py](../apps/api/app/models/post.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -98,7 +98,7 @@
 
 ### 3.3. `tags` — 标签
 
-标签名与 slug 分别唯一；没有独立标签管理 API。 模型：[post.py](../backend/app/models/post.py)。
+标签名与 slug 分别唯一；没有独立标签管理 API。 模型：[post.py](../apps/api/app/models/post.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -115,7 +115,7 @@
 
 ### 3.4. `post_tags` — 文章标签关系
 
-多对多关联，以 (post_id, tag_id) 联合主键防止重复关系。 模型：[post.py](../backend/app/models/post.py)。
+多对多关联，以 (post_id, tag_id) 联合主键防止重复关系。 模型：[post.py](../apps/api/app/models/post.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -128,7 +128,7 @@
 
 ### 3.5. `pages` — 固定页面
 
-通过 slug 访问 about/projects；CLI seed-pages 创建缺失页面。 模型：[page.py](../backend/app/models/page.py)。
+通过 slug 访问 about/projects；CLI seed-pages 创建缺失页面。 模型：[page.py](../apps/api/app/models/page.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -148,7 +148,7 @@
 
 ### 3.6. `friend_links` — 友链
 
-按 sort_order、id 升序展示，LOGO 的 API 必填性不等于数据库非空。 模型：[friend_link.py](../backend/app/models/friend_link.py)。
+按 sort_order、id 升序展示，LOGO 的 API 必填性不等于数据库非空。 模型：[friend_link.py](../apps/api/app/models/friend_link.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -165,7 +165,7 @@
 
 ### 3.7. `page_views` — 访问记录
 
-每次上报插入记录，后台按 path 聚合；不保存访客用户外键。 模型：[page_view.py](../backend/app/models/page_view.py)。
+每次上报插入记录，后台按 path 聚合；不保存访客用户外键。 模型：[page_view.py](../apps/api/app/models/page_view.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -184,7 +184,7 @@
 
 ### 3.8. `site_settings` — 站点配置
 
-公开主题、品牌、分页及登录方式开关共用键值表。 模型：[site_setting.py](../backend/app/models/site_setting.py)。
+公开主题、品牌、分页及登录方式开关共用键值表。 模型：[site_setting.py](../apps/api/app/models/site_setting.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -197,7 +197,7 @@
 
 ### 3.9. `ai_provider` — 模型提供商
 
-提供商配置和加密 Key；默认模型唯一性由服务逻辑维护。 模型：[ai_provider.py](../backend/app/models/ai_provider.py)。
+提供商配置和加密 Key；默认模型唯一性由服务逻辑维护。 模型：[ai_provider.py](../apps/api/app/models/ai_provider.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -219,7 +219,7 @@
 
 ### 3.10. `ai_skill` — 自定义 Skill
 
-只保存自定义 Skill 元数据；内置 Skill 从仓库读取，不要求存在对应数据库行。 模型：[ai_skill.py](../backend/app/models/ai_skill.py)。
+只保存自定义 Skill 元数据；内置 Skill 从仓库读取，不要求存在对应数据库行。 模型：[ai_skill.py](../apps/api/app/models/ai_skill.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -240,7 +240,7 @@
 
 ### 3.11. `ai_skill_default` — 场景默认 Skill
 
-自定义默认值存 skill_id，内置默认值存 builtin_skill_name；两个字段的互斥由业务层维护。 模型：[ai_skill.py](../backend/app/models/ai_skill.py)。
+自定义默认值存 skill_id，内置默认值存 builtin_skill_name；两个字段的互斥由业务层维护。 模型：[ai_skill.py](../apps/api/app/models/ai_skill.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -254,7 +254,7 @@
 
 ### 3.12. `ai_usage_log` — AI 用量记录
 
-保存动作、首个 Skill、提供商、用量与延迟，不保存 prompt、文章正文或完整多 Skill 列表。 模型：[ai_usage_log.py](../backend/app/models/ai_usage_log.py)。
+保存动作、首个 Skill、提供商、用量与延迟，不保存 prompt、文章正文或完整多 Skill 列表。 模型：[ai_usage_log.py](../apps/api/app/models/ai_usage_log.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -273,7 +273,7 @@
 
 ### 3.13. `password_reset_tokens` — 密码重置令牌
 
-令牌单次使用且校验过期时间；默认有效期来自配置，未固化在表中。 模型：[password_reset_token.py](../backend/app/models/password_reset_token.py)。
+令牌单次使用且校验过期时间；默认有效期来自配置，未固化在表中。 模型：[password_reset_token.py](../apps/api/app/models/password_reset_token.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -294,7 +294,7 @@
 
 ### 3.14. `sms_verification_codes` — 短信验证码
 
-按手机号记录验证码；与 users.phone 只有业务匹配关系，无物理外键。 模型：[sms_verification_code.py](../backend/app/models/sms_verification_code.py)。
+按手机号记录验证码；与 users.phone 只有业务匹配关系，无物理外键。 模型：[sms_verification_code.py](../apps/api/app/models/sms_verification_code.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -316,7 +316,7 @@
 
 ### 3.15. `login_log` — 登录审计
 
-保留成功或失败登录、客户端及用户快照；被登录防护查询使用。 模型：[login_log.py](../backend/app/models/login_log.py)。
+保留成功或失败登录、客户端及用户快照；被登录防护查询使用。 模型：[login_log.py](../apps/api/app/models/login_log.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -342,7 +342,7 @@
 
 ### 3.16. `operation_log` — 操作审计
 
-当前写入调用只覆盖用户启用、禁用和删除，不等于所有内容变更均被记录。 模型：[operation_log.py](../backend/app/models/operation_log.py)。
+当前写入调用只覆盖用户启用、禁用和删除，不等于所有内容变更均被记录。 模型：[operation_log.py](../apps/api/app/models/operation_log.py)。
 
 | 字段 | PostgreSQL 类型 | 可空 | 应用默认 | 数据库默认 | 含义 |
 | --- | --- | --- | --- | --- | --- |
@@ -369,7 +369,7 @@
 
 ### 配置键
 
-`site_settings` 的值全部是字符串。以下默认值是读取逻辑的回退值，不是迁移种子数据；迁移只创建空表。来源：[site_settings.py](../backend/app/services/site_settings.py)、[auth_settings.py](../backend/app/services/auth_settings.py)。
+`site_settings` 的值全部是字符串。以下默认值是读取逻辑的回退值，不是迁移种子数据；迁移只创建空表。来源：[site_settings.py](../apps/api/app/services/site_settings.py)、[auth_settings.py](../apps/api/app/services/auth_settings.py)。
 
 | key | 值的含义与可选值 | 缺失时 |
 | --- | --- | --- |
@@ -389,22 +389,22 @@
 
 ### 内容与文件
 
-- `status` 只允许 draft/published，由 [posts.py](../backend/app/services/posts.py) 校验。首次发布且 published_at 为空时赋值；撤回草稿不会清除 published_at，但会清除已有置顶状态。
+- `status` 只允许 draft/published，由 [posts.py](../apps/api/app/services/posts.py) 校验。首次发布且 published_at 为空时赋值；撤回草稿不会清除 published_at，但会清除已有置顶状态。
 - 公开排序为 is_pinned、pinned_at、published_at、id 降序，数据库没有为该组合建立联合索引；正文搜索使用 ILIKE，没有 tsvector/GIN 全文索引。
 - 保存 Markdown 时同步生成 HTML。标签同步先删除原关系，再按去重后的标签列表重建；不存在的标签可自动创建。删除文章按迁移外键清理关系，不自动删除失去引用的标签。
 - 友链 logo_url 列允许 NULL；创建接口要求非空，不能把接口约束当成数据库约束。图片 URL 不建立数据库文件外键。
-- 文件操作与数据库事务不构成原子事务。封面、LOGO、头像、Skill 目录可能先于提交写入或删除，数据库回滚不能恢复已删文件。[孤儿清理](../backend/app/services/upload_cleanup.py) 仅覆盖 covers/link-logos 的过期未引用文件，不覆盖所有上传。
+- 文件操作与数据库事务不构成原子事务。封面、LOGO、头像、Skill 目录可能先于提交写入或删除，数据库回滚不能恢复已删文件。[孤儿清理](../apps/api/app/services/upload_cleanup.py) 仅覆盖 covers/link-logos 的过期未引用文件，不覆盖所有上传。
 
 ### 认证、审计与 AI
 
 - 密码使用 bcrypt；重置令牌和短信验证码保存 SHA-256 哈希，使用后写 used_at。有效期来自配置（默认重置 60 分钟、短信 5 分钟），不是数据库表达式。业务校验过期，不会因时间到达自动删除行。
 - 可空的邮箱、手机号、GitHub ID、微信 OpenID 使用普通唯一索引，允许多个 NULL；邮箱登录使用大小写不敏感查询，但迁移未定义 lower(email) 唯一索引或 CITEXT，不能据此保证大小写折叠后的唯一性。
-- 用户不能禁用最后一个启用账号，也不能删除唯一账号，保护位于 [users.py](../backend/app/services/users.py)，不是数据库约束。用户名、角色授权和所有权也没有额外表支撑。
+- 用户不能禁用最后一个启用账号，也不能删除唯一账号，保护位于 [users.py](../apps/api/app/services/users.py)，不是数据库约束。用户名、角色授权和所有权也没有额外表支撑。
 - 登录审计保留请求标识快照；`username` 日志长度为 64，而登录参数可达 255，长标识存在数据库长度约束风险。操作审计当前仅见 user.enable/user.disable/user.delete 写入调用，不能声称文章与站点配置已全面审计。
 - provider_type 当前枚举为 openai、deepseek、zhipu、glm_coding、minimax、anthropic、openai_compatible；数据库只是 VARCHAR(32)。is_default 的互斥由服务清除其他默认值实现，没有部分唯一索引保证并发唯一。
 - AI Key 使用 Fernet，密钥由 AI_KEY_ENCRYPTION_SECRET 或回退 SECRET_KEY 派生；备份必须保留配套密钥。extra_headers 是 JSON 字段，未按 Key 字段机制加密，不应当作加密秘密仓库。
-- 内置 Skill 从 `backend/app/data/builtin_skills/` 加载，以名称派生 UUID。默认选择通过 builtin_skill_name 保存；自定义 Skill 才通过 skill_id 外键保存。场景行 polish/chat/generate 由迁移 005 插入；互斥规则无 CHECK。
-- 用量日志仅记录首个 Skill 的 ID，action 支持 polish/expand/shorten/title/chat/generate。当前网关对内置 Skill 也写入该派生 UUID，但其通常没有 ai_skill 行，与日志的物理外键不匹配；这是代码与约束推导的待验证问题，尚未在 PostgreSQL 上复现，见 [任务清单](tasks.md) DB-02。
+- 内置 Skill 从 `apps/api/app/data/builtin_skills/` 加载，以名称派生 UUID。默认选择通过 builtin_skill_name 保存；自定义 Skill 才通过 skill_id 外键保存。场景行 polish/chat/generate 由迁移 005 插入；互斥规则无 CHECK。
+- 用量日志仅记录首个 Skill 的 ID，action 支持 polish/expand/shorten/title/chat/generate。迁移验收已在隔离 PostgreSQL 复现并修复内置 UUID 外键冲突：内置 Skill 的日志 skill_id 写 NULL，自定义 Skill 写真实 UUID；SSE 仍返回选中的 Skill 标识。见 [任务清单](tasks.md) DB-02。
 - 当前未发现登录日志、操作日志、AI 用量日志、访问记录及过期验证码/重置令牌的定时保留策略。不能把上传清理命令当成这些表的数据清理任务。
 
 ## 5. 迁移链与维护
@@ -414,22 +414,22 @@
 | revision | 变更 |
 | --- | --- |
 
-| [001_xblog](../backend/alembic/versions/001_xblog_initial.py) | 创建 users、tags、posts、post_tags、pages、friend_links、page_views |
-| [002_user_last_login](../backend/alembic/versions/002_user_last_login.py) | users.last_login_at |
-| [003_user_avatar](../backend/alembic/versions/003_user_avatar.py) | users.avatar_url |
-| [004_site_settings](../backend/alembic/versions/004_site_settings.py) | site_settings 键值表 |
-| [005_ai_tables](../backend/alembic/versions/005_ai_tables.py) | 四张 AI 表，初始化三个默认 Skill 场景 |
-| [006_auth_oauth_reset](../backend/alembic/versions/006_auth_oauth_reset.py) | 邮箱/OAuth 绑定列与 password_reset_tokens |
-| [007_phone_sms_auth](../backend/alembic/versions/007_phone_sms_auth.py) | 手机号与 sms_verification_codes |
-| [008_ai_skill_default_builtin](../backend/alembic/versions/008_ai_skill_default_builtin.py) | ai_skill_default.builtin_skill_name |
-| [009_user_is_active](../backend/alembic/versions/009_user_is_active.py) | users.is_active 及索引 |
-| [010_user_nickname](../backend/alembic/versions/010_user_nickname.py) | users.nickname |
-| [011_user_profile_fields](../backend/alembic/versions/011_user_profile_fields.py) | users.birth_date、gender |
-| [012_audit_logs](../backend/alembic/versions/012_audit_logs.py) | login_log、operation_log 及索引 |
-| [013_friend_link_description](../backend/alembic/versions/013_friend_link_description.py) | friend_links.description |
-| [014_post_pinned](../backend/alembic/versions/014_post_pinned.py) | posts.is_pinned、pinned_at 与 is_pinned 索引 |
+| [001_xblog](../apps/api/alembic/versions/001_xblog_initial.py) | 创建 users、tags、posts、post_tags、pages、friend_links、page_views |
+| [002_user_last_login](../apps/api/alembic/versions/002_user_last_login.py) | users.last_login_at |
+| [003_user_avatar](../apps/api/alembic/versions/003_user_avatar.py) | users.avatar_url |
+| [004_site_settings](../apps/api/alembic/versions/004_site_settings.py) | site_settings 键值表 |
+| [005_ai_tables](../apps/api/alembic/versions/005_ai_tables.py) | 四张 AI 表，初始化三个默认 Skill 场景 |
+| [006_auth_oauth_reset](../apps/api/alembic/versions/006_auth_oauth_reset.py) | 邮箱/OAuth 绑定列与 password_reset_tokens |
+| [007_phone_sms_auth](../apps/api/alembic/versions/007_phone_sms_auth.py) | 手机号与 sms_verification_codes |
+| [008_ai_skill_default_builtin](../apps/api/alembic/versions/008_ai_skill_default_builtin.py) | ai_skill_default.builtin_skill_name |
+| [009_user_is_active](../apps/api/alembic/versions/009_user_is_active.py) | users.is_active 及索引 |
+| [010_user_nickname](../apps/api/alembic/versions/010_user_nickname.py) | users.nickname |
+| [011_user_profile_fields](../apps/api/alembic/versions/011_user_profile_fields.py) | users.birth_date、gender |
+| [012_audit_logs](../apps/api/alembic/versions/012_audit_logs.py) | login_log、operation_log 及索引 |
+| [013_friend_link_description](../apps/api/alembic/versions/013_friend_link_description.py) | friend_links.description |
+| [014_post_pinned](../apps/api/alembic/versions/014_post_pinned.py) | posts.is_pinned、pinned_at 与 is_pinned 索引 |
 
-[env.py](../backend/alembic/env.py) 使用模型 metadata，并开启 compare_type。迁移前先备份数据库、上传目录与配置，在隔离 PostgreSQL 环境确认迁移和恢复；完整顺序见 [部署文档](deployment.md)。新增字段需要新增迁移，不能只改模型后依赖 create_all 更新已有库。
+[env.py](../apps/api/alembic/env.py) 使用模型 metadata，并开启 compare_type。迁移前先备份数据库、上传目录与配置，在隔离 PostgreSQL 环境确认迁移和恢复；完整顺序见 [部署文档](deployment.md)。新增字段需要新增迁移，不能只改模型后依赖 create_all 更新已有库。
 
 以下命令由操作者在已配置的 backend 目录检查迁移状态，本文未执行连接数据库的 current：
 
@@ -459,4 +459,4 @@ uv run alembic current
 
 最后一项涵盖 users.is_active、posts.is_pinned、site_settings.value、ai_provider.enabled/is_default、ai_skill.enabled、ai_usage_log 三个计数字段、sms_verification_codes.purpose、login_log.success；具体值见字段表。时间字段没有数据库 now() 默认。
 
-现有 [测试夹具](../backend/tests/conftest.py) 使用 SQLite 内存库和模型 create_all，不执行 Alembic。它不能替代 PostgreSQL 对迁移、外键、长度约束及索引的一致性验收；本次也未运行该测试套件。
+现有 [测试夹具](../apps/api/tests/conftest.py) 使用 SQLite 内存库和模型 create_all，不执行 Alembic。它不能替代 PostgreSQL 对迁移、外键、长度约束及索引的一致性验收；该套件已通过；另有隔离 PostgreSQL18.4 空库迁移与关键约束验证，两者均不替代生产数据升级验收。

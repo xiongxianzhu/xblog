@@ -1,6 +1,6 @@
 # xblog 部署文档
 
-本文说明仓库提供的 Linux VPS 部署方式：PostgreSQL + FastAPI + Next.js + nginx + systemd。配置与命令按当前源码静态核对，未在生产服务器执行。更新日期：2026-10-31。
+本文说明仓库提供的 Linux VPS 部署方式：PostgreSQL + FastAPI + Next.js 公开站 + Ant Design 静态后台 + nginx + systemd。配置与命令按当前源码静态核对，未在生产服务器执行。更新日期：2026-11-01。
 
 ## 1. 部署约定与前置条件
 
@@ -8,22 +8,23 @@
 
 | 组件 | 要求与用途 |
 | --- | --- |
-| Python / uv | Python >=3.14；uv 按 backend/uv.lock 安装依赖 |
-| Node.js / pnpm | 锁定 Next.js 要求 Node.js >=20.9.0；项目约定 pnpm >=9，未固定具体包管理器版本 |
+| Python / uv | Python >=3.14；uv 按 apps/api/uv.lock 安装依赖 |
+| Node.js / pnpm | Node.js 26.13.0 LTS；根 packageManager 固定 pnpm 12.16.1，前端统一根锁文件 |
 | PostgreSQL | 开发和生产目标数据库；主版本未在仓库锁定，部署前确认目标实例和备份工具兼容 |
 | nginx / systemd | nginx 负责入口与 TLS，systemd 运行两个应用进程 |
-| DNS / 网络 | 域名指向服务器；公开 80/443，10241/10242 仅监听回环；数据库仅向所需应用开放 |
-| 持久化 | PostgreSQL、backend/uploads/、前后端环境文件；发布版本时保留并备份 |
+| DNS / 网络 | 域名指向服务器；公开 80/443，10241/10242 不对公网开放；数据库仅向所需应用开放 |
+| 持久化 | PostgreSQL、apps/api/uploads/、前后端环境文件；发布版本时保留并备份 |
 
 详细版本依据见 [技术栈](tech-stack.md)。现有 [systemd 模板](../deploy/systemd/) 与 [nginx 模板](../deploy/nginx/xblog.conf) 是部署起点，不是已启用的生产配置。
 
 | 请求 | 目标 |
 | --- | --- |
-| `/`、公开页、`/admin/*` | `127.0.0.1:10241`，Next.js |
+| `/`、公开页 | `127.0.0.1:10241`，Next.js |
+| `/admin/`、后台深链接 | nginx 静态目录 `/home/appuser/xblog/apps/admin/dist` |
 | `/api/v1/*`、`/api/v1/uploads/*` | `127.0.0.1:10242`，FastAPI |
 | `/api/revalidate` | Next.js 专有回调，应通过内网 `127.0.0.1:10241` 调用 |
 
-模板中的 `/api/` 会转给 FastAPI，因此不能直接把 `REVALIDATE_URL` 设置成公网域名下的 `/api/revalidate`。该模板下 AI complete 直接进入 FastAPI；前端同路径 BFF 并不经过生产入口。后端 `/docs`、`/openapi.json` 也不会由根路径代理自动公开。
+模板中的 `/api/` 会转给 FastAPI，因此不能直接把 `REVALIDATE_URL` 设置成公网域名下的 `/api/revalidate`。该模板下 AI complete 直接进入 FastAPI；管理端直接调用 API SSE，不再依赖 Next.js BFF。后端 `/docs`、`/openapi.json` 也不会由根路径代理自动公开。
 
 ### 1.1. 安装系统依赖与 PostgreSQL
 
@@ -79,11 +80,85 @@ uv run --no-project --python 3.14 python --version
 exit
 ```
 
-预期 uv 可执行，解释器为 Python 3.14.x；项目的 `backend/.python-version` 指定 3.14。无需替换系统 Python，也无需通过 apt 安装 Python 3.14。uv 安装器会提供适合当前平台的程序；记录实际 uv 和 Python 补丁版本用于部署追踪。
+预期 uv 可执行，解释器为 Python 3.14.x；项目的 `apps/api/.python-version` 指定 3.14。无需替换系统 Python，也无需通过 apt 安装 Python 3.14。uv 安装器会提供适合当前平台的程序；记录实际 uv 和 Python 补丁版本用于部署追踪。
 
 默认用户级安装的 uv 路径为 `/home/appuser/.local/bin/uv`，本文 unit 和 cron 已统一使用该路径。若自定义安装位置，以 appuser 下 `command -v uv` 的结果为准，并同步调整配置。systemd 不加载交互 shell 的 PATH，因此 ExecStart 使用绝对路径。
 
-完成这些步骤后，再准备项目代码、填写第 2 节配置，并按第 3.1 节创建数据库用户和数据库。Node.js、pnpm 与 nginx 仍需满足前置条件，本节只安装 uv、Python 和 PostgreSQL。
+完成这些步骤后，再准备项目代码、填写第 2 节配置，并按第 3.1 节创建数据库用户和数据库。Node.js 与 nginx 仍需满足前置条件；pnpm 按下一节安装。
+
+### 1.4. 系统级安装 pnpm 12.16.1
+
+统一使用 `/usr/local/bin/pnpm`，与 Web systemd 的 ExecStart 一致。以下命令由具备 sudo 权限的运维账号执行；项目依赖安装与构建仍由 appuser 执行，不使用 sudo 运行项目的 pnpm install/build。
+
+先确认系统级 Node/npm 可执行，并检查目标 pnpm 的 Node 版本要求：
+
+```bash
+/usr/local/bin/node --version
+/usr/local/bin/npm --version
+sudo env PATH=/usr/local/bin:/usr/bin:/bin /usr/local/bin/npm view \
+  pnpm@12.16.1 engines --registry=https://registry.npmmirror.com/
+```
+
+Node 必须同时满足 Next.js 和该 pnpm 版本的要求。任一命令失败时，先修复 Node/npm 安装和软链接；交互 shell 中能运行不代表这些绝对路径有效。
+
+**处理已有入口**
+
+首次安装且没有旧入口时跳过。已有 pnpm 时先确认安装来源；以下仅用于迁移已确认的旧软链接，不删除链接目标：
+
+```bash
+ls -l /usr/local/bin/pnpm /usr/local/bin/pnpx
+readlink -f /usr/local/bin/pnpm
+
+for name in pnpm pnpx; do
+  if [ -L "/usr/local/bin/$name" ]; then
+    sudo mv -n "/usr/local/bin/$name" "/usr/local/bin/$name.before-reinstall"
+  fi
+done
+```
+
+如果备份文件已经存在，`mv -n` 不覆盖，原入口可能仍在；先核对再处理。普通文件不要直接删除或强制覆盖。安装时报 EEXIST 时先检查冲突对象，不直接使用 `--force`。
+
+**安装并验证**
+
+```bash
+sudo env PATH=/usr/local/bin:/usr/bin:/bin /usr/local/bin/npm install \
+  --global --prefix /usr/local \
+  --registry=https://registry.npmmirror.com/ pnpm@12.16.1
+
+/usr/local/bin/pnpm --version
+readlink -f /usr/local/bin/pnpm
+sudo -u appuser -H env PATH=/usr/local/bin:/usr/bin:/bin \
+  /usr/local/bin/pnpm --version
+```
+
+预期版本为 `12.16.1`，入口目标位于 `/usr/local/lib/node_modules/pnpm/`，appuser 也能执行。npm 的全局 Unix 可执行入口位于 `{prefix}/bin`，见 [npm 安装目录说明](https://docs.npmjs.com/files/folders.html/)。安装失败时保留 appuser 的旧 pnpm；不要继续清理。
+
+**清理 appuser 的旧入口（已有用户级安装时）**
+
+仅在系统级验证成功后，移除已确认位于下列路径的旧命令入口：
+
+```bash
+sudo -u appuser rm -f -- \
+  /home/appuser/.local/share/pnpm/bin/pnpm \
+  /home/appuser/.local/share/pnpm/bin/pnpx
+
+grep -nE 'PNPM_HOME|/pnpm' \
+  /home/appuser/.bashrc \
+  /home/appuser/.bash_profile \
+  /home/appuser/.profile 2>/dev/null
+```
+
+编辑输出中的 shell 配置，删除仅供旧 pnpm 使用的 PNPM_HOME 和对应 PATH 注入段，保留 Node、uv 及其他工具配置。此步骤清理旧启动入口，保留包缓存和全局工具，不递归删除整个 `~/.local/share/pnpm`。
+
+重新登录验证：
+
+```bash
+sudo -iu appuser sh -lc 'command -v pnpm; pnpm --version'
+```
+
+预期为 `/usr/local/bin/pnpm` 和 `12.16.1`。若仍解析到其他位置，检查 shell 配置中的别名、函数或其他 pnpm 安装，不能只看版本号判断迁移完成。
+
+已有 Web 服务的启动配置按第 3.3 节更新。若报 `203/EXEC`，先确认 `/usr/local/bin/pnpm` 可由 appuser 执行。
 
 ## 2. 配置
 
@@ -91,15 +166,16 @@ exit
 
 ```bash
 cd /home/appuser/xblog
-test -f backend/.env || cp backend/.env.example backend/.env
-test -f frontend/.env || cp frontend/.env.example frontend/.env
+test -f apps/api/.env || cp apps/api/.env.example apps/api/.env
+test -f apps/web/.env || cp apps/web/.env.example apps/web/.env
+test -f apps/admin/.env || cp apps/admin/.env.example apps/admin/.env
 ```
 
-编辑两个 `.env` 后再安装和启动。不要把模板中的占位密钥用于生产；环境文件仅向部署和服务账号开放读取权限，不提交 Git。
+编辑 API 和公开站 `.env` 后再安装和启动；管理端 `.env` 仅用于可选公开配置。不要把模板中的占位密钥用于生产；环境文件仅向部署和服务账号开放读取权限，不提交 Git。
 
 ### 后端
 
-来源：[环境模板](../backend/.env.example)、[配置定义](../backend/app/core/config.py)。相对上传目录基于后端进程工作目录解析。
+来源：[环境模板](../apps/api/.env.example)、[配置定义](../apps/api/app/core/config.py)。相对上传目录基于后端进程工作目录解析。
 
 | 名称 | 生产配置 | 默认值 / 说明 |
 | --- | --- | --- |
@@ -119,16 +195,16 @@ test -f frontend/.env || cp frontend/.env.example frontend/.env
 
 更换 AI 加密密钥（或其回退的 SECRET_KEY）后，旧模型密钥无法直接解密。轮换前保留原配置并制定重新录入方案；数据库备份必须与密钥配置配套保存。
 
-### 前端
+### 公开站与管理端
 
-来源：[环境模板](../frontend/.env.example)。首次构建前完成这些配置；修改 `NEXT_PUBLIC_*` 后重新构建并重启，不能仅修改 systemd 环境。修改 `BACKEND_URL` 也应重新构建，以更新 rewrite 目标。
+来源：[环境模板](../apps/web/.env.example)。首次构建前完成这些配置；修改 `NEXT_PUBLIC_*` 后重新构建公开站并重启，不能仅修改 systemd 环境。修改 `BACKEND_URL` 也应重新构建，以更新 rewrite 目标。
 
 | 名称 | 配置 | 用途 |
 | --- | --- | --- |
 | BACKEND_URL | http://127.0.0.1:10242 | 服务端请求与开发代理的后端地址 |
 | NEXT_PUBLIC_SITE_URL | https://blog.example.com | sitemap、RSS、Open Graph 的绝对地址 |
 | REVALIDATE_SECRET | 与后端完全一致 | ISR 回调校验 |
-| NEXT_PUBLIC_TURNSTILE_SITE_KEY | 启用防护时填写 | 与后端公开 Site Key 一致 |
+| VITE_TURNSTILE_SITE_KEY（apps/admin/.env） | 可选 | 与后端公开 Site Key 一致；登录防护接口返回值优先 |
 | NEXT_PUBLIC_GISCUS_REPO / REPO_ID / CATEGORY / CATEGORY_ID | 启用评论时填写 | GitHub Discussions 仓库与分类，完整变量名均以 NEXT_PUBLIC_GISCUS_ 开头 |
 | NEXT_PUBLIC_GISCUS_MAPPING / INPUT_POSITION / THEME | 按模板配置 | 评论映射、输入框位置、主题 |
 
@@ -136,7 +212,7 @@ test -f frontend/.env || cp frontend/.env.example frontend/.env
 
 - GitHub / 微信：配置 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET` 或 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`，第三方回调指向站点 `/api/v1/auth/oauth/github/callback` 或 `/api/v1/auth/oauth/wechat/callback`，再在后台启用对应方式并绑定账号。
 - SMTP：配置 `SMTP_HOST`、`SMTP_PORT`（默认 587）、`SMTP_USER`、`SMTP_PASSWORD`、`SMTP_FROM`、`SMTP_USE_TLS`（默认 true）；用于找回密码，重置令牌默认有效 60 分钟。
-- Turnstile：配置后端 `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY` 和前端 Site Key，并在后台设置启用。失败阈值与限流配置见环境模板。
+- Turnstile：在 [Cloudflare Turnstile 控制台](https://dash.cloudflare.com/?to=/:account/turnstile) 创建并配置站点，填写实际使用的域名，获取 Site Key 和 Secret Key。后端设置 `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`，管理端 `apps/admin/.env` 可设置相同 Site Key 的 `VITE_TURNSTILE_SITE_KEY`，再在管理后台“设置 → 登录方式”中启用。Secret Key 仅放在后端；失败阈值与限流配置见环境模板。
 - 短信：当前 `SMS_PROVIDER=dev` 和 `aliyun` 分支均只写日志；阿里云真实发送尚未实现。填写阿里云配置不代表已具备生产短信登录，生产应保持该登录方式关闭。
 - AI：在后台添加提供商、录入自己的 Key、测试并启用。没有预置共享密钥；自定义 Skill 文件位于上传目录中，需持久化。
 
@@ -172,7 +248,7 @@ GRANT USAGE, CREATE ON SCHEMA public TO xblog;
 
 建议使用密码管理器生成足够长的随机字母数字密码；也可在设置密码前，在服务器终端运行 `openssl rand -hex 32` 生成 64 位十六进制随机密码，并妥善保存。使用这类密码可避免连接 URL 中的特殊字符转义问题。
 
-在 `/home/appuser/xblog/backend/.env` 中填写刚才设置的密码，替换下方占位文字：
+在 `/home/appuser/xblog/apps/api/.env` 中填写刚才设置的密码，替换下方占位文字：
 
 ```dotenv
 DATABASE_URL=postgresql+asyncpg://xblog:替换为刚设置的随机密码@127.0.0.1:5432/xblog
@@ -210,27 +286,25 @@ uv run --frozen --no-dev python -m app.cli seed-pages
 
 当前迁移链到 `014_post_pinned.py`（revision `014_post_pinned`）；以 `uv run --frozen --no-dev alembic heads` 与上述 `current` 输出一致为准。迁移失败立即停止后续发布，保留错误日志，不通过跳过迁移或手工删除表继续。
 
-### 3.3. 启动 API 并构建前端
+### 3.3. 构建并启动三应用
 
-先编辑 `/home/appuser/xblog/deploy/systemd/xblog-api.service` 和 `xblog-web.service`：核对 User、Group、WorkingDirectory、EnvironmentFile、ExecStart。API 模板通过下面的 `uv run --no-sync` 命令启动 Uvicorn，使用 4 个 worker。Web 使用 `/usr/local/bin/pnpm start` 调用前端 package.json 的 `start` 脚本；systemd 的 PATH 仍须能够找到 Node。
+生产只运行 API 与 Next.js 两个 systemd 服务；管理端由 nginx 托管静态文件，不使用 `vite preview` 常驻。
 
-API 使用 appuser 安装的 `/home/appuser/.local/bin/uv`，确保该账号可读取项目虚拟环境和 Python 解释器。依赖已由部署步骤安装，常驻服务使用 `--no-sync`，避免启动时同步依赖：
+核对 `deploy/systemd/xblog-api.service`、`xblog-web.service`：用户/组 appuser，工作目录分别为 `apps/api`、`apps/web`，uv 与 pnpm 使用实际可执行的绝对路径。启动命令：
 
 ```ini
-WorkingDirectory=/home/appuser/xblog/backend
+# xblog-api.service
+WorkingDirectory=/home/appuser/xblog/apps/api
 ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 10242 --workers 4
+
+# xblog-web.service
+WorkingDirectory=/home/appuser/xblog/apps/web
+ExecStart=/usr/local/bin/pnpm start
 ```
 
-Web 的启动配置如下，参数传递给 `next start`，保持回环监听和 10241 端口：
+web 的 package.json 已指定端口 10241，不添加 `-H`。前端未限制监听地址，安全组或防火墙不要开放 10241/10242；nginx 仍通过回环地址访问。
 
-```ini
-WorkingDirectory=/home/appuser/xblog/frontend
-ExecStart=/usr/local/bin/pnpm start -H 127.0.0.1
-```
-
-部署前确认 appuser 可执行 `/usr/local/bin/pnpm`；若实际安装位置不同，同步修改 unit。修改 unit 后执行 `daemon-reload`，已有服务需重启才会使用新启动命令。
-
-从仓库根目录安装并先启动 API：
+在仓库根目录安装 unit，先启动 API：
 
 ```bash
 cd /home/appuser/xblog
@@ -239,18 +313,35 @@ sudo cp deploy/systemd/xblog-web.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable xblog-api xblog-web
 sudo systemctl start xblog-api
+curl --fail http://127.0.0.1:10242/api/v1/public/posts
 ```
 
-确认 API 和数据库可访问后构建前端，避免构建时缓存默认主题或空内容：
+以 appuser 在仓库根目录统一安装与构建，不在各应用目录另建锁文件：
 
 ```bash
-cd /home/appuser/xblog/frontend
+cd /home/appuser/xblog
 pnpm install --frozen-lockfile
+pnpm check
+pnpm typecheck
+pnpm test
 pnpm build
 sudo systemctl start xblog-web
 ```
 
-首次构建需要开发依赖中的 TypeScript、Tailwind 等工具，不能在构建前只安装生产依赖。`After=xblog-api.service` 只保证启动顺序，不保证 API 已就绪，应先完成下一节的直连检查。
+管理端产物为 `apps/admin/dist`；公开站产物为 `apps/web/.next`。构建需要 TypeScript、Vite、Tailwind 等开发依赖。修改 `VITE_*` 必须重新构建管理端，修改 `NEXT_PUBLIC_*` 必须重新构建公开站。
+
+nginx 配置包含 `/admin` → `/admin/` 跳转、`/admin/` SPA 深链接回退，以及 `/admin/assets/` 缺失资源 404。nginx worker 必须能逐级访问 `/home/appuser/xblog/apps/admin/dist` 并读取文件；使用专用组或 ACL 授权，不对整个项目开放写权限。部署后测试 `/admin/posts`、`/admin/logs/login`，不能只测试首页。
+
+已有服务先用 `systemctl cat xblog-web` 检查旧 override 是否覆盖主文件。修改 unit 后执行：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart xblog-api xblog-web
+sudo systemctl show xblog-web -p ExecStart -p WorkingDirectory
+sudo ss -ltnp '( sport = :10241 or sport = :10242 )'
+```
+
+首次构建前保证 API 可用，避免将空内容写入站点地图；API 不可达时构建会在请求超时后使用已有降级逻辑，但不代表业务验收成功。
 
 ### 3.4. 用 Certbot 签发免费 SSL 证书
 
@@ -327,7 +418,7 @@ ssl_certificate_key /etc/letsencrypt/live/blog.example.com/privkey.pem;
 ssl_protocols TLSv1.2 TLSv1.3;
 ```
 
-这只是 HTTPS server 内的 TLS 片段，不能替代完整站点配置。Standalone 不保证生成模板引用的 `/etc/letsencrypt/options-ssl-nginx.conf` 和 `ssl-dhparams.pem`；按本流程部署时删除这两条引用，使用上述 TLS 配置。HTTP 跳转 server 为：
+这只是 HTTPS server 内的 TLS 片段，不能替代完整站点配置。当前模板不依赖 `/etc/letsencrypt/options-ssl-nginx.conf` 或 `ssl-dhparams.pem`。Standalone 不保证生成这些文件；若服务器使用旧模板且报文件不存在，删除对应 include、ssl_dhparam 行，使用上述 TLS 配置。HTTP 跳转 server 为：
 
 ```nginx
 server {
@@ -351,6 +442,10 @@ curl --fail https://blog.example.com/api/v1/public/health
 HTTP 应跳转 HTTPS，HTTPS 不应出现证书信任错误；不使用 `curl -k` 绕过检查。后续配置更新使用 `sudo nginx -t && sudo systemctl reload nginx`。配置校验失败时恢复备份的 HTTP 配置后再启动，不继续加载错误配置。
 
 同步确认 `COOKIE_SECURE=true`、`FRONTEND_URL` 和 `NEXT_PUBLIC_SITE_URL` 使用正式 HTTPS 域名。`REVALIDATE_URL` 仍直连 `http://127.0.0.1:10241/api/revalidate`；公网 `/api/` 由 nginx 转发到后端。
+
+若 `nginx -t` 提示 `listen ... http2` 已弃用，将两条监听改为 `listen 443 ssl;`、`listen [::]:443 ssl;`，在同一 HTTPS server 内添加一次 `http2 on;`。该指令要求 nginx >=1.25.1 且具有 HTTP/2 模块；可用 `nginx -v`、`nginx -V` 检查。旧版本不支持独立 http2 指令时，可先不启用 HTTP/2。参见 [nginx HTTP/2 文档](https://nginx.org/en/docs/http/ngx_http_v2_module.html)。
+
+修改服务器配置后执行 `sudo nginx -t && sudo systemctl reload nginx`；若 nginx 已停止，校验成功后使用 `sudo systemctl start nginx`。不要在语法检查失败时重启正在运行的服务。
 
 #### SSL 证书自动续期（Standalone）
 
@@ -481,12 +576,26 @@ sudo systemctl status xblog-api xblog-web
 
 ## 5. 更新、备份与恢复
 
+### 从旧 frontend/backend 目录迁移
+
+1. 停止写入并备份数据库、旧 backend/uploads、前后端 .env、加密密钥和服务配置。Git 不会迁移被忽略的真实配置或上传文件。
+2. 更新代码后，将旧 backend/.env、frontend/.env 分别迁到 apps/api/.env、apps/web/.env；已有目标文件先比较，不直接覆盖。管理端公开的 Turnstile Key 使用 VITE_TURNSTILE_SITE_KEY。
+3. 将实际上传目录迁到 apps/api/uploads，或将 UPLOAD_DIR 设置为稳定绝对路径。核对封面、头像、友链 LOGO、站点 LOGO 和 Skill 文件；检查 ai_skill.storage_path 中是否含旧绝对路径。保留旧副本直至验收完成。
+4. 重建 apps/api/.venv 和根 node_modules；不要搬用旧虚拟环境。目录迁移本身不修改数据库 schema，也不重建管理员。
+5. 构建 web/admin 后，同一发布窗口切换 unit 工作目录与 nginx 静态后台路由；确认深链接、登录、OAuth、语言独立、上传与 AI SSE 后再结束维护。
+
+### 本地联调
+
+分别运行根脚本 `pnpm dev:api`、`pnpm dev:web`、`pnpm dev:admin`，再使用 [dev.conf](../deploy/nginx/dev.conf) 启动独立 nginx。浏览器统一访问 `http://localhost:10240`，不要用 10241/10243 的直连入口验收跨端导航和 OAuth。
+
+API 的开发 FRONTEND_URL、公开站 NEXT_PUBLIC_SITE_URL 使用 `http://localhost:10240`；BACKEND_URL 仍指向 10242，REVALIDATE_URL 仍指向 10241。开发 OAuth 应用回调也对应 10240，不能覆盖生产应用设置。Vite HMR 使用 `/admin/hmr`，代理保留 WebSocket Upgrade。
+
 ### 日常更新
 
 1. 记录当前代码版本、依赖锁文件、`uv run --frozen --no-dev alembic current` 输出与服务配置；阅读新版本迁移文件。涉及迁移时安排维护窗口并停止写入。
 2. 备份 PostgreSQL、完整上传目录、前后端环境文件和服务/nginx 配置，确认备份可读取且有异机副本。数据库和文件应在同一停止写入窗口内备份，避免引用错位。
 3. 停止 Web/API 后切换到待发布版本；保留 `.env`、上传文件、旧版本与构建产物。执行后端 frozen 安装和迁移，迁移成功后启动 API。
-4. 执行前端 frozen 安装与构建，成功后启动 Web。unit 改动后需要 `daemon-reload`，环境配置改动需要重启对应进程。
+4. 在根目录执行前端 frozen 安装与双端构建，成功后启动 Web；管理端静态产物一并发布。unit 改动后需要 `daemon-reload`，环境配置改动需要重启对应进程。
 5. 重做第 4 节验收。未通过时先恢复服务或回滚，不继续追加变更掩盖故障。
 
 备份命令示例在服务器执行，`xblog-backup` 是操作者事先配置的 PostgreSQL service 名称（可通过受限权限的 `.pg_service.conf` / `.pgpass` 提供连接），不是仓库内置服务：
@@ -501,7 +610,7 @@ pg_restore --list /secure-backups/xblog-before-release.dump
 
 ### 回滚边界
 
-- 应用：只有旧程序与当前数据库结构兼容时，才能切回旧代码、对应依赖和旧前端构建。不要继续使用新版本的 `.next`。
+- 应用：只有旧程序与当前数据库结构兼容时，才能切回旧代码、对应依赖、旧 `.next` 和管理端 dist；同时恢复匹配的 nginx 路由和 unit 工作目录。
 - 配置：恢复配套的环境文件和 systemd/nginx 配置，尤其是 AI 解密密钥。更换 JWT 签名密钥会影响会话。
 - 数据：未验证的迁移不能假定可安全 downgrade。代码回退不能撤销数据变更或删除文件；不兼容时应停止服务，把数据库备份恢复到独立新库并验证，再切换 DATABASE_URL，同时恢复同一批次上传文件。
 - 恢复备份会丢失备份后的变更。应先保留故障现场与当前数据，确认恢复时间点后再切换，不能用空库或自动清空目录代替回滚。
@@ -533,7 +642,7 @@ sudo ss -ltnp 'sport = :5432'
 
 `-l` 仅显示监听套接字，`-t` 查询 TCP，`-n` 显示数字地址和端口，`-p` 显示进程名称、PID 和文件描述符。使用 sudo 可查看其他用户的进程信息。
 
-检查 `Local Address:Port` 和 `Process` 列：按本文 systemd 配置，前后端应分别监听 `127.0.0.1:10241`、`127.0.0.1:10242`。没有匹配记录表示当前没有该 TCP 端口的监听；端口被其他进程占用时，先根据 PID 确认进程归属，再处理对应服务。端口处于 LISTEN 不代表业务或数据库访问正常，仍需执行第 4 节接口检查。
+检查 `Local Address:Port` 和 `Process` 列：前端应监听 10241（可能显示通配地址），后端监听 `127.0.0.1:10242`。没有匹配记录表示当前没有该 TCP 端口的监听；端口被其他进程占用时，先根据 PID 确认进程归属，再处理对应服务。端口处于 LISTEN 不代表业务或数据库访问正常，仍需执行第 4 节接口检查。
 
 未引用上传清理仅覆盖 `covers/`、`link-logos/`，不包含头像、站点 LOGO 和 Skill。先在后端工作目录预览，再由具备文件和数据库权限的服务账号执行：
 
@@ -564,3 +673,9 @@ TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小�
 | 配置 aliyun 后收不到短信 | sms_service.py | 当前未真正发送；不要据日志成功启用生产短信入口 |
 
 后端 AI 限流是进程内状态，4 worker 不提供跨进程统一的 60 次/分钟额度。若调整进程数，不应把该限制当作全局配额保证。
+
+### 本地直接访问后台
+
+同时运行 `pnpm dev:web` 和 `pnpm dev:admin` 后，可访问 `http://localhost:10241/admin`。公开站开发服务会将 `/admin/*` 转发到 Vite 10243；修改 Next 配置后须重启 dev:web。生产 `pnpm start` 不启用该转发，仍使用 nginx 静态后台。
+
+10240 联调网关仍可用。选择哪一个入口，开发环境的 FRONTEND_URL、NEXT_PUBLIC_SITE_URL 和 OAuth 回调就使用相同地址；10241 入口应填写 `http://localhost:10241`。HMR 使用当前入口，不固定为 10240。

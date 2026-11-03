@@ -1,0 +1,143 @@
+{
+  "meta": {
+    "siteName": "xblog",
+    "siteDescription": "Personal blog · Markdown writing · Self-hosted",
+    "titleTemplate": "{title} · xblog"
+  },
+  "nav": {
+    "menu": "Open menu",
+    "blog": "Blog",
+    "about": "About",
+    "projects": "Projects",
+    "links": "Links",
+    "search": "Search",
+    "admin": "Admin"
+  },
+  "locale": {
+    "label": "Language",
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    "en": "English"
+  },
+  "footer": {
+    "rss": "RSS",
+    "sitemap": "Sitemap",
+    "copyright": "© {year} {siteName}"
+  },
+  "home": {
+    "eyebrow": "Personal Journal",
+    "titleLine1": "Write in Markdown,",
+    "titleLine2": "publish to the web.",
+    "description": "A self-hosted personal blog: FastAPI powers content, Next.js delivers the reading experience, with ISR, search, and Giscus comments.",
+    "enterBlog": "Browse blog",
+    "search": "Search",
+    "latestPosts": "Latest posts",
+    "latestPostsHint": "Recently published",
+    "viewAll": "View all",
+    "emptyTitle": "No posts yet",
+    "emptyDescription": "Sign in to the admin and write your first post.",
+    "cardAdminTitle": "Writing dashboard",
+    "cardAdminDescription": "Markdown editing and publishing",
+    "cardRssTitle": "RSS feed",
+    "cardRssDescription": "Follow blog updates",
+    "cardAboutTitle": "About",
+    "cardAboutSubtitle": "Meet the author",
+    "cardAboutDescription": "Projects and introduction"
+  },
+  "blog": {
+    "copyrightTitle": "Copyright notice",
+    "title": "Blog",
+    "description": "Thoughts, projects, and everyday notes.",
+    "metaDescription": "All published posts",
+    "emptyTitle": "No posts yet",
+    "emptyDescription": "Published posts will appear here.",
+    "postNotFound": "Post not found",
+    "comments": "Comments",
+    "toc": "On this page",
+    "paginationPrev": "Previous",
+    "paginationNext": "Next",
+    "paginationPage": "Page {page} of {totalPages}",
+    "postNavPrevious": "Previous post",
+    "postNavNext": "Next post",
+    "postNavAria": "Post navigation"
+  },
+  "about": {
+    "fallbackTitle": "About",
+    "description": "About the author and this blog."
+  },
+  "projects": {
+    "fallbackTitle": "Projects",
+    "description": "Portfolio and side projects."
+  },
+  "links": {
+    "title": "Links",
+    "description": "Friends and fellow creators.",
+    "metaDescription": "Blogroll and friendly links",
+    "emptyTitle": "No links yet",
+    "emptyDescription": "Add links from the admin dashboard."
+  },
+  "search": {
+    "eyebrow": "Search",
+    "title": "Search posts",
+    "description": "Find posts by title, excerpt, body, or Chinese tag keywords.",
+    "keywordLabel": "Keywords",
+    "placeholder": "Enter keywords…",
+    "submit": "Search",
+    "submitting": "Searching…",
+    "emptyTitle": "No matching posts",
+    "emptyDescription": "Try different keywords."
+  },
+  "tags": {
+    "description": "All posts under this tag.",
+    "metaTitle": "Tag: {slug}",
+    "emptyTitle": "No posts",
+    "emptyDescription": "Nothing published under this tag yet."
+  },
+  "common": {
+    "copy": "Copy",
+    "copied": "Copied!",
+    "copyCodeAria": "Copy code",
+    "mermaidZoomIn": "Zoom in",
+    "mermaidZoomOut": "Zoom out",
+    "mermaidReset": "Reset view",
+    "mermaidFullscreen": "Fullscreen",
+    "mermaidClose": "Close",
+    "mermaidCopySource": "Copy Mermaid source",
+    "mermaidPanUp": "Pan up",
+    "mermaidPanDown": "Pan down",
+    "mermaidPanLeft": "Pan left",
+    "mermaidPanRight": "Pan right",
+    "backToTop": "Back to top"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "posts": "Posts",
+      "about": "About",
+      "projects": "Projects",
+      "extendedPages": "Extended pages",
+      "links": "Links",
+      "ai": "AI",
+      "logs": "Logs",
+      "operationLogs": "Operation logs",
+      "loginLogs": "Login logs",
+      "aiModels": "AI models",
+      "skills": "Skills",
+      "settings": "Settings",
+      "backToSite": "Back to site"
+    },
+    "feedback": {
+      "gotIt": "Got it",
+      "draftSaved": "Draft saved",
+      "published": "Published",
+      "saveFailed": "Save failed",
+      "publishFailed": "Publish failed",
+      "loginSuccess": "Signed in",
+      "loginSuccessDesc": "Welcome back, {username}.",
+      "loginFailed": "Sign-in failed",
+      "logoutSuccess": "Signed out",
+      "logoutFailed": "Sign-out failed"
+    }
+  }
+}

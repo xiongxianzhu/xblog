@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
   <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.138+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.2-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js"/></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js"/></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/></a>
 </p>
 
@@ -25,15 +25,15 @@
 </p>
 
 <p align="center">
-  <a href="docs/prd-xblog.md"><b>产品需求</b></a>
+  <a href="docs/prd.md"><b>产品需求</b></a>
   &nbsp;·&nbsp;
   <a href="CONTRIBUTING.md"><b>参与贡献</b></a>
   &nbsp;·&nbsp;
   <a href="AGENTS.md"><b>AI 协作说明</b></a>
   &nbsp;·&nbsp;
-  <a href="backend/README.md"><b>后端文档</b></a>
+  <a href="apps/api/README.md"><b>后端文档</b></a>
   &nbsp;·&nbsp;
-  <a href="frontend/README.md"><b>前端文档</b></a>
+  <a href="apps/web/README.md"><b>前端文档</b></a>
 </p>
 
 <p align="center"><sub>— · — · —</sub></p>
@@ -88,6 +88,7 @@ flowchart LR
     N["nginx"]
     W["Next.js :10241"]
     B["FastAPI :10242"]
+    S["Ant Design 静态后台"]
     DB[(PostgreSQL)]
   end
 
@@ -95,11 +96,12 @@ flowchart LR
   A --> N
   N -->|"/"| W
   N -->|"/api/"| B
+  N -->|"/admin/"| S
   W -->|rewrite /api| B
   B --> DB
 ```
 
-<p align="center"><sub><b>同域路由</b>：/ → Next.js · /api/ → FastAPI · 开发时 Next 代理 /api/* 到 localhost:10242</sub></p>
+<p align="center"><sub><b>同域路由</b>：/ → Next.js · /admin/ → 静态后台 · /api/ → FastAPI；本地联调入口 10240</sub></p>
 
 ---
 
@@ -109,7 +111,7 @@ flowchart LR
 
 | Python | uv | Node.js | pnpm | PostgreSQL |
 |:------:|:--:|:-------:|:----:|:----------:|
-| 3.14+ | 最新 | 20+ | 9+ | 16+ |
+| 3.14 系列 | uv | 26.13.0 LTS | 12.16.1 | 独立 PostgreSQL |
 
 ### 1 · 克隆
 
@@ -121,7 +123,7 @@ cd xblog
 ### 2 · 后端
 
 ```bash
-cd backend
+cd apps/api
 make install && make setup
 # 编辑 .env：SECRET_KEY、DATABASE_URL
 make migrate && make dev
@@ -131,23 +133,23 @@ make migrate && make dev
 
 ### 3 · 前端
 
+在仓库根目录统一安装，两端分别启动：
+
 ```bash
-cd frontend
-pnpm install && pnpm dev
+pnpm install --frozen-lockfile
+pnpm dev:web
+# 另一个终端
+pnpm dev:admin
 ```
 
-| 地址 | 用途 |
-|------|------|
-| <http://localhost:10241> | 公开站（默认 locale） |
-| <http://localhost:10241/zh-TW/blog> | 公开站（指定语言） |
-| <http://localhost:10241/admin> | 管理后台（无 locale 前缀） |
+公开站为 10241，管理端开发服务为 10243。按 [开发网关](deploy/nginx/dev.conf) 配置本地 nginx 后，统一从 <http://localhost:10240> 进入，后台地址为 <http://localhost:10240/admin/>。跨端导航、Cookie 和 OAuth 通过同一入口验收。
 
-> 💡 后端端口非 `10242` 时，在 `frontend/.env` 设置 `BACKEND_URL`。
+质量检查在根目录执行 `pnpm check`、`pnpm typecheck`、`pnpm test`、`pnpm build`；Biome 负责格式与 lint，TypeScript 独立检查。
 
 ### 4 · 可选：Giscus 评论
 
 ```bash
-cd frontend
+cd apps/web
 cp .env.example .env
 # 填写 NEXT_PUBLIC_GISCUS_*（见 https://giscus.app/zh-CN）
 pnpm dev
@@ -159,7 +161,7 @@ pnpm dev
 
 ## 技术栈
 
-### 后端 `backend/`
+### 后端 `apps/api/`
 
 | 类别 | 技术 |
 |------|------|
@@ -172,7 +174,7 @@ pnpm dev
 
 脚手架：[create-fastapi](https://github.com/xiongxianzhu/create-fastapi)
 
-### 前端 `frontend/`
+### 前端 `apps/web/`
 
 | 类别 | 技术 |
 |------|------|
@@ -191,15 +193,17 @@ pnpm dev
 
 ```text
 xblog/
-├── AGENTS.md              ← AI 助手与贡献者速查
-├── llms.txt              ← LLM 仓库导航（llms.txt 规范）
-├── CONTRIBUTING.md       ← 参与贡献入口
-├── README.md             ← 你在这里
-├── backend/              ← FastAPI API
-├── frontend/             ← Next.js 站点 + /admin
-├── deploy/               ← nginx · systemd 示例
-├── docs/                 ← PRD · Git 工作流 · superpowers 设计/计划
-└── .github/              ← Issue / PR 模板
+├── apps/
+│   ├── api/          # FastAPI、Alembic、uv.lock、tests
+│   ├── web/          # Next.js 公开站、ISR、fonts
+│   └── admin/        # Vite + Ant Design 管理端
+├── packages/contracts/ # 共享业务类型
+├── deploy/           # nginx、systemd
+├── docs/
+├── package.json
+├── pnpm-workspace.yaml
+├── pnpm-lock.yaml
+└── biome.json
 ```
 
 ---
@@ -210,10 +214,11 @@ xblog/
 |------|--------|------|
 | [AGENTS.md](AGENTS.md) | AI / 新贡献者 | 目录约定、环境变量、主题 ISR、Git 规范 |
 | [llms.txt](llms.txt) | LLM / AI 工具 | 仓库导航索引（llms.txt 规范，链到核心文档与入口代码） |
-| [docs/prd-xblog.md](docs/prd.md) | 产品 / 架构 | 需求、验收标准、技术决策 |
+| [docs/prd.md](docs/prd.md) | 产品 / 架构 | 需求、验收标准、技术决策 |
 | [docs/superpowers/](docs/superpowers/specs/) | 功能设计 | AI Composer、登录防护、上传清理等 spec/plan |
-| [backend/README.md](backend/README.md) | 后端开发 | API、迁移、`cleanup-uploads`、部署、排错 |
-| [frontend/README.md](frontend/README.md) | 前端开发 | 路由、主题、构建、排错 |
+| [apps/api/README.md](apps/api/README.md) | 后端开发 | API、迁移、`cleanup-uploads`、部署、排错 |
+| [apps/web/README.md](apps/web/README.md) | 公开站 | 路由、主题、构建、排错 |
+| [apps/admin/README.md](apps/admin/README.md) | 管理端 | Ant Design、认证、编辑与静态部署 |
 | [deploy/systemd/README.md](deploy/systemd/README.md) | 运维 | 生产进程守护 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献者 | 分支、Commit、PR 流程 |
 | [docs/git-workflow.md](docs/git-workflow.md) | 维护者 / 贡献者 | Git 协作规范详解 |
@@ -224,9 +229,9 @@ xblog/
 
 欢迎 Issue、文档改进与 Pull Request。
 
-1. 阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解分支与 Commit 规范  
-2. 详细流程见 [docs/git-workflow.md](docs/git-workflow.md)  
-3. 提 PR 前请运行 `make check`（backend）与 `pnpm lint && pnpm build`（frontend）
+1. 阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解分支与 Commit 规范
+2. 详细流程见 [docs/git-workflow.md](docs/git-workflow.md)
+3. 提 PR 前请运行 `make check`（backend）与 `pnpm check && pnpm build`（frontend）
 
 ```bash
 git checkout -b feat/your-feature main
@@ -242,11 +247,11 @@ git push -u origin feat/your-feature
 ## 生产部署
 
 ```text
-① 配置 backend/.env + frontend/.env（含 REVALIDATE_SECRET）
+① 配置 apps/api/.env + apps/web/.env（含 REVALIDATE_SECRET）
 ② uv sync --frozen --no-dev && alembic upgrade head
 ③ pnpm build && next start（systemd）
-④ nginx：/ → :10241，/api/ → :10242
-⑤ 可选：cron 每小时 `cleanup-uploads`（见 backend/README.md）
+④ nginx：/ → :10241，/admin/ → apps/admin/dist，/api/ → :10242
+⑤ 可选：cron 每小时 `cleanup-uploads`（见 apps/api/README.md）
 ```
 
 <p align="center">详细步骤 → <a href="deploy/systemd/README.md"><b>deploy/systemd/README.md</b></a></p>
@@ -258,13 +263,13 @@ git push -u origin feat/your-feature
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
 | 公开页主题不生效 | `REVALIDATE_SECRET` 未配或缓存 | 对齐前后端密钥；开发环境硬刷新 |
-| 评论不显示 | 未配置 `NEXT_PUBLIC_GISCUS_*` | 复制 `frontend/.env.example` → `.env` 并重启 |
+| 评论不显示 | 未配置 `NEXT_PUBLIC_GISCUS_*` | 复制 `apps/web/.env.example` → `.env` 并重启 |
 | 封面/正文更新延迟 | ISR 缓存 | 生产配置 `REVALIDATE_SECRET`；开发环境硬刷新 |
 | 标签页 URL 乱码 | 中文 slug 已编码 | 正常；页面用 `decodeRouteParam` 解码并显示 `tag.name` |
 | 封面/LOGO 预览 404 | 后端未启动或上传目录无权限 | `make dev`；确认 `uploads/covers/`、`uploads/link-logos/` 可写 |
 | 关浏览器后磁盘残留上传 | 未保存的本地上传 | 前端 `pending-upload-cleanup.ts` 即时删；生产配置 `cleanup-uploads` cron（见 backend README） |
 | 登录需人机验证 | Turnstile 已启用 | 配置 `TURNSTILE_*` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY`；后台 **设置 → 登录方式** 可开关 |
-| 前端 API 404 | 后端未启动 / `BACKEND_URL` 错误 | `make dev` + 检查 `frontend/.env` |
+| 前端 API 404 | 后端未启动 / `BACKEND_URL` 错误 | `make dev` + 检查 `apps/web/.env` |
 | `/zh-TW/admin` 404 | 后台不应带 locale 前缀 | 访问 `/admin`；`proxy.ts` 会重定向 |
 | 后台切换语言无效 | cookie 未写入 | 确认 `locale-switcher` + 刷新页面 |
 | 迁移失败 | PostgreSQL 未就绪 | 检查 `DATABASE_URL` |

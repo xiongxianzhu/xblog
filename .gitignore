@@ -1,6 +1,6 @@
 # =============================================================================
 # xblog Monorepo — 根目录 .gitignore（权威汇总）
-# backend/.gitignore、frontend/.gitignore 为子目录补充，规则与此保持一致
+# apps/api/.gitignore、apps/web/.gitignore 为子目录补充，规则与此保持一致
 # =============================================================================
 
 # =============================================================================
@@ -21,7 +21,7 @@ ehthumbs.db
 *.log
 logs/
 # 后台日志页面是源码，不属于运行日志
-!frontend/app/admin/(shell)/logs/
+!apps/admin/src/app/admin/(shell)/logs/
 tmp/
 temp/
 *.tmp
@@ -75,8 +75,8 @@ ENV/
 *.sqlite3
 
 # 用户上传（仅保留 .gitkeep 占位）
-backend/uploads/*
-!backend/uploads/.gitkeep
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
 
 # =============================================================================
 # 前端 — Node / Next.js（frontend/ 及仓库内同类产物）
@@ -92,7 +92,7 @@ node_modules/
 
 .next/
 out/
-frontend/build/
+apps/web/build/
 .turbo/
 
 *.tsbuildinfo
@@ -106,3 +106,6 @@ yarn-error.log*
 
 .vercel
 *.pem
+
+# Migration tooling backups (generated environments only)
+.migration-cache/

@@ -9,11 +9,17 @@
 | 文档版本 | v2.10 |
 | 最后更新 | 2026-07-05 |
 
+## 2026-11-01 工程迁移基线
+
+在既有功能需求不变的前提下，已按用户确认将工程拆为 apps/web（Next.js 公开站）、apps/admin（React + Vite + Ant Design）、apps/api（FastAPI）。双端使用 React 19.3.1、TypeScript 7.0.2、Lucide，前端检查使用 Biome。后台语言为 ADMIN_LOCALE，公开站为 SITE_LOCALE，跨应用导航不互相改写。
+
+本节覆盖下文历史版本中的“单个 Next.js 承载后台”“全站 shadcn”“同步 ORM”等技术描述；功能验收标准继续有效。当前精确版本以 [技术栈](tech-stack.md) 和锁文件为准，路径和发布步骤以 [部署文档](deployment.md) 为准。旧路线图不是本次上线完成记录。
+
 ## 技术栈速查
 
 > 完整说明见 **§4.2 Technology Stack**；脚手架初始化见 **§6.3 / §6.4** 与 **附录 A**。
 
-### 后端 `backend/`
+### 后端 `apps/api/`
 
 | 类别 | 技术 |
 |------|------|
@@ -29,7 +35,7 @@
 | 工具链 | uv · ruff · mypy · pytest |
 | 脚手架 | [create-fastapi](https://github.com/xiongxianzhu/create-fastapi) |
 
-### 前端 `frontend/`
+### 前端 `apps/web/`
 
 | 类别 | 技术 |
 |------|------|
@@ -77,7 +83,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | SC-5 | 生产环境：`/api/v1/public/health` 返回 200；HTTPS 可用；仓库无真实密钥与私人文章内容                        | 部署检查清单          |
 | SC-6 | `backend`: `ruff check`、`mypy`、`pytest` 通过；`frontend`: `pnpm lint`、`pnpm build` 通过 | CI 或本地命令        |
 | SC-7 | 管理员在后台修改**公开站主题**后，访客刷新公开页可见新配色（开发即时；生产 **60 秒内**，见 US-7） | 改主题 → 访问 `/` 或 `/blog` 对比 |
-| SC-8 | 仓库含 `AGENTS.md`、根/`backend`/`frontend` README、`docs/prd-xblog.md`、`CONTRIBUTING.md`、`llms.txt`；`.gitignore` 覆盖前后端产物 | 克隆后文档可读、无 `.env` 泄漏 |
+| SC-8 | 仓库含 `AGENTS.md`、根/`backend`/`frontend` README、`docs/prd.md`、`CONTRIBUTING.md`、`llms.txt`；`.gitignore` 覆盖前后端产物 | 克隆后文档可读、无 `.env` 泄漏 |
 | SC-9 | 文章详情页在配置 Giscus 环境变量后显示评论；未配置时有明确引导 | 配置 env → 访问 `/blog/[slug]` |
 
 **Phase 2 — AI 写作**（见 §3、US-AI-*；设计 spec：`docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md`）
@@ -111,9 +117,9 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 | 类别    | 手动事项                                                      | 详见              |
 | ----- | --------------------------------------------------------- | --------------- |
 | 环境安装  | Python 3.14、uv、Node.js、pnpm、create-fastapi CLI、PostgreSQL | §6.1 · **附录 B** |
-| 仓库与密钥 | `git clone` / `push`；复制并编辑 `backend/.env`、`frontend/.env`（不提交）     | §6.2            |
-| 后端脚手架 | `create-fastapi` 生成 `backend/`                            | §6.3 · 附录 A.1   |
-| 前端脚手架 | `pnpm create next-app` 生成 `frontend/`                     | §6.4 · 附录 A.2   |
+| 仓库与密钥 | `git clone` / `push`；复制并编辑 `apps/api/.env`、`apps/web/.env`（不提交）     | §6.2            |
+| 后端脚手架 | `create-fastapi` 生成 `apps/api/`                            | §6.3 · 附录 A.1   |
+| 前端脚手架 | `pnpm create next-app` 生成 `apps/web/`                     | §6.4 · 附录 A.2   |
 | 数据库   | 安装/启动 PostgreSQL；建库建用户；`alembic upgrade`                  | §6.5            |
 | 管理员   | `uv run python -m app.cli create-admin`（本地与生产各执行）                      | §6.6            |
 | 本地运行  | `uv sync`、`uvicorn`；`pnpm dev`                            | §6.7            |
@@ -214,8 +220,8 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **Acceptance Criteria**
 
 - [ ] 文章详情页 `/blog/[slug]` 底部嵌入 **Giscus** 评论区（「评论」标题 + 组件）。
-- [ ] `repo` / `repoId` / `category` / `categoryId` 等 **仅**来自前端环境变量（`NEXT_PUBLIC_GISCUS_*`），不写死后端、不提交 `frontend/.env`。
-- [ ] 提供 `frontend/.env.example` 占位模板；未配置时显示中文引导（链到 giscus.app），而非静默空白。
+- [ ] `repo` / `repoId` / `category` / `categoryId` 等 **仅**来自前端环境变量（`NEXT_PUBLIC_GISCUS_*`），不写死后端、不提交 `apps/web/.env`。
+- [ ] 提供 `apps/web/.env.example` 占位模板；未配置时显示中文引导（链到 giscus.app），而非静默空白。
 - [ ] 支持 `data-mapping="pathname"`（可经 `NEXT_PUBLIC_GISCUS_MAPPING` 覆盖）；可选 `NEXT_PUBLIC_GISCUS_THEME`、`NEXT_PUBLIC_GISCUS_INPUT_POSITION`。
 - [ ] 评论组件为 Client 端动态加载 `giscus.app/client.js`；可与公开站 `mode` 联动，或用 env 指定 Giscus 主题。
 - [ ] `POST /api/v1/public/pageviews` 记录 `path` 与可选 `referrer`。
@@ -271,11 +277,11 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **Acceptance Criteria**
 
 - [ ] 根目录含 **`README.md`**（Monorepo 概览、shields、快速开始）、**`AGENTS.md`**（AI/贡献者约定、主题 ISR、Git 规范）、**`CONTRIBUTING.md`**（贡献流程）、**`llms.txt`**（LLM 仓库导航，[llms.txt 规范](https://llmstxt.org/)）。
-- [ ] **`docs/prd-xblog.md`** 纳入版本库，作为产品与验收的权威来源；**`docs/git-workflow.md`** 说明分支、Commit、PR、Review 文化；**`docs/superpowers/`** 存放功能 design spec 与 implementation plan。
-- [ ] `backend/README.md`、`frontend/README.md` 分别说明本目录开发与部署。
+- [ ] **`docs/prd.md`** 纳入版本库，作为产品与验收的权威来源；**`docs/git-workflow.md`** 说明分支、Commit、PR、Review 文化；**`docs/superpowers/`** 存放功能 design spec 与 implementation plan。
+- [ ] `apps/api/README.md`、`apps/web/README.md` 分别说明本目录开发与部署。
 - [ ] **`.github/`** 含 PR 模板与 Issue 模板（Bug / 功能建议）。
-- [ ] **根 `.gitignore`** 汇总 Monorepo 忽略规则（含 Python 缓存 `.venv` / `.pytest_cache` / `.ruff_cache` / `.mypy_cache`、前端 `node_modules` / `.next`、`backend/uploads/` 用户文件等）；子目录 `.gitignore` 可与根规则等效互补。
-- [ ] 环境模板仅用 `backend/.env.example`、`frontend/.env.example` 占位，**禁止**提交真实 `backend/.env`、`frontend/.env` 及用户上传内容。
+- [ ] **根 `.gitignore`** 汇总 Monorepo 忽略规则（含 Python 缓存 `.venv` / `.pytest_cache` / `.ruff_cache` / `.mypy_cache`、前端 `node_modules` / `.next`、`apps/api/uploads/` 用户文件等）；子目录 `.gitignore` 可与根规则等效互补。
+- [ ] 环境模板仅用 `apps/api/.env.example`、`apps/web/.env.example` 占位，**禁止**提交真实 `apps/api/.env`、`apps/web/.env` 及用户上传内容。
 
 
 
@@ -285,7 +291,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 
 **Acceptance Criteria**
 
-- [ ] 公开站支持 **zh-CN**、**zh-TW**、**en**（`frontend/messages/*.json`）；路由在 `app/[locale]/` 下，由 `proxy.ts` + next-intl 处理。
+- [ ] 公开站支持 **zh-CN**、**zh-TW**、**en**（`apps/web/messages/*.json`）；路由在 `app/[locale]/` 下，由 `proxy.ts` + next-intl 处理。
 - [ ] 后台 `/admin/*` **不使用** URL locale 前缀；访问 `/{locale}/admin/*` 应重定向至 `/admin/*`；后台语言存 **`NEXT_LOCALE` cookie**，切换后刷新生效。
 - [ ] 顶栏 **语言切换** 组件在公开站与后台均可用；后台按钮宽度与文案完整显示。
 
@@ -312,7 +318,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 **Acceptance Criteria**
 
 - [ ] **设置 → Skills** 支持上传 `.zip`、新建、编辑 `SKILL.md`、删除、启用/禁用。
-- [ ] Skill 存于 `backend/uploads/skills/{name}/`，DB 存元数据；`name` / `description` 符合 [Agent Skills Specification](https://agentskills.io/specification)。
+- [ ] Skill 存于 `apps/api/uploads/skills/{name}/`，DB 存元数据；`name` / `description` 符合 [Agent Skills Specification](https://agentskills.io/specification)。
 - [ ] 校验失败返回 **422** 与可读中文错误（SC-AI-2）。
 - [ ] 可配置三场景默认 Skill：`polish`、`chat`、`generate`；未选手动 Skill 时走默认 + description 关键词推荐。
 - [ ] MVP **不执行** Skill 内 `scripts/`，仅将 `SKILL.md` body 注入 system prompt。
@@ -396,7 +402,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 - 微服务、Redis、消息队列、async SQLAlchemy
 - 富文本 WYSIWYG 编辑器（MVP 仅 Markdown）
 - 移动端 App / 小程序
-- Agent 或脚本**代生成** `backend/`、`frontend/` 基础脚手架
+- Agent 或脚本**代生成** `apps/api/`、`apps/web/` 基础脚手架
 - 演示站、Docker 一键包（Phase 2 可选）
 - 内容多语言（同一篇文章多 locale 版本并存；CMS 级翻译工作流）
 - 访客侧 AI、公开 AI API、Skill 内 **scripts 服务端执行**（Phase 2 AI 亦不做）
@@ -441,7 +447,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
 ### 3.4 Agent Skills
 
 - 目录包符合 [agentskills.io](https://agentskills.io/specification)：`SKILL.md` + 可选 `scripts/`、`references/`、`assets/`。
-- 存储：`backend/uploads/skills/{name}/`；管理端上传 zip / 新建 / 编辑 / 删除。
+- 存储：`apps/api/uploads/skills/{name}/`；管理端上传 zip / 新建 / 编辑 / 删除。
 - 选用策略：**场景默认**（polish / chat / generate）+ **description 关键词推荐** + **Composer 手动多选**（`skill_ids`）。
 - 内置 Skill 含：`blog-chat-zh`、`blog-polish-zh`、`blog-generate-zh`、`blog-format-zh`（排版）、`blog-excerpt-zh`（摘要）。
 - MVP 不执行 `scripts/`，仅注入 `SKILL.md` body 至 system prompt。
@@ -491,7 +497,7 @@ MVP 视为成功当且仅当满足以下 **可验证** 指标：
     ┌──────▼──────┐                 ┌──────▼──────┐
     │  Next.js    │                 │  FastAPI    │
     │  :10241      │                 │  :10242      │
-    │  frontend/  │                 │  backend/   │
+    │  apps/web/  │                 │  apps/api/   │
     └──────┬──────┘                 └──────┬──────┘
            │         Cookie + fetch       │
            └───────────────┬──────────────┘
@@ -513,8 +519,8 @@ xblog/
 ├── README.md
 ├── .gitignore        # Monorepo 忽略规则（汇总前后端）
 ├── .github/          # PR / Issue 模板
-├── backend/          # create-fastapi 生成 + 博客业务扩展
-├── frontend/         # create-next-app 初始化 + 页面与 admin
+├── apps/api/          # create-fastapi 生成 + 博客业务扩展
+├── apps/web/         # create-next-app 初始化 + 页面与 admin
 ├── deploy/           # nginx · systemd
 ├── docs/
 │   ├── prd-xblog.md
@@ -527,8 +533,8 @@ xblog/
 
 | 目录          | 初始化方式                  | 谁负责                  |
 | ----------- | ---------------------- | -------------------- |
-| `backend/`  | `create-fastapi`       | 作者本地执行；Agent 仅指导     |
-| `frontend/` | `pnpm create next-app` | 作者本地执行；Agent 仅指导     |
+| `apps/api/`  | `create-fastapi`       | 作者本地执行；Agent 仅指导     |
+| `apps/web/` | `pnpm create next-app` | 作者本地执行；Agent 仅指导     |
 | 业务代码        | 在骨架上扩展                 | 作者 + Agent 可按 PRD 协作 |
 
 
@@ -665,7 +671,7 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 | `NEXT_PUBLIC_API_URL` | 可选；与 `BACKEND_URL` 二选一或互补，见 frontend README |
 | `NEXT_PUBLIC_SITE_URL` | 站点绝对 URL（sitemap、RSS、OG） |
 | `REVALIDATE_SECRET`   | 与后端成对的 ISR 回调校验密钥（**作者自行生成，禁止提交 Git**） |
-| Giscus 相关             | 仅前端 `frontend/.env`（模板见 `frontend/.env.example`），不进后端 |
+| Giscus 相关             | 仅前端 `apps/web/.env`（模板见 `apps/web/.env.example`），不进后端 |
 | `NEXT_PUBLIC_GISCUS_REPO` | GitHub 仓库，如 `owner/repo` |
 | `NEXT_PUBLIC_GISCUS_REPO_ID` | giscus.app 生成的 `R_…` |
 | `NEXT_PUBLIC_GISCUS_CATEGORY` | Discussions 分类名 |
@@ -686,7 +692,7 @@ OpenAPI：`/docs`（FastAPI 自动生成）。Phase 2 可用 openapi-typescript 
 | `LOGIN_CAPTCHA_AFTER_FAILURES` 等 | 登录失败触发验证码 · 限流 |
 | `UPLOAD_DIR` | 上传根目录（`covers/`、`link-logos/`、Skill 包等） |
 
-占位与说明见 `backend/.env.example`；**禁止**在 PRD 中填写真实密钥、数据库密码或 API Key。
+占位与说明见 `apps/api/.env.example`；**禁止**在 PRD 中填写真实密钥、数据库密码或 API Key。
 
 
 **路由映射（生产）**
@@ -701,7 +707,7 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 
 ### 4.5 Security & Privacy
 
-- 密钥、`DATABASE_URL`、JWT `SECRET_KEY` 仅来自环境变量；提供 `backend/.env.example`、`frontend/.env.example`；**禁止**提交 `backend/.env` / `frontend/.env`。
+- 密钥、`DATABASE_URL`、JWT `SECRET_KEY` 仅来自环境变量；提供 `apps/api/.env.example`、`apps/web/.env.example`；**禁止**提交 `apps/api/.env` / `apps/web/.env`。
 - 密码 **bcrypt** 存储；JWT 存 **HttpOnly** Cookie；生产 `COOKIE_SECURE=true`。
 - 管理 API 未授权返回 401/403；生产不向访客暴露堆栈详情。
 - 博客正文与用户数据存 PostgreSQL；**私人草稿不得作为 fixture 提交 Git**。
@@ -716,7 +722,7 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | -------- | --------------------------------------------------------------------- |
 | **性能**   | 公开文章 ISR；Server Component 内独立 fetch 使用 `Promise.all`；后台编辑器不进公开 bundle |
 | **SEO**  | 公开列表/详情禁止纯 CSR 首屏；须 SSR/ISR 输出完整 HTML                                 |
-| **可维护性** | 根目录 + `backend/` + `frontend/` 各有一份 README；**`AGENTS.md`**、**`CONTRIBUTING.md`**、**`llms.txt`**；**`docs/git-workflow.md`**；通过第 1.3 节 SC-6～SC-9 |
+| **可维护性** | 根目录 + `apps/api/` + `apps/web/` 各有一份 README；**`AGENTS.md`**、**`CONTRIBUTING.md`**、**`llms.txt`**；**`docs/git-workflow.md`**；通过第 1.3 节 SC-6～SC-9 |
 
 
 
@@ -740,13 +746,13 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | DOM 作用域 | `[data-site-shell]` · `data-site-palette` | `[data-admin-shell]` |
 | 访客可见 | 是，全站一致 | 否（仅登录后 admin 区域） |
 
-**公开站 preset palette**：**7 款**统一 ID（`editorial` / `forest` / `slate` / `ink` / `graphite` / `ocean` / `rose`），公开站与后台各提供相同 7 款选项；每套含 light/dark 模式。CSS 变量在 `globals.css` 与 `frontend/lib/themes.ts` 维护。
+**公开站 preset palette**：**7 款**统一 ID（`editorial` / `forest` / `slate` / `ink` / `graphite` / `ocean` / `rose`），公开站与后台各提供相同 7 款选项；每套含 light/dark 模式。CSS 变量在 `globals.css` 与 `apps/web/lib/themes.ts` 维护。
 
 **站点品牌**：`site_name`、`site_tagline`（副标题）、`site_logo_url`、**`site_icp_number`**（备案号，公开页页脚）经 `GET/PATCH /admin/site-theme` 与公开 API 下发。
 
 **后台壳层 UI**：侧边栏导航（文章、页面、友链、用户、设置等）、顶栏（折叠侧栏、毛玻璃、标题区、**头像**菜单）、主内容区 **全宽**；设置页分区展示「公开站外观」与「后台外观」，避免混淆。
 
-**Giscus 评论**：实现于 `frontend/components/giscus.tsx`；文章页 `frontend/app/blog/[slug]/page.tsx` 引入；配置说明见 `frontend/.env.example` 与 §6.8。
+**Giscus 评论**：实现于 `apps/web/components/giscus.tsx`；文章页 `apps/web/app/blog/[slug]/page.tsx` 引入；配置说明见 `apps/web/.env.example` 与 §6.8。
 
 ---
 
@@ -762,8 +768,8 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | 阶段               | 范围     | 产出                                                                         |
 | ---------------- | ------ | -------------------------------------------------------------------------- |
 | **M0**           | PRD 定稿 | 本文档 v2.0                                                                   |
-| **M1**           | 后端 MVP | create-fastapi 生成 `backend/`；SQLModel、Alembic、auth、文章 public/admin API、CLI |
-| **M2**           | 前端 MVP | 作者初始化 `frontend/`；公开页 ISR、admin 登录与文章 CRUD                                 |
+| **M1**           | 后端 MVP | create-fastapi 生成 `apps/api/`；SQLModel、Alembic、auth、文章 public/admin API、CLI |
+| **M2**           | 前端 MVP | 作者初始化 `apps/web/`；公开页 ISR、admin 登录与文章 CRUD                                 |
 | **M3**           | 内容与发现  | Page、FriendLink、搜索、RSS、sitemap、PageView                                    |
 | **M4**           | 部署与开源  | `deploy/`、文档体系（README / AGENT / CONTRIBUTING / llms.txt / git-workflow）、`.github` 模板、VPS + HTTPS 跑通 SC-5～SC-9 |
 | **M5 — Phase 2a** | AI 写作 P1 | 提供商 CRUD + 激活 + test；Skill 管理 + 校验；选区 AI + SSE；SC-AI-1/2/4/5 · **已实现** |
@@ -828,11 +834,11 @@ https://<domain>/uploads/      → nginx 静态或 FastAPI 挂载（covers/ · l
 | #   | 事项             | 说明                                                                     |
 | --- | -------------- | ---------------------------------------------------------------------- |
 | 1   | 克隆 / 维护 Git 仓库 | 如 `git clone git@github.com:xiongxianzhu/xblog.git`                    |
-| 2   | 复制后端环境文件       | `backend/.env.example` → `backend/.env`，修改 `SECRET_KEY`、`DATABASE_URL`；Phase 2 AI 可选 `AI_KEY_ENCRYPTION_SECRET` |
-| 3   | 复制前端环境文件       | `frontend/.env.example` → `frontend/.env`                  |
-| 4   | 提交边界           | **禁止**将 `backend/.env`、`frontend/.env`、私人文章数据、用户上传文件提交到 Git                              |
-| 5   | 忽略规则           | 根 `.gitignore` 覆盖 `.venv`、`.pytest_cache`、`.ruff_cache`、`.mypy_cache`、`node_modules`、`.next`、`backend/uploads/*` 等；见 US-8 |
-| 6   | 文档               | `docs/prd-xblog.md`、`AGENTS.md`、各 README **应提交**，供 clone 后阅读 |
+| 2   | 复制后端环境文件       | `apps/api/.env.example` → `apps/api/.env`，修改 `SECRET_KEY`、`DATABASE_URL`；Phase 2 AI 可选 `AI_KEY_ENCRYPTION_SECRET` |
+| 3   | 复制前端环境文件       | `apps/web/.env.example` → `apps/web/.env`                  |
+| 4   | 提交边界           | **禁止**将 `apps/api/.env`、`apps/web/.env`、私人文章数据、用户上传文件提交到 Git                              |
+| 5   | 忽略规则           | 根 `.gitignore` 覆盖 `.venv`、`.pytest_cache`、`.ruff_cache`、`.mypy_cache`、`node_modules`、`.next`、`apps/api/uploads/*` 等；见 US-8 |
+| 6   | 文档               | `docs/prd.md`、`AGENTS.md`、各 README **应提交**，供 clone 后阅读 |
 
 
 
@@ -845,7 +851,7 @@ create-fastapi backend --path ./backend
 ```
 
 - 参数与可选模块以 **create-fastapi 官方文档** 为准。
-- 生成后由作者（或在与 Agent 协作下）提交 `backend/` 到 Git。
+- 生成后由作者（或在与 Agent 协作下）提交 `apps/api/` 到 Git。
 - Agent **不得**代替执行上述命令或从零手写等价脚手架目录。
 
 
@@ -863,7 +869,7 @@ pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --no
 | #   | 事项                                                                              |
 | --- | ------------------------------------------------------------------------------- |
 | 1   | `cd frontend && pnpm dev`，确认 [http://localhost:10241](http://localhost:10241) 可访问 |
-| 2   | 复制 `frontend/.env.example` → `frontend/.env`                              |
+| 2   | 复制 `apps/web/.env.example` → `apps/web/.env`                              |
 | 3   | 确认根 `.gitignore` 忽略 `node_modules/`、`.next/` 及 Python 工具缓存（可与 US-8 根规则合并）                                    |
 | 4   | 删除误生成的 `package-lock.json`（仅保留 `pnpm-lock.yaml`）                                |
 | 5   | 初始化 **shadcn/ui**（见附录 A.2）                                                      |
@@ -879,7 +885,7 @@ pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --no
 | 1   | 安装并启动 PostgreSQL  | 开发与生产均使用 PostgreSQL，**不用 SQLite**                      |
 | 2   | 创建数据库与用户          | 例：`CREATE DATABASE xblog;` + 专用用户与权限                   |
 | 3   | 配置 `DATABASE_URL` | `postgresql+psycopg://user:pass@host:5432/xblog`       |
-| 4   | 执行迁移              | 在 `backend/`：`uv sync` 后 `uv run alembic upgrade head` |
+| 4   | 执行迁移              | 在 `apps/api/`：`uv sync` 后 `uv run alembic upgrade head` |
 
 
 
@@ -930,7 +936,7 @@ pnpm dev
 | --- | --------------------------------------- | --------------------------------- |
 | 1   | 在 GitHub 仓库启用 **Discussions**                 | 可与主仓库 `xblog` 同库，或独立 `xblog-comments` 分类 |
 | 2   | 在 [giscus.app](https://giscus.app/zh-CN) 生成配置 | 获取 `repo`、`repoId`、`category`、`categoryId` |
-| 3   | 复制 `frontend/.env.example` → `frontend/.env` 并填写 | `NEXT_PUBLIC_GISCUS_*`；**勿提交** `frontend/.env` |
+| 3   | 复制 `apps/web/.env.example` → `apps/web/.env` 并填写 | `NEXT_PUBLIC_GISCUS_*`；**勿提交** `apps/web/.env` |
 | 4   | 重启 `pnpm dev`；生产环境改 env 后须重新 `pnpm build` | `NEXT_PUBLIC_*` 在构建时注入 |
 
 
@@ -943,7 +949,7 @@ pnpm dev
 
 | #   | 事项                                               | 说明                                              |
 | --- | ------------------------------------------------ | ----------------------------------------------- |
-| 1   | 安装 PostgreSQL / 云数据库                             | 生产 `DATABASE_URL` 写入服务器 `backend/.env`          |
+| 1   | 安装 PostgreSQL / 云数据库                             | 生产 `DATABASE_URL` 写入服务器 `apps/api/.env`          |
 | 2   | 安装 Node.js、pnpm、Python 3.14、uv                   | 与开发栈一致                                          |
 | 3   | `git pull` 获取代码                                  | 在服务器克隆或拉取 xblog                                 |
 | 4   | 后端：`uv sync`、`alembic upgrade head`、create-admin | 同 §6.5、§6.6                                     |
@@ -1007,19 +1013,19 @@ cd frontend && pnpm dev
 
 **骨架阶段配置**
 
-1. 维护 `frontend/.env.example`（提交 Git），作者复制为 `frontend/.env`：
+1. 维护 `apps/web/.env.example`（提交 Git），作者复制为 `apps/web/.env`：
   ```env
    BACKEND_URL=http://localhost:10242
    NEXT_PUBLIC_SITE_URL=http://localhost:10241
    REVALIDATE_SECRET=change-me-revalidate
    # NEXT_PUBLIC_GISCUS_* 见 .env.example 完整列表
   ```
-2. 根 `.gitignore` 忽略 `frontend/node_modules/`、`.next/` 及 `backend/` 下 Python 缓存、`.venv`、`uploads/*`（保留 `.gitkeep`）；完整清单见 **US-8**。
+2. 根 `.gitignore` 忽略 `apps/web/node_modules/`、`.next/` 及 `apps/api/` 下 Python 缓存、`.venv`、`uploads/*`（保留 `.gitkeep`）；完整清单见 **US-8**。
 3. 若存在 `package-lock.json`，删除，仅保留 `pnpm-lock.yaml`。
 
 **初始化 shadcn/ui（方案 A：全站统一）**
 
-在 `frontend/` 目录执行（交互项可与下表一致；**由作者手动执行**）：
+在 `apps/web/` 目录执行（交互项可与下表一致；**由作者手动执行**）：
 
 ```powershell
 cd frontend
@@ -1238,7 +1244,7 @@ GRANT ALL PRIVILEGES ON DATABASE xblog TO xblog;
 \q
 ```
 
-`backend/.env` 示例：
+`apps/api/.env` 示例：
 
 ```env
 DATABASE_URL=postgresql+psycopg://xblog:你的密码@localhost:5432/xblog
@@ -1329,7 +1335,7 @@ psql -U xblog -d xblog -h localhost -c "SELECT 1;"
 | v2.1 | 2026-07-05 | 新增 §1.4 概览与第 6 章「作者手动执行清单」                                        |
 | v2.0 | 2026-07-05 | 按 Strict PRD Schema 重构；补充 User Stories、可度量 Success Criteria、风险与附录 |
 | v1.3 | 2026-07-05 | 前后端脚手架由作者初始化；Agent 不代生成                                           |
-| v1.2 | 2026-07-05 | `backend/` 由 create-fastapi 生成                                    |
+| v1.2 | 2026-07-05 | `apps/api/` 由 create-fastapi 生成                                    |
 | v1.1 | 2026-07-05 | Python 3.14 · SQLModel · 全 PG · pnpm                              |
 | v1.0 | 2026-07-05 | 初版                                                                |
 
