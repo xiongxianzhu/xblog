@@ -52,10 +52,10 @@ export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderP
   const form = (
     <FieldGroup className="gap-3">
       {email ? (
-        <div className="flex items-start gap-2 rounded-[2px] border border-border/50 bg-muted/25 px-3 py-2.5 text-xs">
-          <CheckCircle2Icon className="mt-0.5 size-3.5 shrink-0 text-primary" />
+        <div className="flex min-h-11 items-center gap-2 rounded-[2px] border border-border/50 bg-muted/25 px-3 py-2.5 text-xs">
+          <CheckCircle2Icon className="size-3.5 shrink-0 text-primary" />
 
-          <p className="min-w-0 text-muted-foreground">
+          <p className="m-0 min-w-0 break-all leading-normal text-muted-foreground">
             当前绑定 <span className="font-medium text-foreground">{email}</span>
           </p>
         </div>

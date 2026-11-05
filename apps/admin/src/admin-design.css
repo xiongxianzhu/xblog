@@ -89,9 +89,23 @@
 .admin-app-sider .ant-layout-sider-children {
   padding: 0;
 }
+@media (min-width: 1024px) {
+  .admin-app-layout .admin-app-sider.ant-layout-sider {
+    position: fixed;
+    inset-inline-start: 0;
+  }
+  .admin-app-sider + .admin-app-content {
+    margin-inline-start: 240px;
+  }
+  .admin-app-sider.ant-layout-sider-collapsed + .admin-app-content {
+    margin-inline-start: 64px;
+  }
+}
 .admin-sidebar-navigation {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior-y: contain;
   padding-block: 16px;
 }
 .admin-sidebar-toggle.ant-btn {
@@ -116,6 +130,12 @@
 .admin-account-menu .ant-dropdown-menu-item {
   min-height: 44px;
   font-weight: 500;
+}
+.admin-account-menu .ant-dropdown-menu .ant-dropdown-menu-item-divider {
+  margin: 4px 12px;
+  height: 1px;
+  border: 0;
+  background: hsl(var(--border) / 0.55);
 }
 .admin-app-header > div:last-child {
   height: 100%;
@@ -198,7 +218,16 @@
   font-weight: 600;
   padding-block: 12px;
 }
-.admin-app-content .ant-table-cell-fix-end {
+.admin-app-content .ant-table-thead > tr > th.ant-table-cell::before {
+  display: none;
+}
+.admin-app-content .ant-table-thead > tr > th + th {
+  background-image: linear-gradient(hsl(var(--border) / 0.65), hsl(var(--border) / 0.65));
+  background-position: left center;
+  background-size: 1px 14px;
+  background-repeat: no-repeat;
+}
+.admin-app-content .ant-table-tbody .ant-table-cell-fix-end {
   border-left: 1px solid hsl(var(--border));
 }
 .admin-table-actions > div {
@@ -221,9 +250,6 @@
 }
 .admin-dashboard-stats .ant-card-body {
   padding: 24px;
-}
-.admin-auth-page {
-  padding-bottom: 48px;
 }
 .admin-login-screen {
   animation: none;
@@ -274,11 +300,22 @@
   scrollbar-color: hsl(var(--border)) transparent;
 }
 
+.ant-tooltip .admin-nav-hint,
 .admin-nav-popup .ant-menu {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
   border-radius: 0;
   border: 1px solid hsl(var(--border));
   border-left: 0;
   box-shadow: 2px 2px 6px rgb(15 23 42 / 5%);
+}
+.ant-tooltip .admin-nav-hint {
+  display: flex;
+  align-items: center;
+  min-width: 160px;
+  min-height: 46px;
+  padding-inline: 16px;
+  font-weight: 500;
 }
 .admin-app-sider {
   transition: all 240ms cubic-bezier(0.2, 0, 0, 1);
@@ -746,9 +783,9 @@
 }
 .admin-header-divider {
   width: 1px;
-  height: 24px;
+  height: 14px;
   flex-shrink: 0;
-  background: hsl(var(--border));
+  background: hsl(var(--border) / 0.55);
 }
 .admin-header-current {
   min-width: 0;
@@ -774,9 +811,6 @@
   .admin-header-current {
     font-size: 12px;
   }
-  .admin-header-divider {
-    height: 20px;
-  }
 }
 
 .admin-site-entry span {
@@ -784,4 +818,44 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The page handles vertical scrolling; wide AI tables remain swipeable. */
+.admin-ai-list-table .ant-table-content {
+  scrollbar-width: none;
+}
+.admin-ai-list-table .ant-table-content::-webkit-scrollbar {
+  display: none;
+}
+
+.login-contours {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  stroke: hsl(var(--primary));
+  stroke-width: 1;
+}
+.login-contours-far {
+  opacity: 0.12;
+  animation: login-contour-drift 28s ease-in-out infinite alternate;
+}
+.login-contours-near {
+  opacity: 0.18;
+  animation: login-contour-drift 36s -12s ease-in-out infinite alternate-reverse;
+}
+@keyframes login-contour-drift {
+  from {
+    transform: translate(-24px, -16px);
+  }
+  to {
+    transform: translate(32px, 24px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-contours-far,
+  .login-contours-near {
+    animation: none;
+  }
 }

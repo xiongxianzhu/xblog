@@ -1,5 +1,6 @@
 import { Loader2Icon, PanelRightCloseIcon, PinIcon, SparklesIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import { useTranslations } from "use-intl";
 import { useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import {
@@ -19,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { listAiProviders, listAiSkills, streamAiComplete } from "@/lib/ai-api";
+import { ApiError } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { discardManagedPostCover } from "@/lib/pending-upload-cleanup";
 import { cn } from "@/lib/utils";
@@ -33,6 +36,13 @@ type PostFormValues = {
   tags: string[];
   is_pinned: boolean;
 };
+
+const metadataFields = {
+  title: { label: "标题", instruction: "生成一个准确、简洁的文章标题，使用文章的语言。" },
+  slug: { label: "Slug", instruction: "生成一个简洁的英文 URL slug，只用小写英文字母、数字和连字符。" },
+  excerpt: { label: "摘要", instruction: "用文章的语言写一段简洁摘要，只概括已有信息，约 80 至 120 字。" },
+};
+type MetadataField = keyof typeof metadataFields;
 
 type Props = {
   initial?: Partial<PostFormValues>;
@@ -73,6 +83,94 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
 
   const submitting = activeSubmit !== null;
 
+  const { data: providers } = useSWR("ai-providers", listAiProviders);
+  const available = providers?.filter((provider) => provider.enabled && provider.has_api_key);
+  const provider = available?.find((item) => item.is_default) ?? available?.[0];
+  const [generating, setGenerating] = useState<MetadataField | null>(null);
+  const hasContext = Boolean(values.title.trim() || values.excerpt.trim() || values.content_md.trim());
+
+  async function generateField(field: MetadataField) {
+    if (generating || !hasContext || !provider) return;
+    setGenerating(field);
+    let result = "";
+    let failure = "";
+    let complete = false;
+    try {
+      const excerptSkill =
+        field === "excerpt"
+          ? (await listAiSkills()).find((skill) => skill.name === "blog-excerpt-zh" && skill.enabled)
+          : undefined;
+      await streamAiComplete(
+        {
+          action: "chat",
+          provider_id: provider.id,
+          skill_id: excerptSkill?.id,
+          document: { title: values.title, content_md: values.content_md.slice(0, 4000) },
+          messages: [
+            {
+              role: "user",
+              content: `现有摘要：${values.excerpt.slice(0, 500)}\n${metadataFields[field].instruction}只输出一个结果，不要解释、引号、标题前缀或 Markdown 格式。`,
+            },
+          ],
+        },
+        {
+          onDelta: (delta) => {
+            result += delta;
+          },
+          onError: (message) => {
+            failure = message;
+          },
+          onDone: () => {
+            complete = true;
+          },
+        },
+      );
+      if (failure || !complete) throw new Error(failure || "模型响应中断，请重试。");
+      let text = result.trim();
+      if (field === "slug")
+        text = text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 200)
+          .replace(/^-+|-+$/g, "");
+      if (!text) throw new Error("模型未返回可用文本，请重试。");
+      if (field !== "excerpt" && text.length > 200) throw new Error("结果超过 200 字，请重试。");
+      updateField(field, text);
+      if (field === "excerpt" && Array.from(text).length > 500) setShowValidation(true);
+    } catch (err) {
+      toast.error("生成失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+    } finally {
+      setGenerating(null);
+    }
+  }
+
+  function metadataLabel(field: MetadataField) {
+    const { label } = metadataFields[field];
+    return (
+      <div className="flex items-center justify-between gap-2">
+        <FieldLabel htmlFor={field}>{label}</FieldLabel>
+        {Boolean(provider) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label={`AI 生成${label}`}
+            title={hasContext ? `根据文章内容生成${label}` : "请先填写标题、摘要或正文"}
+            disabled={submitting || generating !== null || !hasContext}
+            onClick={() => void generateField(field)}
+          >
+            {generating === field ? (
+              <Loader2Icon className="size-4 animate-spin" />
+            ) : (
+              <SparklesIcon className="size-4" />
+            )}
+            <span>{generating === field ? "生成中…" : "AI 生成"}</span>
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   function preventEnterSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
     if (event.key !== "Enter") return;
     if (event.target instanceof HTMLTextAreaElement) return;
@@ -83,11 +181,39 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  const [showValidation, setShowValidation] = useState(false);
+  const [takenSlug, setTakenSlug] = useState<string | null>(null);
+  const errors: Partial<Record<"title" | "slug" | "excerpt" | "cover_url", string>> = {};
+  for (const key of ["title", "slug"] as const) {
+    const value = values[key].trim();
+    const label = metadataFields[key].label;
+    if (!value) errors[key] = `请填写${label}。`;
+    else if (Array.from(value).length > 200) errors[key] = `${label}最多 200 个字符。`;
+  }
+  if (takenSlug === values.slug.trim()) errors.slug = "这个 Slug 已被使用，请换一个。";
+  if (Array.from(values.excerpt).length > 500) errors.excerpt = "摘要最多 500 个字符，请缩短后提交。";
+  if (Array.from(values.cover_url.trim()).length > 500) errors.cover_url = "封面地址最多 500 个字符。";
+  function fieldHint(key: keyof typeof errors) {
+    return showValidation && errors[key] ? (
+      <span id={`${key}-error`} className="text-xs text-destructive" role="alert">
+        {errors[key]}
+      </span>
+    ) : null;
+  }
+
   async function handleSubmit(status: "draft" | "published") {
+    setShowValidation(true);
+    const firstInvalid = Object.keys(errors)[0];
+    if (firstInvalid) {
+      document.getElementById(firstInvalid)?.focus();
+      return;
+    }
     setActiveSubmit(status);
     try {
       await onSubmit({
         ...values,
+        title: values.title.trim(),
+        slug: values.slug.trim(),
         status,
         excerpt: values.excerpt || null,
         cover_url: values.cover_url.trim() || null,
@@ -103,6 +229,11 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
       });
       onSuccess?.(status);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 409 && /slug/i.test(err.message)) {
+        setTakenSlug(values.slug.trim());
+        document.getElementById("slug")?.focus();
+        return;
+      }
       toast.error(status === "published" ? tFeedback("publishFailed") : tFeedback("saveFailed"), {
         description: err instanceof Error ? err.message : "请稍后重试",
       });
@@ -158,45 +289,57 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
           <FieldGroup>
             <div className="grid gap-6 md:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="title">标题</FieldLabel>
+                {metadataLabel("title")}
                 <Input
                   id="title"
+                  aria-invalid={showValidation && Boolean(errors.title)}
+                  aria-describedby={showValidation && errors.title ? "title-error" : undefined}
                   value={values.title}
                   onChange={(e) => updateField("title", e.target.value)}
                   required
                   className={adminFieldClass}
                 />
+                {fieldHint("title")}
               </Field>
               <Field>
-                <FieldLabel htmlFor="slug">Slug</FieldLabel>
+                {metadataLabel("slug")}
                 <Input
                   id="slug"
+                  aria-invalid={showValidation && Boolean(errors.slug)}
+                  aria-describedby={showValidation && errors.slug ? "slug-error" : undefined}
                   value={values.slug}
                   onChange={(e) => updateField("slug", e.target.value)}
                   required
                   className={adminFieldClass}
                 />
+                {fieldHint("slug")}
                 <FieldDescription>URL 路径，如 my-first-post</FieldDescription>
               </Field>
             </div>
 
             <Field>
-              <FieldLabel htmlFor="excerpt">摘要</FieldLabel>
+              {metadataLabel("excerpt")}
               <Textarea
                 id="excerpt"
+                aria-invalid={showValidation && Boolean(errors.excerpt)}
+                aria-describedby={showValidation && errors.excerpt ? "excerpt-error" : undefined}
                 value={values.excerpt}
                 onChange={(e) => updateField("excerpt", e.target.value)}
                 className={adminFieldClass}
               />
+              {fieldHint("excerpt")}
             </Field>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <PostCoverEditor
-                value={values.cover_url}
-                savedCoverUrl={savedCoverUrl}
-                onChange={(coverUrl) => updateField("cover_url", coverUrl)}
-                disabled={submitting}
-              />
+              <div>
+                <PostCoverEditor
+                  value={values.cover_url}
+                  savedCoverUrl={savedCoverUrl}
+                  onChange={(coverUrl) => updateField("cover_url", coverUrl)}
+                  disabled={submitting}
+                />
+                {fieldHint("cover_url")}
+              </div>
               <Field>
                 <FieldLabel htmlFor="tags">标签</FieldLabel>
                 <PostTagInput id="tags" value={tags} onChange={setTags} disabled={submitting} />

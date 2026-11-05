@@ -1,5 +1,6 @@
 import { Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export function AdminSmsLoginForm({ onSuccess, className }: Props) {
+  const t = useTranslations("admin.login");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
@@ -30,11 +32,11 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
     setSending(true);
     try {
       const result = await sendSmsLoginCode(phone.trim());
-      toast.success("验证码已发送", { description: result.message });
+      toast.success(t("codeSent"), { description: result.message });
       setCountdown(60);
     } catch (err) {
-      toast.error("发送失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(t("sendFailed"), {
+        description: err instanceof Error ? err.message : t("retry"),
       });
     } finally {
       setSending(false);
@@ -48,8 +50,8 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
       const user = await loginWithSms(phone.trim(), code.trim());
       onSuccess(user.username);
     } catch (err) {
-      toast.error("登录失败", {
-        description: err instanceof Error ? err.message : "验证码错误或已过期",
+      toast.error(t("failed"), {
+        description: err instanceof Error ? err.message : t("invalidCode"),
       });
     } finally {
       setLoggingIn(false);
@@ -60,7 +62,7 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
     <form className={cn("px-6 py-6", className)} onSubmit={handleSubmit}>
       <FieldGroup className="gap-5">
         <Field>
-          <FieldLabel htmlFor="login-phone">手机号</FieldLabel>
+          <FieldLabel htmlFor="login-phone">{t("phone")}</FieldLabel>
           <Input
             id="login-phone"
             className="admin-login-input h-11 rounded-[2px]"
@@ -68,12 +70,12 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
             onChange={(event) => setPhone(event.target.value)}
             autoComplete="tel"
             inputMode="tel"
-            placeholder="11 位中国大陆手机号"
+            placeholder={t("phoneHint")}
             required
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="login-code">验证码</FieldLabel>
+          <FieldLabel htmlFor="login-code">{t("code")}</FieldLabel>
           <div className="flex gap-2">
             <Input
               id="login-code"
@@ -82,7 +84,7 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
               onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder="6 位验证码"
+              placeholder={t("codeHint")}
               minLength={6}
               maxLength={6}
               required
@@ -99,20 +101,20 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
               ) : countdown > 0 ? (
                 `${countdown}s`
               ) : (
-                "获取验证码"
+                t("getCode")
               )}
             </Button>
           </div>
-          <FieldDescription>开发环境验证码会输出到 API 控制台日志。</FieldDescription>
+          <FieldDescription>{t("devCode")}</FieldDescription>
         </Field>
         <Button type="submit" className="h-11 w-full rounded-[2px] active:scale-[0.99]" disabled={loggingIn}>
           {loggingIn ? (
             <>
               <Loader2Icon className="size-4 animate-spin" />
-              登录中…
+              {t("signingIn")}
             </>
           ) : (
-            "登录"
+            t("signIn")
           )}
         </Button>
       </FieldGroup>

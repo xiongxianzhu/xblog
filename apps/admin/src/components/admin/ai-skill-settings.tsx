@@ -1,9 +1,9 @@
 import { Upload } from "antd";
-
-import { Loader2Icon } from "lucide-react";
+import { Eye, Loader2Icon, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
+import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +55,12 @@ export function AiSkillSettings() {
   const { data, error, isLoading, mutate } = useSWR("ai-skills", listAiSkills);
   const { data: defaults, mutate: mutateDefaults } = useSWR("ai-skill-defaults", getAiSkillDefaults);
   const [search, setSearch] = useState("");
+  const [requestedPage, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
+  function changeSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -93,7 +99,7 @@ export function AiSkillSettings() {
       setCreateOpen(false);
       setNewName("");
       setNewDescription("");
-      setSearch("");
+      changeSearch("");
       await patchSkillsCache((current) => upsertSkillInList(current, created));
       toast.success("创建成功", { description: `Skill「${name}」已添加。` });
     } catch (err) {
@@ -168,6 +174,8 @@ export function AiSkillSettings() {
       ),
     [skillOptions, search],
   );
+  const page = Math.min(requestedPage, Math.max(1, Math.ceil(filteredSkills.length / pageSize)));
+  const visibleRows = filteredSkills.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-4">
@@ -224,90 +232,116 @@ export function AiSkillSettings() {
             内置 Skill 随系统提供、仅可查看；自定义 Skill 须符合 agentskills.io 规范。
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="min-w-0">
           <AdminListSearch
             value={search}
-            onChange={setSearch}
+            onChange={changeSearch}
             placeholder="搜索 name、description…"
             className="mb-4"
           />
           {isLoading ? (
             <p className="text-sm text-muted-foreground">加载中…</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>name</TableHead>
-                  <TableHead>来源</TableHead>
-                  <TableHead>description</TableHead>
-                  <TableHead>启用</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSkills.map((skill) => (
-                  <TableRow key={skill.id}>
-                    <TableCell className="font-mono text-sm">{skill.name}</TableCell>
-                    <TableCell>
-                      {skill.is_builtin ? (
-                        <Badge variant="secondary">内置</Badge>
-                      ) : (
-                        <Badge variant="outline">自定义</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-md truncate">{skill.description}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={skill.enabled}
-                        disabled={skill.is_builtin}
-                        onCheckedChange={(checked) => handleToggle(skill, checked)}
-                      />
-                    </TableCell>
-                    <TableCell className="space-x-2 text-right">
-                      <Button variant="outline" size="sm" onClick={() => openViewer(skill)}>
-                        查看
-                      </Button>
-                      {!skill.is_builtin ? (
-                        <>
-                          <Button variant="outline" size="sm" onClick={() => openEditor(skill)}>
-                            编辑
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={deletingId === skill.id}
-                            onClick={() => void handleDelete(skill)}
-                          >
-                            {deletingId === skill.id ? (
-                              <>
-                                <Loader2Icon className="size-4 animate-spin" />
-                                删除中…
-                              </>
-                            ) : (
-                              "删除"
-                            )}
-                          </Button>
-                        </>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!skillOptions.length ? (
+            <>
+              <Table className="admin-ai-list-table">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      暂无 Skill
-                    </TableCell>
+                    <TableHead>name</TableHead>
+                    <TableHead>来源</TableHead>
+                    <TableHead>description</TableHead>
+                    <TableHead>启用</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
-                ) : null}
-                {skillOptions.length > 0 && !filteredSkills.length ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      无匹配结果
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {visibleRows.map((skill) => (
+                    <TableRow key={skill.id}>
+                      <TableCell className="font-mono text-sm">{skill.name}</TableCell>
+                      <TableCell>
+                        <Switch
+                          disabled
+                          checked={skill.is_builtin}
+                          aria-label="内置 Skill"
+                          checkedChildren="内置"
+                          unCheckedChildren="自定义"
+                        />
+                      </TableCell>
+                      <TableCell className="max-w-md truncate">{skill.description}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={skill.enabled}
+                          disabled={skill.is_builtin}
+                          onCheckedChange={(checked) => handleToggle(skill, checked)}
+                        />
+                      </TableCell>
+                      <TableCell className="space-x-2 text-right">
+                        <Button
+                          aria-label={`查看 ${skill.name}`}
+                          title="查看"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openViewer(skill)}
+                        >
+                          <Eye />
+                        </Button>
+                        {!skill.is_builtin ? (
+                          <>
+                            <Button
+                              aria-label={`编辑 ${skill.name}`}
+                              title="编辑"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditor(skill)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              aria-label={`删除 ${skill.name}`}
+                              title="删除"
+                              variant="ghost"
+                              className="text-destructive"
+                              size="icon"
+                              disabled={deletingId === skill.id}
+                              onClick={() => void handleDelete(skill)}
+                            >
+                              {deletingId === skill.id ? (
+                                <Loader2Icon className="animate-spin" />
+                              ) : (
+                                <Trash2 />
+                              )}
+                            </Button>
+                          </>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {!skillOptions.length ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        暂无 Skill
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {skillOptions.length > 0 && !filteredSkills.length ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        无匹配结果
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </Table>
+              <AdminPagination
+                page={page}
+                pageSize={pageSize}
+                total={filteredSkills.length}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+              />
+            </>
           )}
         </CardContent>
       </Card>

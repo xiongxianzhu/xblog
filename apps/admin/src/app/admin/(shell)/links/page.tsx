@@ -243,7 +243,7 @@ export default function AdminLinksPage() {
                   <TableRow key={link.id}>
                     <TableCell className="text-muted-foreground">{link.sort_order}</TableCell>
                     <TableCell>
-                      <div className="flex size-10 items-center justify-center">
+                      <div className="mx-auto flex size-10 items-center justify-center">
                         {logoPreview ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={logoPreview} alt="" className="max-h-10 max-w-10 object-contain" />
@@ -262,22 +262,24 @@ export default function AdminLinksPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
+                          aria-label={`编辑 ${link.name}`}
+                          title="编辑"
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           className={adminFlatButtonClass}
                           onClick={() => openEdit(link)}
                         >
                           <PencilIcon data-icon="inline-start" />
-                          编辑
                         </Button>
                         <Button
+                          aria-label={`删除 ${link.name}`}
+                          title="删除"
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           className={cn("text-destructive", adminFlatButtonClass)}
                           onClick={() => setDeleteTarget(link)}
                         >
                           <Trash2Icon data-icon="inline-start" />
-                          删除
                         </Button>
                       </div>
                     </TableCell>

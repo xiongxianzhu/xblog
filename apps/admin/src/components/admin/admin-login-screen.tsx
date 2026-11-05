@@ -8,11 +8,9 @@ import { showAdminLoginSuccessToast } from "@/components/admin/admin-login-succe
 import { AdminOAuthButtons, AdminOAuthButtonsSkeleton } from "@/components/admin/admin-oauth-buttons";
 import { AdminSmsLoginForm } from "@/components/admin/admin-sms-login-form";
 import { AdminTurnstile } from "@/components/admin/admin-turnstile";
-import Link from "@/components/link";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   ApiError,
   forgotPassword,
@@ -29,24 +27,24 @@ import { cn } from "@/lib/utils";
 type View = "login" | "forgot";
 type LoginTab = "password" | "sms";
 
-function getLoginErrorMessage(error: unknown): string {
+function getLoginErrorMessage(error: unknown, t: (key: string) => string): string {
   if (error instanceof TypeError) {
-    return "无法连接服务，请确认 API 与管理端已启动。";
+    return t("network");
   }
   if (error instanceof ApiError) {
     const messageMap: Record<string, string> = {
-      "Invalid credentials": "账号或密码错误",
-      "Captcha required": "请完成人机验证",
-      "Captcha verification failed": "人机验证失败，请重试",
-      "登录尝试过于频繁，请稍后再试": "登录尝试过于频繁，请稍后再试",
-      "请求过于频繁，请稍后再试": "请求过于频繁，请稍后再试",
+      "Invalid credentials": t("credentials"),
+      "Captcha required": t("captcha"),
+      "Captcha verification failed": t("captchaFailed"),
+      "登录尝试过于频繁，请稍后再试": t("loginLimit"),
+      "请求过于频繁，请稍后再试": t("rateLimit"),
     };
-    return (messageMap[error.message] ?? error.message) || "登录失败";
+    return (messageMap[error.message] ?? error.message) || t("failed");
   }
   if (error instanceof Error) {
-    return error.message || "登录失败";
+    return error.message || t("failed");
   }
-  return "登录失败";
+  return t("failed");
 }
 
 function readCaptchaRequired(error: unknown): boolean {
@@ -57,12 +55,13 @@ function readCaptchaRequired(error: unknown): boolean {
 }
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  oauth_not_linked: "该第三方账号尚未绑定管理员，请先用账号密码登录，在个人资料中绑定。",
-  oauth_failed: "第三方登录失败，请稍后重试。",
-  oauth_already_linked: "该 GitHub / 微信账号已绑定其他管理员。",
+  oauth_not_linked: "notLinked",
+  oauth_failed: "oauthFailed",
+  oauth_already_linked: "alreadyLinked",
 };
 
 export function AdminLoginScreen() {
+  const t = useTranslations("admin.login");
   const router = useRouter();
   const searchParams = useSearchParams();
   const tFeedback = useTranslations("admin.feedback");
@@ -120,10 +119,10 @@ export function AdminLoginScreen() {
 
     toast.error(tFeedback("loginFailed"), {
       id: `admin-oauth-error-${error}`,
-      description: OAUTH_ERROR_MESSAGES[error],
+      description: t(OAUTH_ERROR_MESSAGES[error]),
     });
     router.replace("/admin");
-  }, [searchParams, tFeedback, router]);
+  }, [searchParams, tFeedback, router, t]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reset the challenge whenever its view or requirement changes.
   useEffect(() => {
@@ -149,7 +148,7 @@ export function AdminLoginScreen() {
       setTurnstileToken(null);
       setTurnstileKey((value) => value + 1);
       toast.error(tFeedback("loginFailed"), {
-        description: getLoginErrorMessage(err),
+        description: getLoginErrorMessage(err, t),
       });
     } finally {
       setLoading(false);
@@ -168,15 +167,15 @@ export function AdminLoginScreen() {
     setLoading(true);
     try {
       const result = await forgotPassword(username, turnstileToken ?? undefined);
-      toast.success("请求已提交", { description: result.message });
+      toast.success(t("submitted"), { description: result.message });
       setView("login");
       setTurnstileToken(null);
       setTurnstileKey((value) => value + 1);
     } catch (err) {
       setTurnstileToken(null);
       setTurnstileKey((value) => value + 1);
-      toast.error("提交失败", {
-        description: getLoginErrorMessage(err),
+      toast.error(t("submitFailed"), {
+        description: getLoginErrorMessage(err, t),
       });
     } finally {
       setLoading(false);
@@ -188,13 +187,17 @@ export function AdminLoginScreen() {
 
   return (
     <div className="admin-login-screen relative z-10 w-full max-w-[26rem]">
-      <AdminLoginBrand />
-
-      <div className="admin-login-panel backdrop-blur-sm">
-        <div className="border-b border-border/70 px-6 py-5">
-          <h1 className="text-lg font-semibold tracking-tight">{view === "login" ? "登录" : "找回密码"}</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {view === "login" ? "使用管理员账号进入控制台" : "输入用户名，若已绑定邮箱将收到重置链接"}
+      <div className="admin-login-panel overflow-hidden">
+        <AdminLoginBrand
+          centered
+          className=" mb-0 h-auto flex-col gap-3 border-b border-border/60 px-6 py-6 text-center sm:px-8 [@media(max-height:820px)]:py-3"
+        />
+        <div className="px-6 pt-6 text-center sm:px-8 [@media(max-height:820px)]:pt-3">
+          <h1 className="m-0 text-2xl font-semibold leading-tight tracking-tight">
+            {view === "login" ? t("signIn") : t("forgot")}
+          </h1>
+          <p className="mb-0 mt-2 text-sm leading-relaxed text-muted-foreground">
+            {view === "login" ? t("intro") : t("forgotIntro")}
           </p>
         </div>
 
@@ -202,12 +205,12 @@ export function AdminLoginScreen() {
           <>
             {showLoginTabs ? (
               <AntTabs
-                className="px-6 pt-3"
+                className="px-6 pt-3 sm:px-8"
                 activeKey={loginTab}
                 onChange={(key) => setLoginTab(key as LoginTab)}
                 items={[
-                  { key: "password", label: "账号密码" },
-                  { key: "sms", label: "手机验证码" },
+                  { key: "password", label: t("passwordTab") },
+                  { key: "sms", label: t("smsTab") },
                 ]}
               />
             ) : null}
@@ -215,10 +218,10 @@ export function AdminLoginScreen() {
             {loginTab === "sms" && methods.sms ? (
               <AdminSmsLoginForm onSuccess={handleSmsLoginSuccess} />
             ) : (
-              <form className="px-6 py-6" onSubmit={handleLogin}>
-                <FieldGroup className="gap-5">
+              <form className="px-6 pb-6 pt-5 sm:px-8 sm:pb-8" onSubmit={handleLogin}>
+                <FieldGroup className="gap-5 [@media(max-height:820px)]:gap-3">
                   <Field>
-                    <FieldLabel htmlFor="username">账号</FieldLabel>
+                    <FieldLabel htmlFor="username">{t("account")}</FieldLabel>
                     <Input
                       id="username"
                       className="admin-login-input h-11 rounded-[2px] transition-[border-color,box-shadow] duration-200"
@@ -226,19 +229,19 @@ export function AdminLoginScreen() {
                       onChange={(event) => setUsername(event.target.value)}
                       autoComplete="username"
                       autoFocus
-                      placeholder="用户名、手机号或邮箱"
+                      placeholder={t("accountHint")}
                       required
                     />
                   </Field>
                   <Field>
                     <div className="flex items-center justify-between gap-3">
-                      <FieldLabel htmlFor="password">密码</FieldLabel>
+                      <FieldLabel htmlFor="password">{t("password")}</FieldLabel>
                       <button
                         type="button"
                         className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                         onClick={() => setView("forgot")}
                       >
-                        忘记密码？
+                        {t("forgotLink")}
                       </button>
                     </div>
                     <div className="relative">
@@ -249,6 +252,7 @@ export function AdminLoginScreen() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         autoComplete="current-password"
+                        placeholder={t("passwordHint")}
                         required
                       />
                       <Button
@@ -256,7 +260,7 @@ export function AdminLoginScreen() {
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-11 w-10 rounded-[2px] px-0 text-muted-foreground hover:text-foreground"
-                        aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                        aria-label={showPassword ? t("hide") : t("show")}
                         onClick={() => setShowPassword((value) => !value)}
                       >
                         {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
@@ -283,20 +287,20 @@ export function AdminLoginScreen() {
                     {loading ? (
                       <>
                         <Loader2Icon className="size-4 animate-spin" />
-                        登录中…
+                        {t("signingIn")}
                       </>
                     ) : (
-                      "登录"
+                      t("signIn")
                     )}
                   </Button>
                 </FieldGroup>
 
                 {oauthAvailable ? (
                   <>
-                    <div className="my-6 flex items-center gap-3">
-                      <Separator className="flex-1" />
-                      <span className="shrink-0 text-xs text-muted-foreground">或使用</span>
-                      <Separator className="flex-1" />
+                    <div className="my-4 flex items-center gap-3">
+                      <span aria-hidden className="h-px flex-1 bg-border/60" />
+                      <span className="shrink-0 text-xs text-muted-foreground">{t("or")}</span>
+                      <span aria-hidden className="h-px flex-1 bg-border/60" />
                     </div>
                     {!methodsLoaded ? (
                       <AdminOAuthButtonsSkeleton />
@@ -309,10 +313,10 @@ export function AdminLoginScreen() {
             )}
           </>
         ) : (
-          <form className="px-6 py-6" onSubmit={handleForgot}>
-            <FieldGroup className="gap-5">
+          <form className="px-6 pb-6 pt-5 sm:px-8 sm:pb-8" onSubmit={handleForgot}>
+            <FieldGroup className="gap-5 [@media(max-height:820px)]:gap-3">
               <Field>
-                <FieldLabel htmlFor="forgot-username">用户名</FieldLabel>
+                <FieldLabel htmlFor="forgot-username">{t("username")}</FieldLabel>
                 <Input
                   id="forgot-username"
                   className="admin-login-input h-11 rounded-[2px]"
@@ -322,7 +326,7 @@ export function AdminLoginScreen() {
                   autoFocus
                   required
                 />
-                <FieldDescription>未配置 SMTP 或未绑定邮箱时，请使用 CLI 重置密码。</FieldDescription>
+                <FieldDescription>{t("smtpHint")}</FieldDescription>
               </Field>
               {forgotCaptchaRequired && siteKey ? (
                 <AdminTurnstile
@@ -342,10 +346,10 @@ export function AdminLoginScreen() {
                   {loading ? (
                     <>
                       <Loader2Icon className="size-4 animate-spin" />
-                      提交中…
+                      {t("submitting")}
                     </>
                   ) : (
-                    "发送重置邮件"
+                    t("sendReset")
                   )}
                 </Button>
                 <Button
@@ -355,23 +359,13 @@ export function AdminLoginScreen() {
                   onClick={() => setView("login")}
                 >
                   <ArrowLeftIcon className="size-4" />
-                  返回登录
+                  {t("backLogin")}
                 </Button>
               </div>
             </FieldGroup>
           </form>
         )}
       </div>
-
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        <Link
-          href="/"
-          prefetch={false}
-          className="admin-login-back inline-flex items-center gap-1 transition-colors duration-150 hover:text-foreground"
-        >
-          返回站点
-        </Link>
-      </p>
     </div>
   );
 }

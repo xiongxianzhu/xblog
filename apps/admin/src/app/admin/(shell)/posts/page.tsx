@@ -1,4 +1,4 @@
-import { PenLineIcon, PinIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
+import { PenLineIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 import { useTranslations } from "use-intl";
@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deletePost, listAdminPosts, updatePost } from "@/lib/api";
 import { toast } from "@/lib/feedback";
@@ -142,6 +143,7 @@ export default function AdminPostsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>标题</TableHead>
+                <TableHead>置顶</TableHead>
                 <TableHead className="hidden sm:table-cell">状态</TableHead>
                 <TableHead className="hidden md:table-cell">更新时间</TableHead>
                 <TableHead className="text-right">操作</TableHead>
@@ -152,16 +154,10 @@ export default function AdminPostsPage() {
                 <TableRow key={post.id}>
                   <TableCell className="max-w-[12rem] sm:max-w-[240px]">
                     <div className="flex min-w-0 flex-col gap-1">
-                      <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex min-w-0 items-center justify-center gap-2">
                         <span className="truncate font-medium">{post.title}</span>
-                        {post.is_pinned ? (
-                          <Badge variant="outline" className="shrink-0 gap-1 px-1.5 py-0 text-[10px]">
-                            <PinIcon className="size-3" />
-                            置顶
-                          </Badge>
-                        ) : null}
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 sm:hidden">
+                      <div className="flex flex-wrap items-center justify-center gap-2 sm:hidden">
                         <Badge variant={post.status === "published" ? "default" : "muted"}>
                           {post.status === "published" ? "已发布" : "草稿"}
                         </Badge>
@@ -170,6 +166,15 @@ export default function AdminPostsPage() {
                         ) : null}
                       </div>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={post.is_pinned}
+                      aria-label={`置顶 ${post.title}`}
+                      loading={pinningId === post.id}
+                      disabled={pinningId !== null}
+                      onCheckedChange={() => void handleTogglePin(post.id, post.title, post.is_pinned)}
+                    />
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Badge variant={post.status === "published" ? "default" : "muted"}>
@@ -181,49 +186,33 @@ export default function AdminPostsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-2 sm:px-3"
-                        aria-label={post.is_pinned ? `取消置顶 ${post.title}` : `置顶 ${post.title}`}
-                        disabled={pinningId === post.id}
-                        onClick={() => void handleTogglePin(post.id, post.title, post.is_pinned)}
-                      >
-                        <PinIcon
-                          className={`size-4 sm:mr-1 ${post.is_pinned ? "fill-current text-primary" : ""}`}
-                        />
-                        <span className="hidden sm:inline">{post.is_pinned ? "取消置顶" : "置顶"}</span>
-                      </Button>
                       {post.status !== "published" ? (
                         <Button
+                          title="发布"
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           className="px-2 sm:px-3"
                           aria-label={`发布 ${post.title}`}
                           disabled={publishingId === post.id}
                           onClick={() => void handlePublish(post.id, post.title)}
                         >
-                          <SendIcon className="size-4 sm:mr-1" />
-                          <span className="hidden sm:inline">
-                            {publishingId === post.id ? "发布中…" : "发布"}
-                          </span>
+                          <SendIcon className="size-4" />
                         </Button>
                       ) : null}
-                      <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
+                      <Button title="编辑" asChild variant="ghost" size="icon" className="px-2 sm:px-3">
                         <Link href={`/admin/posts/${post.id}/edit`} aria-label={`编辑 ${post.title}`}>
-                          <PenLineIcon className="size-4 sm:mr-1" />
-                          <span className="hidden sm:inline">编辑</span>
+                          <PenLineIcon className="size-4" />
                         </Link>
                       </Button>
                       <Button
+                        title="删除"
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         className="px-2 text-destructive sm:px-3"
                         aria-label={`删除 ${post.title}`}
                         onClick={() => setDeleteId(post.id)}
                       >
-                        <Trash2Icon className="size-4 sm:mr-1" />
-                        <span className="hidden sm:inline">删除</span>
+                        <Trash2Icon className="size-4" />
                       </Button>
                     </div>
                   </TableCell>

@@ -33,7 +33,15 @@ function ProtectedLayout() {
   return (
     <AdminAuthGate>
       <AdminShell>
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="p-8 text-center">
+              <Spin />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </AdminShell>
     </AdminAuthGate>
   );
@@ -41,12 +49,14 @@ function ProtectedLayout() {
 function PublicLayout() {
   return (
     <AdminAuthGate>
-      <div className="admin-auth-toolbar">
-        <LocaleSwitcher />
+      <div className="admin-auth-layout">
+        <div className="admin-auth-toolbar">
+          <LocaleSwitcher />
+        </div>
+        <main className="admin-auth-page">
+          <Outlet />
+        </main>
       </div>
-      <main className="admin-auth-page">
-        <Outlet />
-      </main>
     </AdminAuthGate>
   );
 }

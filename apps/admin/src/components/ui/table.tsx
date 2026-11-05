@@ -38,9 +38,8 @@ export function Table({ children, className }: ComponentProps<"table">) {
       columns={heads.map((cell, index) => ({
         key: String(index),
         title: cell.props.children,
-        ...(cell.props.className?.includes("text-right")
-          ? { fixed: "right" as const, align: "center" as const }
-          : {}),
+        align: "center",
+        ...(cell.props.className?.includes("text-right") ? { fixed: "right" as const } : {}),
         className: cell.props.className?.replace("text-right", "text-center"),
         render: (_value: unknown, row: (typeof rows)[number]) =>
           cell.props.className?.includes("text-right") ? (

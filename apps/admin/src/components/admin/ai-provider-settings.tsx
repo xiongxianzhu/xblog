@@ -1,9 +1,10 @@
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, Pencil, PlugZap, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
-import { Badge } from "@/components/ui/badge";
+import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -56,6 +57,12 @@ const emptyForm: FormState = {
 export function AiProviderSettings() {
   const { data, error, isLoading, mutate } = useSWR("ai-providers", listAiProviders);
   const [search, setSearch] = useState("");
+  const [requestedPage, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
+  function changeSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AiProvider | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -80,6 +87,8 @@ export function AiProviderSettings() {
       ),
     [data, search],
   );
+  const page = Math.min(requestedPage, Math.max(1, Math.ceil(filtered.length / pageSize)));
+  const visibleRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   function openCreate() {
     setEditing(null);
@@ -148,14 +157,17 @@ export function AiProviderSettings() {
     }
   }
 
-  async function handleToggleEnabled(provider: AiProvider, enabled: boolean) {
-    await updateAiProvider(provider.id, { enabled });
-    await mutate();
-  }
-
-  async function handleSetDefault(provider: AiProvider) {
-    await updateAiProvider(provider.id, { is_default: true, enabled: true });
-    await mutate();
+  const [changingProvider, setChangingProvider] = useState<string | null>(null);
+  async function changeFlags(id: string, flags: { enabled?: boolean; is_default?: boolean }) {
+    setChangingProvider(id);
+    try {
+      await updateAiProvider(id, flags);
+      await mutate();
+    } catch (err) {
+      toast.error("更新失败", { description: err instanceof Error ? err.message : "请重试" });
+    } finally {
+      setChangingProvider(null);
+    }
   }
 
   async function confirmDelete() {
@@ -206,7 +218,7 @@ export function AiProviderSettings() {
 
       <AdminListSearch
         value={search}
-        onChange={setSearch}
+        onChange={changeSearch}
         placeholder="搜索名称、模型、类型…"
         className="mb-4"
       />
@@ -218,88 +230,116 @@ export function AiProviderSettings() {
           <CardTitle className="text-base">提供商列表</CardTitle>
           <CardDescription>至少激活一个并设为默认，才能在编辑器中使用 AI。</CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="min-w-0">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">加载中…</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>模型</TableHead>
-                  <TableHead>Key</TableHead>
-                  <TableHead>激活</TableHead>
-                  <TableHead>默认</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((provider) => (
-                  <TableRow key={provider.id}>
-                    <TableCell className="font-medium">{provider.name}</TableCell>
-                    <TableCell>{getProviderTypeLabel(provider.provider_type)}</TableCell>
-                    <TableCell className="max-w-[160px] truncate">{provider.model}</TableCell>
-                    <TableCell>{provider.has_api_key ? "已配置" : "未配置"}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={provider.enabled}
-                        onCheckedChange={(checked) => handleToggleEnabled(provider, checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {provider.is_default ? (
-                        <Badge>默认</Badge>
-                      ) : (
-                        <Button variant="ghost" size="sm" onClick={() => handleSetDefault(provider)}>
-                          设为默认
+            <>
+              <Table className="admin-ai-list-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>类型</TableHead>
+                    <TableHead>模型</TableHead>
+                    <TableHead>Key</TableHead>
+                    <TableHead>激活</TableHead>
+                    <TableHead>默认</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleRows.map((provider) => (
+                    <TableRow key={provider.id}>
+                      <TableCell className="font-medium">{provider.name}</TableCell>
+                      <TableCell>{getProviderTypeLabel(provider.provider_type)}</TableCell>
+                      <TableCell className="max-w-[160px] truncate">{provider.model}</TableCell>
+                      <TableCell>
+                        <Switch disabled checked={provider.has_api_key} aria-label="API Key 已配置" />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={provider.enabled}
+                          aria-label={`激活 ${provider.name}`}
+                          disabled={changingProvider !== null}
+                          onCheckedChange={(enabled) => void changeFlags(provider.id, { enabled })}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={provider.is_default}
+                          aria-label={`默认模型 ${provider.name}`}
+                          disabled={changingProvider !== null}
+                          onCheckedChange={(checked) =>
+                            void changeFlags(
+                              provider.id,
+                              checked ? { is_default: true, enabled: true } : { is_default: false },
+                            )
+                          }
+                        />
+                      </TableCell>
+                      <TableCell className="space-x-2 text-right">
+                        <Button
+                          aria-label={`编辑 ${provider.name}`}
+                          title="编辑"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(provider)}
+                        >
+                          <Pencil />
                         </Button>
-                      )}
-                    </TableCell>
-                    <TableCell className="space-x-2 text-right">
-                      <Button variant="outline" size="sm" onClick={() => openEdit(provider)}>
-                        编辑
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={testingId === provider.id || !provider.has_api_key}
-                        onClick={() => handleTest(provider)}
-                      >
-                        {testingId === provider.id ? (
-                          <>
-                            <Loader2Icon className="animate-spin" />
-                            测试中…
-                          </>
-                        ) : (
-                          "测试"
-                        )}
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(provider)}>
-                        删除
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!data?.length ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      尚未配置提供商。
-                      <Button variant="ghost" size="sm" className="h-auto px-1" onClick={openCreate}>
-                        立即添加
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-                {data?.length && !filtered.length ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      无匹配结果
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+                        <Button
+                          aria-label={`测试 ${provider.name}`}
+                          title="测试"
+                          variant="ghost"
+                          size="icon"
+                          disabled={testingId === provider.id || !provider.has_api_key}
+                          onClick={() => handleTest(provider)}
+                        >
+                          {testingId === provider.id ? <Loader2Icon className="animate-spin" /> : <PlugZap />}
+                        </Button>
+                        <Button
+                          aria-label={`删除 ${provider.name}`}
+                          title="删除"
+                          variant="ghost"
+                          className="text-destructive"
+                          size="icon"
+                          onClick={() => setDeleteTarget(provider)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {!data?.length ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        尚未配置提供商。
+                        <Button variant="ghost" size="sm" className="h-auto px-1" onClick={openCreate}>
+                          立即添加
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {data?.length && !filtered.length ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        无匹配结果
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </Table>
+              <AdminPagination
+                page={page}
+                pageSize={pageSize}
+                total={filtered.length}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+              />
+            </>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { BanIcon, Loader2Icon, Trash2Icon, UserCheckIcon } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
@@ -7,10 +7,10 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
 import { UserAvatar } from "@/components/admin/user-avatar";
 import { EmptyState } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deleteAdminUser, getMe, listAdminUsers, type ProfileGender, updateAdminUserActive } from "@/lib/api";
 import { toast } from "@/lib/feedback";
@@ -127,7 +127,7 @@ export default function AdminUsersPage() {
                   <TableHead className="hidden lg:table-cell">手机号</TableHead>
                   <TableHead className="hidden lg:table-cell">邮箱</TableHead>
                   <TableHead className="hidden sm:table-cell">角色</TableHead>
-                  <TableHead className="hidden md:table-cell">状态</TableHead>
+                  <TableHead>状态</TableHead>
                   <TableHead className="hidden lg:table-cell">创建时间</TableHead>
                   <TableHead className="hidden xl:table-cell">最近登录</TableHead>
                   <TableHead className="w-40 text-right">操作</TableHead>
@@ -164,10 +164,15 @@ export default function AdminUsersPage() {
                         {displayField(user.email)}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">管理员</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge variant={user.is_active ? "default" : "secondary"}>
-                          {user.is_active ? "正常" : "已禁用"}
-                        </Badge>
+                      <TableCell>
+                        <Switch
+                          checked={user.is_active}
+                          loading={togglingId === user.id}
+                          disabled={togglingId !== null || (user.is_active && !canDisable)}
+                          title={user.is_active && !canDisable ? "无法禁用唯一的管理员" : undefined}
+                          aria-label={`启用用户 ${user.username}`}
+                          onCheckedChange={() => void handleToggleActive(user)}
+                        />
                       </TableCell>
                       <TableCell className="hidden whitespace-nowrap text-muted-foreground lg:table-cell">
                         {formatDateTime(user.created_at)}
@@ -176,40 +181,17 @@ export default function AdminUsersPage() {
                         {formatDateTime(user.last_login_at)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-center gap-1">
                           <Button
+                            aria-label={`删除 ${user.username}`}
                             variant="ghost"
-                            size="sm"
-                            className="px-2 sm:px-3"
-                            disabled={togglingId === user.id || (user.is_active && !canDisable)}
-                            title={
-                              user.is_active && !canDisable
-                                ? "无法禁用唯一的管理员"
-                                : user.is_active
-                                  ? "禁用"
-                                  : "启用"
-                            }
-                            onClick={() => void handleToggleActive(user)}
-                          >
-                            {togglingId === user.id ? (
-                              <Loader2Icon className="size-4 animate-spin" />
-                            ) : user.is_active ? (
-                              <BanIcon className="size-4 sm:mr-1" />
-                            ) : (
-                              <UserCheckIcon className="size-4 sm:mr-1" />
-                            )}
-                            <span className="hidden sm:inline">{user.is_active ? "禁用" : "启用"}</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                            size="icon"
                             className="px-2 text-destructive sm:px-3"
                             disabled={!canDelete}
                             title={canDelete ? "删除" : "无法删除唯一的管理员"}
                             onClick={() => setDeleteTarget({ id: user.id, username: user.username })}
                           >
-                            <Trash2Icon className="size-4 sm:mr-1" />
-                            <span className="hidden sm:inline">删除</span>
+                            <Trash2Icon className="size-4" />
                           </Button>
                         </div>
                       </TableCell>

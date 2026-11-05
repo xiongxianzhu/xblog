@@ -1,4 +1,13 @@
-import { CalendarIcon, KeyRoundIcon, MailIcon, PhoneIcon, SettingsIcon, UserIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  KeyRoundIcon,
+  MailIcon,
+  Mars,
+  PhoneIcon,
+  SettingsIcon,
+  Venus,
+  VenusAndMars,
+} from "lucide-react";
 import { AvatarEditor } from "@/components/admin/avatar-editor";
 import Link from "@/components/link";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +44,7 @@ function StatusBadge({
 }
 
 export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) {
+  const GenderIcon = user.gender === "male" ? Mars : user.gender === "female" ? Venus : VenusAndMars;
   const displayName = user.nickname?.trim() || user.username;
   const hasNickname = Boolean(user.nickname?.trim());
   const filledCount = [user.nickname?.trim(), user.birth_date, user.gender, user.email, user.phone].filter(
@@ -90,21 +100,21 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
       {(user.birth_date || user.gender) && (
         <dl className="grid grid-cols-2 gap-3 text-xs">
           {user.gender ? (
-            <div className="rounded-[2px] border border-border/50 bg-muted/30 px-3 py-2.5">
-              <dt className="flex items-center gap-1 text-muted-foreground">
-                <UserIcon className="size-3" />
-                性别
-              </dt>
-              <dd className="mt-1 font-medium">{GENDER_LABELS[user.gender]}</dd>
+            <div className="flex flex-col items-center justify-center rounded-[2px] border border-border/50 bg-muted/30 px-3 py-2.5 text-center">
+              <dt className="flex items-center gap-1 text-muted-foreground">性别</dt>
+              <dd className="m-0 mt-1 text-primary" title={GENDER_LABELS[user.gender]}>
+                <GenderIcon size={19} aria-hidden />
+                <span className="sr-only">{GENDER_LABELS[user.gender]}</span>
+              </dd>
             </div>
           ) : null}
           {user.birth_date ? (
-            <div className="rounded-[2px] border border-border/50 bg-muted/30 px-3 py-2.5">
+            <div className="flex flex-col items-center justify-center rounded-[2px] border border-border/50 bg-muted/30 px-3 py-2.5 text-center">
               <dt className="flex items-center gap-1 text-muted-foreground">
                 <CalendarIcon className="size-3" />
                 出生
               </dt>
-              <dd className="mt-1 font-medium tabular-nums">{user.birth_date}</dd>
+              <dd className="m-0 mt-1 font-medium tabular-nums">{user.birth_date}</dd>
             </div>
           ) : null}
         </dl>

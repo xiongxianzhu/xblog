@@ -4,8 +4,8 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
 import { AdminPanel } from "@/components/admin/admin-panel";
 import { EmptyState } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loginFailureLabel, loginMethodLabel } from "@/lib/admin-log-labels";
 import { listLoginLogs } from "@/lib/api";
@@ -76,12 +76,16 @@ export default function AdminLoginLogsPage() {
                         <TableCell className="font-medium">{row.username}</TableCell>
                         <TableCell>{loginMethodLabel(row.method)}</TableCell>
                         <TableCell>
-                          <Badge variant={row.success ? "default" : "secondary"}>
-                            {row.success ? "成功" : "失败"}
-                          </Badge>
+                          <Switch
+                            disabled
+                            checked={row.success}
+                            aria-label="登录成功"
+                            checkedChildren="成功"
+                            unCheckedChildren="失败"
+                          />
                         </TableCell>
                         <TableCell className="hidden max-w-[12rem] truncate text-muted-foreground md:table-cell">
-                          {row.success ? "—" : loginFailureLabel(row.failure_reason)}
+                          {row.success ? "-" : loginFailureLabel(row.failure_reason)}
                         </TableCell>
                         <TableCell className="hidden whitespace-nowrap text-muted-foreground sm:table-cell">
                           {row.ip_address ?? "—"}

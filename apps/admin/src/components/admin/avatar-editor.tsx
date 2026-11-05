@@ -1,6 +1,6 @@
-import { Upload } from "antd";
+import { Modal, Upload } from "antd";
 
-import { ImagePlusIcon, Trash2Icon } from "lucide-react";
+import { CameraIcon, DownloadIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSWRConfig } from "swr";
 
@@ -22,6 +22,7 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentUrl, setCurrentUrl] = useState(avatarUrl ?? null);
   const [error, setError] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -87,11 +88,20 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
           : "flex flex-col gap-4 sm:flex-row sm:items-center"
       }
     >
-      <UserAvatar username={username} avatarUrl={displayUrl} size={size} />
-      <div className={layout === "stacked" ? "flex flex-col items-center gap-2" : "flex flex-col gap-2"}>
-        <div className={`flex flex-wrap gap-2 ${layout === "stacked" ? "justify-center" : ""}`}>
+      <div className="relative inline-flex shrink-0 self-center">
+        <button
+          type="button"
+          disabled={!displayUrl || loading}
+          onClick={() => setPreviewOpen(true)}
+          aria-label="放大预览头像"
+          title={displayUrl ? "放大预览头像" : undefined}
+          className="rounded-full enabled:cursor-zoom-in"
+        >
+          <UserAvatar username={username} avatarUrl={displayUrl} size={size} />
+        </button>
+        <div className="absolute -right-1 bottom-0">
           <Upload
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             showUploadList={false}
             disabled={loading}
             beforeUpload={(file) => {
@@ -99,11 +109,40 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
               return false;
             }}
           >
-            <Button type="button" variant="outline" size="sm" disabled={loading}>
-              <ImagePlusIcon data-icon="inline-start" />
-              {loading ? "处理中…" : "上传头像"}
-            </Button>
+            <button
+              type="button"
+              disabled={loading}
+              aria-label="更换头像"
+              title="更换头像"
+              className="inline-flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm enabled:cursor-pointer"
+            >
+              {loading ? <Loader2Icon className="size-4 animate-spin" /> : <CameraIcon className="size-4" />}
+            </button>
           </Upload>
+        </div>
+      </div>
+      {displayUrl && (
+        <Modal
+          title="头像预览"
+          centered
+          open={previewOpen}
+          onCancel={() => setPreviewOpen(false)}
+          footer={
+            <a className="inline-flex items-center gap-2" href={displayUrl} download>
+              <DownloadIcon size={16} />
+              下载原图
+            </a>
+          }
+        >
+          <img
+            src={displayUrl}
+            alt={`${username} 的头像`}
+            className="mx-auto max-h-[65vh] max-w-full object-contain"
+          />
+        </Modal>
+      )}
+      <div className={layout === "stacked" ? "flex flex-col items-center gap-2" : "flex flex-col gap-2"}>
+        <div className="flex items-center gap-2">
           {currentUrl ? (
             <Button
               type="button"

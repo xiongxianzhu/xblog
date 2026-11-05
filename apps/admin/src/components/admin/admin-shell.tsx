@@ -66,6 +66,13 @@ function Shell({ children }: { children: React.ReactNode }) {
   const navigation = (
     <Menu
       mode="inline"
+      tooltip={{
+        arrow: false,
+        placement: "right",
+        align: { offset: [8, 0] },
+        trigger: ["hover", "focus"],
+        classNames: { container: "admin-nav-hint" },
+      }}
       expandIcon={({ isOpen }) => (
         <ChevronDown size={14} style={{ transform: isOpen ? "rotate(180deg)" : undefined }} />
       )}

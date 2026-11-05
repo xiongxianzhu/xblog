@@ -25,7 +25,7 @@ export function loginMethodLabel(method: string) {
 }
 
 export function loginFailureLabel(reason: string | null | undefined) {
-  if (!reason) return "—";
+  if (!reason) return "-";
   return LOGIN_FAILURE_LABELS[reason] ?? reason;
 }
 

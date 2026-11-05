@@ -17,7 +17,6 @@ export function AdminAuthGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function verify() {
-      setState("loading");
       try {
         await getMe();
         if (cancelled) return;
