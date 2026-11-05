@@ -64,7 +64,7 @@ export default async function BlogPostPage({ params }: Props) {
     <article className="page-enter article-layout mx-auto w-full px-4 py-12 sm:px-6 lg:px-8">
       <PageViewTracker path={`/blog/${slug}`} />
 
-      <div className={cn("grid gap-8 lg:gap-10", hasToc && "xl:grid-cols-[minmax(0,1fr)_11rem]")}>
+      <div className={cn("grid gap-8 lg:gap-10", hasToc && "xl:grid-cols-[minmax(0,1fr)_15rem]")}>
         <div className="min-w-0 flex flex-col gap-8">
           <header className="flex flex-col gap-4 border-b border-border/70 pb-8">
             {post.published_at ? (
@@ -83,9 +83,6 @@ export default async function BlogPostPage({ params }: Props) {
                   </Link>
                 ))}
               </div>
-            ) : null}
-            {post.excerpt ? (
-              <p className="text-lg leading-relaxed text-muted-foreground">{post.excerpt}</p>
             ) : null}
           </header>
 

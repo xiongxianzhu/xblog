@@ -9,17 +9,11 @@ import { SiteSearchForm } from "@/components/site-search-form";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Link, usePathname } from "@/i18n/navigation";
+import type { SiteNavItem } from "@/lib/site-navigation";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/blog", labelKey: "blog" },
-  { href: "/about", labelKey: "about" },
-  { href: "/projects", labelKey: "projects" },
-  { href: "/links", labelKey: "links" },
-  { href: "/search", labelKey: "search" },
-] as const;
-
 type SiteHeaderProps = {
+  navItems: SiteNavItem[];
   siteName: string;
   siteTagline?: string | null;
   siteLogoUrl?: string | null;
@@ -38,24 +32,6 @@ function NavLink({
   onNavigate?: () => void;
   className?: string;
 }) {
-  if (href === "/admin") {
-    return (
-      <a
-        href="/admin/"
-        onClick={onNavigate}
-        className={cn(
-          "rounded-sm transition-colors",
-          active
-            ? "bg-muted/70 text-foreground"
-            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-          className,
-        )}
-      >
-        {label}
-      </a>
-    );
-  }
-
   return (
     <Link
       href={href}
@@ -71,7 +47,7 @@ function NavLink({
   );
 }
 
-export function SiteHeader({ siteName, siteTagline, siteLogoUrl }: SiteHeaderProps) {
+export function SiteHeader({ siteName, siteTagline, siteLogoUrl, navItems }: SiteHeaderProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -109,13 +85,6 @@ export function SiteHeader({ siteName, siteTagline, siteLogoUrl }: SiteHeaderPro
                     />
                   );
                 })}
-                <NavLink
-                  href="/admin"
-                  label={t("admin")}
-                  active={false}
-                  onNavigate={() => setMobileOpen(false)}
-                  className="mt-2 border border-border/70 px-3 py-2.5 text-sm font-medium"
-                />
               </nav>
               <div className="mt-auto border-t border-border/70 p-4">
                 <SiteSearchForm initialQuery="" />
@@ -148,12 +117,6 @@ export function SiteHeader({ siteName, siteTagline, siteLogoUrl }: SiteHeaderPro
                 />
               );
             })}
-            <a
-              href="/admin/"
-              className="ml-1 rounded-sm border border-border/70 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-            >
-              {t("admin")}
-            </a>
           </nav>
 
           <div className="ml-2 flex items-center gap-2 border-l border-border/50 pl-3">

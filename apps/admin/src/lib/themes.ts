@@ -29,6 +29,7 @@ export type SitePublicTheme = {
   site_tagline: string;
   site_logo_url: string | null;
   site_icp_number: string | null;
+  nav_order?: string[];
   posts_per_page: number;
   copyright_enabled: boolean;
   copyright_content: string;

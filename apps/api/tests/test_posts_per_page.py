@@ -68,3 +68,15 @@ def test_posts_per_page_from_site_settings(client: TestClient) -> None:
     explicit = unwrap_api_response(client.get("/api/v1/public/posts", params={"page": 1, "page_size": 2}))
     assert explicit["page_size"] == 2
     assert len(explicit["items"]) == 2
+
+def test_public_nav_order(client: TestClient) -> None:
+    _login(client)
+    endpoint = "/api/v1/admin/site-theme"
+    public = "/api/v1/public/site-theme"
+    original = unwrap_api_response(client.get(public))["nav_order"]
+    assert original == ["blog", "about", "projects", "links", "search"]
+    reordered = original[::-1]
+    assert client.patch(endpoint, json={"nav_order": reordered}).status_code == 200
+    assert client.patch(endpoint, json={"nav_order": ["blog"] * 5}).status_code == 422
+    assert client.patch(endpoint, json={"posts_per_page": 15}).status_code == 200
+    assert unwrap_api_response(client.get(public))["nav_order"] == reordered

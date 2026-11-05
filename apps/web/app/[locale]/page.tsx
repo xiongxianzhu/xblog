@@ -1,6 +1,6 @@
 export const revalidate = 3600;
 
-import { ArrowRightIcon, PenLineIcon, RssIcon, SearchIcon } from "lucide-react";
+import { ArrowRightIcon, RssIcon, SearchIcon } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { EmptyState } from "@/components/empty-state";
@@ -77,12 +77,7 @@ export default async function HomePage({ params }: Props) {
       </section>
 
       <section className="site-glass-bar border-t">
-        <div className="mx-auto grid max-w-5xl gap-4 px-4 py-12 sm:grid-cols-3 sm:px-6">
-          <a href="/admin/" className="site-glass-panel group flex flex-col gap-2 p-5 transition-colors">
-            <PenLineIcon className="size-5 text-primary" />
-            <p className="font-medium">{t("cardAdminTitle")}</p>
-            <p className="text-sm text-muted-foreground">{t("cardAdminDescription")}</p>
-          </a>
+        <div className="mx-auto grid max-w-5xl gap-4 px-4 py-12 sm:grid-cols-2 sm:px-6">
           <Link href="/rss.xml" className="site-glass-panel group flex flex-col gap-2 p-5 transition-colors">
             <RssIcon className="size-5 text-primary" />
             <p className="font-medium">{t("cardRssTitle")}</p>

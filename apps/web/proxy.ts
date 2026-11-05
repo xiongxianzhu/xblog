@@ -33,19 +33,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (isAdminPathname(pathname)) {
-    // Vite's base requires the slash; skip Next's inverse redirect in development.
-    if (process.env.NODE_ENV === "development" && pathname === "/admin") {
-      const url = new URL(request.url);
-      url.pathname = "/admin/";
-      return NextResponse.redirect(url);
-    }
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-pathname", pathname);
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    return new NextResponse(null, { status: 404 });
   }
 
   return handleI18nRouting(request);

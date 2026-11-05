@@ -94,6 +94,7 @@ async def load_tags(session: AsyncSession, post_id: int) -> list[Tag]:
     result = await session.exec(stmt)
     return list(result.all())
 
+
 async def sync_tags(session: AsyncSession, post_id: int, tag_slugs: list[str]) -> None:
     await session.exec(delete(PostTag).where(col(PostTag.post_id) == post_id))
     if not tag_slugs:
@@ -113,6 +114,7 @@ async def sync_tags(session: AsyncSession, post_id: int, tag_slugs: list[str]) -
     for label in unique_labels:
         tag = await resolve_tag(session, label)
         session.add(PostTag(post_id=post_id, tag_id=tag.id or 0))
+
 
 def apply_publish_state(post: Post, status_value: str) -> None:
     post.status = status_value
@@ -162,7 +164,10 @@ async def to_post_public(session: AsyncSession, post: Post) -> PostPublic:
     summary = await to_post_summary(session, post)
     previous_post, next_post = await get_post_neighbors(session, post)
     return PostPublic(
-        content_html=post.content_html,
+        # Older articles have HTML cached from before centered Markdown blocks were supported.
+        content_html=render_markdown(post.content_md)
+        if "<div" in post.content_md.lower() and "align" in post.content_md.lower()
+        else post.content_html,
         previous_post=previous_post,
         next_post=next_post,
         **summary.model_dump(),

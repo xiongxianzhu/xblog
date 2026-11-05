@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { SiteLogoEditor } from "@/components/admin/site-logo-editor";
@@ -13,6 +14,14 @@ import { getAdminSiteTheme, updateAdminSiteTheme } from "@/lib/api";
 import { useRouter } from "@/lib/navigation";
 import type { SitePaletteId } from "@/lib/themes";
 import { PUBLIC_POSTS_PER_PAGE_OPTIONS, type SitePublicTheme } from "@/lib/themes";
+
+const navLabels: Record<string, string> = {
+  blog: "博客",
+  about: "关于",
+  projects: "项目",
+  links: "友链",
+  search: "搜索",
+};
 
 type PublicSiteColorMode = SitePublicTheme["mode"];
 
@@ -35,7 +44,7 @@ export function PublicSiteThemeSettings() {
     setSiteIcpNumber(data.site_icp_number ?? "");
   }, [data]);
 
-  async function persist(next: SitePublicTheme) {
+  async function persist(next: Partial<SitePublicTheme>) {
     setSaving(true);
     setMessage(null);
     try {
@@ -61,7 +70,6 @@ export function PublicSiteThemeSettings() {
     setMessage(null);
     try {
       const saved = await updateAdminSiteTheme({
-        ...data,
         site_name: name,
         site_tagline: siteTagline.trim(),
         site_logo_url: siteLogoUrl.trim(),
@@ -79,17 +87,17 @@ export function PublicSiteThemeSettings() {
 
   function handleModeChange(mode: PublicSiteColorMode) {
     if (!data || saving) return;
-    void persist({ ...data, mode });
+    void persist({ mode });
   }
 
   function handlePaletteChange(palette: SitePaletteId) {
     if (!data || saving) return;
-    void persist({ ...data, palette });
+    void persist({ palette });
   }
 
   function handlePostsPerPageChange(postsPerPage: number) {
     if (!data || saving) return;
-    void persist({ ...data, posts_per_page: postsPerPage });
+    void persist({ posts_per_page: postsPerPage });
   }
 
   if (isLoading) {
@@ -100,6 +108,14 @@ export function PublicSiteThemeSettings() {
     return <p className="text-sm text-destructive">加载失败，请刷新页面。</p>;
   }
 
+  const navOrder = data.nav_order ?? Object.keys(navLabels);
+  function moveNav(index: number, delta: number) {
+    const next = [...navOrder];
+    const to = index + delta;
+    if (saving || to < 0 || to >= next.length) return;
+    [next[index], next[to]] = [next[to], next[index]];
+    void persist({ nav_order: next });
+  }
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -198,6 +214,42 @@ export function PublicSiteThemeSettings() {
         </div>
       </div>
 
+      <Separator />
+      <section aria-labelledby="nav-order-title">
+        <h3 id="nav-order-title" className="text-sm font-medium">
+          导航菜单排序
+        </h3>
+        <p className="text-sm text-muted-foreground">上移或下移后自动保存，桌面和手机菜单共用此顺序。</p>
+        <ol className="max-w-lg divide-y divide-border rounded-sm border border-border">
+          {navOrder.map((key, index) => (
+            <li key={key} className="flex items-center gap-2 px-3 py-1">
+              <span className="flex-1">{navLabels[key]}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`上移${navLabels[key]}`}
+                title="上移"
+                disabled={saving || index === 0}
+                onClick={() => moveNav(index, -1)}
+              >
+                <ArrowUp size={16} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`下移${navLabels[key]}`}
+                title="下移"
+                disabled={saving || index === navOrder.length - 1}
+                onClick={() => moveNav(index, 1)}
+              >
+                <ArrowDown size={16} />
+              </Button>
+            </li>
+          ))}
+        </ol>
+      </section>
       <Separator />
 
       <div className="space-y-4">

@@ -49,23 +49,21 @@ export function PostCard({ post }: { post: PostSummary }) {
           <Link
             href={`/blog/${post.slug}`}
             className={cn(
-              "relative shrink-0 overflow-hidden border-r border-border/50",
+              "relative aspect-[4/3] shrink-0 self-stretch overflow-hidden border-r border-border/50",
               post.is_pinned
                 ? "post-card-pin-cover w-[8.5rem] sm:w-52 lg:w-60"
                 : "w-[7.5rem] sm:w-44 lg:w-48",
             )}
             aria-label={post.title}
           >
-            <div className="aspect-[4/3] w-full overflow-hidden">
-              {/* biome-ignore lint/performance/noImgElement: Images may use administrator-provided external URLs without a fixed host allowlist. */}
-              <img
-                src={coverSrc}
-                alt=""
-                className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
+            {/* biome-ignore lint/performance/noImgElement: Images may use administrator-provided external URLs without a fixed host allowlist. */}
+            <img
+              src={coverSrc}
+              alt=""
+              className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+              loading="lazy"
+              decoding="async"
+            />
           </Link>
         ) : null}
 

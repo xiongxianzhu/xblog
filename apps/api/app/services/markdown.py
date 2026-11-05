@@ -8,6 +8,7 @@ import re
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.fenced_code import FencedBlockPreprocessor
+from markdown.extensions.md_in_html import HTMLExtractorExtra, HtmlBlockPreprocessor
 from markdown.extensions.tables import TableExtension
 
 
@@ -39,9 +40,23 @@ def _inject_fence_languages(content_md: str, rendered_html: str) -> str:
     return re.sub(r'<div class="(highlight)">', replacer, rendered_html)
 
 
+class _AlignedHtmlExtractor(HTMLExtractorExtra):
+    def get_state(self, tag, attrs):
+        if tag == "div" and attrs.get("align", "").lower() == "center" and "markdown" not in attrs:
+            attrs = {**attrs, "markdown": "block"}
+        return super().get_state(tag, attrs)
+
+
+class _AlignedHtmlPreprocessor(HtmlBlockPreprocessor):
+    def run(self, lines: list[str]) -> list[str]:
+        parser = _AlignedHtmlExtractor(self.md)
+        parser.feed("\n".join(lines))
+        parser.close()
+        return "".join(parser.cleandoc).split("\n")
+
+
 def render_markdown(content_md: str) -> str:
-    rendered = markdown.markdown(
-        content_md,
+    renderer = markdown.Markdown(
         extensions=[
             "extra",
             "fenced_code",
@@ -49,4 +64,5 @@ def render_markdown(content_md: str) -> str:
             TableExtension(),
         ],
     )
-    return _inject_fence_languages(content_md, rendered)
+    renderer.preprocessors.register(_AlignedHtmlPreprocessor(renderer), "html_block", 20)
+    return _inject_fence_languages(content_md, renderer.convert(content_md))

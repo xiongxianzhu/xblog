@@ -676,6 +676,4 @@ TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小�
 
 ### 本地直接访问后台
 
-同时运行 `pnpm dev:web` 和 `pnpm dev:admin` 后，可访问 `http://localhost:10241/admin`。公开站开发服务会将 `/admin/*` 转发到 Vite 10243；修改 Next 配置后须重启 dev:web。生产 `pnpm start` 不启用该转发，仍使用 nginx 静态后台。
-
-10240 联调网关仍可用。选择哪一个入口，开发环境的 FRONTEND_URL、NEXT_PUBLIC_SITE_URL 和 OAuth 回调就使用相同地址；10241 入口应填写 `http://localhost:10241`。HMR 使用当前入口，不固定为 10240。
+运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；跨端导航与 OAuth 联调使用 nginx 统一入口 `http://localhost:10240`。

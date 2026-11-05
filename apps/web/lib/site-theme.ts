@@ -43,6 +43,7 @@ function normalizeTheme(raw: Partial<SitePublicTheme> | null | undefined): SiteP
     site_tagline,
     site_logo_url,
     site_icp_number,
+    nav_order: Array.isArray(raw?.nav_order) ? raw.nav_order : undefined,
     posts_per_page,
     copyright_enabled: raw?.copyright_enabled === true,
     copyright_content:

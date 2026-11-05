@@ -15,6 +15,7 @@ from app.schemas.site_theme import (
     DEFAULT_SITE_TAGLINE,
     MAX_POSTS_PER_PAGE,
     MIN_POSTS_PER_PAGE,
+    NAV_ITEMS,
     SiteThemeMode,
     SiteThemePalette,
     SiteThemePublic,
@@ -95,7 +96,10 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
     posts_per_page = _normalize_posts_per_page(await _get_value(session, POSTS_PER_PAGE_KEY))
     copyright_enabled = await _get_value(session, COPYRIGHT_ENABLED_KEY) == "true"
     copyright_content = await _get_value(session, COPYRIGHT_CONTENT_KEY)
+    stored_nav = (await _get_value(session, "site.nav.order") or "").split(",")
+    nav_order = list(dict.fromkeys([key for key in stored_nav if key in NAV_ITEMS] + list(NAV_ITEMS)))
     return SiteThemePublic(
+        nav_order=nav_order,
         mode=mode,
         palette=palette,
         site_name=site_name,
@@ -109,6 +113,10 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
 
 
 async def update_site_theme(session: AsyncSession, payload: SiteThemeUpdate) -> SiteThemePublic:
+    if payload.nav_order is not None:
+        if sorted(payload.nav_order) != sorted(NAV_ITEMS):
+            raise HTTPException(status_code=422, detail="导航顺序必须完整包含所有菜单项且不能重复。")
+        await _set_value(session, "site.nav.order", ",".join(payload.nav_order))
     if payload.copyright_enabled is not None or payload.copyright_content is not None:
         current = await get_site_theme(session)
         enabled = payload.copyright_enabled if payload.copyright_enabled is not None else current.copyright_enabled

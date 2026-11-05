@@ -26,26 +26,19 @@ function load(file, environment, modules) {
       "next-intl/plugin": { __esModule: true, default: () => (value) => value },
     }).default;
     const routes = await config.rewrites();
-    assert.equal(config.skipTrailingSlashRedirect, mode === "development");
-    if (mode === "development") {
-      assert.equal(routes.beforeFiles[0].source, "/admin/");
-      assert.equal(routes.beforeFiles[0].destination, "http://127.0.0.1:10243/admin/");
-      assert.equal(routes.beforeFiles[1].source, "/admin/:path*");
-    } else assert.equal(routes.beforeFiles.length, 0);
+    assert.equal(routes.beforeFiles.length, 0);
     const proxy = load("proxy.ts", environment, {
       "next/server": { NextRequest, NextResponse },
       "next-intl/middleware": { __esModule: true, default: () => () => NextResponse.next() },
       "./i18n/routing": { locales: ["zh-CN", "zh-TW", "en"], routing: {} },
     }).proxy;
-    const response = proxy(new NextRequest("http://localhost:10241/admin?from=site"));
-    assert.equal(
-      response.headers.get("location"),
-      mode === "development" ? "http://localhost:10241/admin/?from=site" : null,
-    );
-    assert.equal(response.headers.get("set-cookie"), null);
-    assert.equal(proxy(new NextRequest("http://localhost:10241/admin/")).headers.get("location"), null);
+    for (const path of ["/admin", "/admin/", "/admin/posts"]) {
+      const response = proxy(new NextRequest(`http://localhost:10241${path}`));
+      assert.equal(response.status, 404);
+      assert.equal(response.headers.get("location"), null);
+    }
   }
-  console.log("Dev routing passed: explicit root, nested proxy, trailing slash and production isolation.");
+  console.log("Dev routing passed: web/admin isolation in development and production.");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

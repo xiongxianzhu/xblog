@@ -5,6 +5,7 @@ import { BackToTopButton } from "@/components/back-to-top-button";
 import { SiteThemeShell } from "@/components/site/site-theme-shell";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getSiteNavItems } from "@/lib/site-navigation";
 import type { SitePublicTheme } from "@/lib/themes";
 
 type SiteChromeProps = {
@@ -20,15 +21,21 @@ export function SiteChrome({ children, siteTheme }: SiteChromeProps) {
     return <>{children}</>;
   }
 
+  const navItems = getSiteNavItems(siteTheme.nav_order);
   return (
     <SiteThemeShell theme={siteTheme}>
       <SiteHeader
+        navItems={navItems}
         siteName={siteTheme.site_name}
         siteTagline={siteTheme.site_tagline}
         siteLogoUrl={siteTheme.site_logo_url}
       />
       <main className="min-w-0 flex-1">{children}</main>
-      <SiteFooter siteName={siteTheme.site_name} siteIcpNumber={siteTheme.site_icp_number} />
+      <SiteFooter
+        navItems={navItems}
+        siteName={siteTheme.site_name}
+        siteIcpNumber={siteTheme.site_icp_number}
+      />
       <BackToTopButton />
     </SiteThemeShell>
   );

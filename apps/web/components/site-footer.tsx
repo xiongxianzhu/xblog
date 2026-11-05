@@ -4,20 +4,15 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 
-const footerNavItems = [
-  { href: "/blog", labelKey: "blog" },
-  { href: "/about", labelKey: "about" },
-  { href: "/projects", labelKey: "projects" },
-  { href: "/links", labelKey: "links" },
-  { href: "/search", labelKey: "search" },
-] as const;
+import type { SiteNavItem } from "@/lib/site-navigation";
 
 type SiteFooterProps = {
+  navItems: SiteNavItem[];
   siteName: string;
   siteIcpNumber?: string | null;
 };
 
-export function SiteFooter({ siteName, siteIcpNumber }: SiteFooterProps) {
+export function SiteFooter({ navItems, siteName, siteIcpNumber }: SiteFooterProps) {
   const t = useTranslations("footer");
   const tNav = useTranslations("nav");
   const icpNumber = siteIcpNumber?.trim() || null;
@@ -41,7 +36,7 @@ export function SiteFooter({ siteName, siteIcpNumber }: SiteFooterProps) {
               <nav className="site-footer-nav" aria-label={tNav("menu")}>
                 <p className="site-footer-heading">Navigate</p>
                 <div className="site-footer-link-grid">
-                  {footerNavItems.map((item) => (
+                  {navItems.map((item) => (
                     <Link key={item.href} href={item.href} className="site-footer-link">
                       {tNav(item.labelKey)}
                     </Link>
