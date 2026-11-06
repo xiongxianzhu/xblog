@@ -71,7 +71,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         placement: "right",
         align: { offset: [8, 0] },
         trigger: ["hover", "focus"],
-        classNames: { container: "admin-nav-hint" },
+        classNames: { root: "admin-nav-tooltip", container: "admin-nav-hint" },
       }}
       expandIcon={({ isOpen }) => (
         <ChevronDown size={14} style={{ transform: isOpen ? "rotate(180deg)" : undefined }} />

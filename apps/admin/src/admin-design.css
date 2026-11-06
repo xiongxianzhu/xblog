@@ -300,6 +300,11 @@
   scrollbar-color: hsl(var(--border)) transparent;
 }
 
+/* Tooltip adds a root drop-shadow on top of the shared menu surface shadow. */
+.ant-tooltip.admin-nav-tooltip {
+  filter: none;
+}
+
 .ant-tooltip .admin-nav-hint,
 .admin-nav-popup .ant-menu {
   background: hsl(var(--popover));
