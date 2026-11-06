@@ -14,7 +14,7 @@ pnpm --filter @xblog/admin test
 pnpm --filter @xblog/admin build
 ```
 
-开发端口 10243、base=/admin/；完整联调通过 [nginx 10240 网关](../../deploy/nginx/dev.conf)，避免跨端返回和 OAuth 回调落在错误端口。Vite HMR 路径 `/admin/hmr`。
+开发端口 10243、base=/admin/，Vite HMR 路径 `/admin/hmr`。生产使用 [xblog.conf](../../deploy/nginx/xblog.conf) 静态托管，跨端返回和 OAuth 在同域入口验收。
 
 可选配置见 [.env.example](.env.example)。`VITE_TURNSTILE_SITE_KEY` 是公开 Site Key，登录防护接口的 site_key 优先；Secret Key 只放 API。
 
@@ -26,10 +26,10 @@ ADMIN_LOCALE 与公开站 SITE_LOCALE 独立。后台7款主题保留 xblog-admi
 
 ## 生产
 
-`pnpm build` 生成 `apps/admin/dist`，由 nginx 托管 `/admin/`。页面深链接回退到 index.html，缺失静态资源返回404；不运行 Vite preview 作为生产服务。nginx worker必须能读取dist，配置见 [部署文档](../../docs/deployment.md)。
+在仓库根目录执行 `pnpm --filter @xblog/admin build` 生成 `apps/admin/dist`，由 nginx 托管 `/admin/`。页面深链接回退到 index.html，缺失静态资源返回404；不运行 Vite preview 作为生产服务。nginx worker必须能读取dist，配置见 [部署文档](../../docs/deployment.md)。
 
 编辑 .env 中的 VITE_* 后需重建静态产物。构建不需要数据库或模型密钥；真实第三方能力仍需服务端配置和环境验收。
 
 ### 本地直接访问后台
 
-运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；跨端导航与 OAuth 联调使用 nginx 统一入口 `http://localhost:10240`。
+运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；两端可分别开发，跨端导航与 OAuth 需通过同域部署入口验收。

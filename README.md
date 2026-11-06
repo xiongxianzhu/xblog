@@ -101,7 +101,7 @@ flowchart LR
   B --> DB
 ```
 
-<p align="center"><sub><b>同域路由</b>：/ → Next.js · /admin/ → 静态后台 · /api/ → FastAPI；本地联调入口 10240</sub></p>
+<p align="center"><sub><b>同域路由</b>：/ → Next.js · /admin/ → 静态后台 · /api/ → FastAPI</sub></p>
 
 ---
 
@@ -142,7 +142,7 @@ pnpm dev:web
 pnpm dev:admin
 ```
 
-公开站为 10241，管理端开发服务为 10243。按 [开发网关](deploy/nginx/dev.conf) 配置本地 nginx 后，统一从 <http://localhost:10240> 进入，后台地址为 <http://localhost:10240/admin/>。跨端导航、Cookie 和 OAuth 通过同一入口验收。
+公开站访问 <http://localhost:10241>，管理端访问 <http://localhost:10243/admin/>。两端可分别开发；跨端导航、Cookie 和 OAuth 需在同域部署入口验收。生产使用唯一配置 [xblog.conf](deploy/nginx/xblog.conf)，见 [部署文档](docs/deployment.md)。
 
 质量检查在根目录执行 `pnpm check`、`pnpm typecheck`、`pnpm test`、`pnpm build`；Biome 负责格式与 lint，TypeScript 独立检查。
 
@@ -249,9 +249,10 @@ git push -u origin feat/your-feature
 ```text
 ① 配置 apps/api/.env + apps/web/.env（含 REVALIDATE_SECRET）
 ② uv sync --frozen --no-dev && alembic upgrade head
-③ pnpm build && next start（systemd）
-④ nginx：/ → :10241，/admin/ → apps/admin/dist，/api/ → :10242
-⑤ 可选：cron 每小时 `cleanup-uploads`（见 apps/api/README.md）
+③ pnpm --filter @xblog/web build → xblog-web.service
+④ pnpm --filter @xblog/admin build → apps/admin/dist（nginx 静态托管）
+⑤ nginx：/ → :10241，/admin/ → apps/admin/dist，/api/ → :10242
+⑥ 可选：cron 每小时 `cleanup-uploads`（见 apps/api/README.md）
 ```
 
 <p align="center">详细步骤 → <a href="deploy/systemd/README.md"><b>deploy/systemd/README.md</b></a></p>

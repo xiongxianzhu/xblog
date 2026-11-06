@@ -78,7 +78,7 @@ Node 固定为 `.node-version` 中的 **26.13.0 LTS**，根 packageManager 为 *
 | /admin/ 开发 | Vite 10243，base=/admin/ |
 | /api/v1/* | FastAPI 10242，含上传与 AI SSE |
 | /api/revalidate | 内网 Next.js 10241，密钥校验 |
-| 本地联调入口 | nginx 10240，统一前后台导航、Cookie、OAuth |
+| 生产统一入口 | nginx 80/443，按路径分发公开站、静态管理端和 API |
 
 API/web 使用 systemd，管理端生产不运行 Vite preview。nginx 负责 HTTPS 与 SSE 无缓冲代理。迁移后检查 UPLOAD_DIR 和 Skill 存储路径；数据库、上传文件和密钥配置共同备份。
 

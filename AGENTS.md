@@ -40,7 +40,7 @@ pnpm dev:admin
 pnpm dev:api
 ```
 
-API 首次配置、数据库迁移和管理员初始化见 [apps/api/README.md](apps/api/README.md)。三应用分别为 10241、10243、10242；联调使用 [dev.conf](deploy/nginx/dev.conf) 的统一入口 10240，浏览器跨端导航和 OAuth 均通过该入口。
+API 首次配置、数据库迁移和管理员初始化见 [apps/api/README.md](apps/api/README.md)。三应用分别为 10241、10243、10242；生产入口统一使用 [xblog.conf](deploy/nginx/xblog.conf)；跨端导航和 OAuth 通过同域入口验收。
 
 前端统一检查：
 

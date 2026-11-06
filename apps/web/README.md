@@ -52,11 +52,11 @@ pnpm --filter @xblog/web test
 pnpm --filter @xblog/web build
 ```
 
-服务端口 10241；双端联调统一访问 nginx 10240，见 [部署文档](../../docs/deployment.md)。生产由 systemd 调用 `pnpm start`，不添加 -H。
+服务端口 10241；生产使用 nginx 同域入口，见 [部署文档](../../docs/deployment.md)。生产由 systemd 调用 `pnpm start`，不添加 -H。
 
 ## 配置
 
-复制 [.env.example](.env.example) 为 .env。BACKEND_URL 指向 API 10242；NEXT_PUBLIC_SITE_URL 使用对外域名（联调为 localhost:10240）；REVALIDATE_SECRET 与 API 一致。Giscus 相关 NEXT_PUBLIC_GISCUS_* 按需配置。后台 Turnstile 配置位于 apps/admin。
+复制 [.env.example](.env.example) 为 .env。BACKEND_URL 指向 API 10242；NEXT_PUBLIC_SITE_URL 使用对外域名（单端本地开发为 http://localhost:10241）；REVALIDATE_SECRET 与 API 一致。Giscus 相关 NEXT_PUBLIC_GISCUS_* 按需配置。后台 Turnstile 配置位于 apps/admin。
 
 ## 边界
 
@@ -71,4 +71,4 @@ pnpm --filter @xblog/web build
 
 ### 本地直接访问后台
 
-运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；跨端导航与 OAuth 联调使用 nginx 统一入口 `http://localhost:10240`。
+运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；两端可分别开发，跨端导航与 OAuth 需通过同域部署入口验收。

@@ -1,5 +1,5 @@
 [Unit]
-Description=xblog Next.js frontend
+Description=xblog public website (Next.js)
 After=network.target xblog-api.service
 
 [Service]

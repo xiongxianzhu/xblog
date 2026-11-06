@@ -12,16 +12,18 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 
 ## 前置
 
-1. 已完成 [systemd 部署](../systemd/README.md)：`xblog-api`、`xblog-web` 在本机监听 `10242` / `10241`。
-2. 后端 `apps/api/.env` 与前端 `apps/web/.env` 已配置；生产建议：
+1. 已准备好域名的 TLS 证书，路径可由 nginx 读取；签发方式见下方 HTTPS 说明。
+2. 已完成 [systemd 部署](../systemd/README.md)：`xblog-api`、`xblog-web` 在本机监听 `10242` / `10241`。
+3. 已构建管理端 `apps/admin/dist`，nginx worker 可逐级访问目录并读取文件。
+4. 后端 `apps/api/.env` 与前端 `apps/web/.env` 已配置；生产建议：
    - `COOKIE_SECURE=true`
    - `REVALIDATE_SECRET` 前后端一致
    - `REVALIDATE_URL=http://127.0.0.1:10241/api/revalidate`（直连 Next.js，公网 `/api/` 由本模板转发到 FastAPI）
    - `NEXT_PUBLIC_SITE_URL=https://你的域名`
 
-## 安装示例配置
+## 安装生产配置
 
-1. 复制并编辑站点配置（替换 `example.com`）：
+1. 复制并编辑站点配置（替换 `blog.example.com`）：
 
    ```bash
    cd /home/appuser/xblog
@@ -32,21 +34,21 @@ xblog 生产环境推荐 **nginx 同域反代**：访客与管理员浏览器只
 2. 启用站点并检查语法：
 
    ```bash
-   sudo ln -sf /etc/nginx/sites-available/xblog.conf /etc/nginx/sites-enabled/xblog.conf
+   sudo ln -sfn /etc/nginx/sites-available/xblog.conf /etc/nginx/sites-enabled/xblog.conf
    sudo nginx -t
-   sudo systemctl reload nginx
+   sudo systemctl reload nginx # 首次未启动时改用 start
    ```
 
 3. 验证：
 
    ```bash
-   curl -sS http://example.com/api/v1/public/health
-   curl -sS -o /dev/null -w "%{http_code}\n" http://example.com/
+   curl -sS https://blog.example.com/api/v1/public/health
+   curl -sS -o /dev/null -w "%{http_code}\n" https://blog.example.com/
    ```
 
 ## HTTPS（Let's Encrypt）
 
-按 [部署文档](../../docs/deployment.md) 的 Certbot Standalone 或 DNS-01 流程签发并配置续期。证书准备好后，启用 `xblog.conf` 底部的 HTTPS 示例，替换域名和证书路径，再执行 `nginx -t`。
+按 [部署文档](../../docs/deployment.md) 的 Certbot Standalone 或 DNS-01 流程签发并配置续期。`xblog.conf` 是唯一生产配置，已启用 80 → HTTPS 跳转和 443 TLS；证书准备好后替换域名、证书路径与静态目录，再执行 `nginx -t`。不要在证书不存在时加载配置，也不需要另外复制 HTTPS 路由块。
 
 模板直接配置 `ssl_protocols TLSv1.2 TLSv1.3`，不依赖 `options-ssl-nginx.conf` 或 `ssl-dhparams.pem`。旧配置仍引用不存在的这两个文件时，删除对应 include、ssl_dhparam 行，不必创建空文件。
 
@@ -68,4 +70,12 @@ nginx 1.25.1 起可在 HTTPS server 中使用 `listen 443 ssl;` 配合 `http2 on
 | AI 流式卡住 | 确认 `/api/` 块已设 `proxy_buffering off` |
 | Cookie 登录失败 | HTTPS 站点需 `COOKIE_SECURE=true`；检查 `X-Forwarded-Proto` |
 
-管理端深链接 `/admin/posts`、`/admin/logs/login` 回退到 index.html，`/admin/assets/` 下不存在的资源必须返回 404。本地三应用联调使用 [dev.conf](dev.conf) 的 10240 入口，Vite HMR 路径为 `/admin/hmr`。
+管理端深链接 `/admin/posts`、`/admin/logs/login` 回退到 index.html，`/admin/assets/` 下不存在的资源必须返回 404。公开站和管理端分开构建、发布，具体步骤见 [部署文档](../../docs/deployment.md)。仓库不再提供开发 nginx 配置。
+
+```bash
+curl -I http://blog.example.com/
+curl -I https://blog.example.com/admin/posts
+curl -I https://blog.example.com/admin/assets/missing-file.js
+```
+
+预期依次为跳转 HTTPS、200 和 404。修改配置前备份现有站点文件；Debian/Ubuntu 使用上述 sites-available/sites-enabled，其他发行版使用实际加载的 conf.d 目录，只启用一份配置。

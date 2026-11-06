@@ -1,6 +1,6 @@
 # xblog 部署文档
 
-本文说明仓库提供的 Linux VPS 部署方式：PostgreSQL + FastAPI + Next.js 公开站 + Ant Design 静态后台 + nginx + systemd。配置与命令按当前源码静态核对，未在生产服务器执行。更新日期：2026-11-01。
+本文说明仓库提供的 Linux VPS 部署方式：PostgreSQL + FastAPI + Next.js 公开站 + Ant Design 静态后台 + nginx + systemd。配置与命令按当前源码静态核对，未在生产服务器执行。更新日期：2026-11-06。
 
 ## 1. 部署约定与前置条件
 
@@ -195,7 +195,7 @@ test -f apps/admin/.env || cp apps/admin/.env.example apps/admin/.env
 
 更换 AI 加密密钥（或其回退的 SECRET_KEY）后，旧模型密钥无法直接解密。轮换前保留原配置并制定重新录入方案；数据库备份必须与密钥配置配套保存。
 
-### 公开站与管理端
+### C 端公开站（apps/web）
 
 来源：[环境模板](../apps/web/.env.example)。首次构建前完成这些配置；修改 `NEXT_PUBLIC_*` 后重新构建公开站并重启，不能仅修改 systemd 环境。修改 `BACKEND_URL` 也应重新构建，以更新 rewrite 目标。
 
@@ -204,9 +204,18 @@ test -f apps/admin/.env || cp apps/admin/.env.example apps/admin/.env
 | BACKEND_URL | http://127.0.0.1:10242 | 服务端请求与开发代理的后端地址 |
 | NEXT_PUBLIC_SITE_URL | https://blog.example.com | sitemap、RSS、Open Graph 的绝对地址 |
 | REVALIDATE_SECRET | 与后端完全一致 | ISR 回调校验 |
-| VITE_TURNSTILE_SITE_KEY（apps/admin/.env） | 可选 | 与后端公开 Site Key 一致；登录防护接口返回值优先 |
 | NEXT_PUBLIC_GISCUS_REPO / REPO_ID / CATEGORY / CATEGORY_ID | 启用评论时填写 | GitHub Discussions 仓库与分类，完整变量名均以 NEXT_PUBLIC_GISCUS_ 开头 |
 | NEXT_PUBLIC_GISCUS_MAPPING / INPUT_POSITION / THEME | 按模板配置 | 评论映射、输入框位置、主题 |
+
+### 管理端（apps/admin）
+
+来源：[管理端环境模板](../apps/admin/.env.example)。管理端构建为静态 SPA，生产不读取 systemd 环境文件。
+
+| 名称 | 配置 | 用途 |
+| --- | --- | --- |
+| VITE_TURNSTILE_SITE_KEY | 可选 | 与后端公开 Site Key 一致；登录防护接口返回值优先 |
+
+修改 `VITE_*` 后单独重新构建并发布管理端；这些值会进入浏览器产物，不得填写模型 Key 或其他服务端密钥。API 请求使用同域 `/api/`，由 nginx 直接转发到 FastAPI。
 
 ### 可选服务
 
@@ -274,7 +283,7 @@ psql -X -h 127.0.0.1 -p 5432 -U xblog -d xblog -W \
 在部署账号下执行。后端管理命令统一通过 `uv run --frozen --no-dev` 运行：使用锁文件且不更新它，并排除开发依赖组；无需手动激活虚拟环境或指定平台相关的 `.venv/bin/` 路径。
 
 ```bash
-cd /home/appuser/xblog/backend
+cd /home/appuser/xblog/apps/api
 uv sync --frozen --no-dev
 uv run --frozen --no-dev alembic upgrade head
 uv run --frozen --no-dev alembic current
@@ -286,37 +295,28 @@ uv run --frozen --no-dev python -m app.cli seed-pages
 
 当前迁移链到 `014_post_pinned.py`（revision `014_post_pinned`）；以 `uv run --frozen --no-dev alembic heads` 与上述 `current` 输出一致为准。迁移失败立即停止后续发布，保留错误日志，不通过跳过迁移或手工删除表继续。
 
-### 3.3. 构建并启动三应用
+### 3.3. 分别部署 API、C 端与管理端
 
-生产只运行 API 与 Next.js 两个 systemd 服务；管理端由 nginx 托管静态文件，不使用 `vite preview` 常驻。
+API 和 C 端各有独立 systemd unit；管理端由 nginx 托管静态文件，无需 `xblog-admin.service` 或 `vite preview`。应用命令由 appuser 执行，`sudo` 命令由具备系统管理权限的账号执行。
 
-核对 `deploy/systemd/xblog-api.service`、`xblog-web.service`：用户/组 appuser，工作目录分别为 `apps/api`、`apps/web`，uv 与 pnpm 使用实际可执行的绝对路径。启动命令：
+#### API：xblog-api.service
 
-```ini
-# xblog-api.service
-WorkingDirectory=/home/appuser/xblog/apps/api
-ExecStart=/home/appuser/.local/bin/uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 10242 --workers 4
-
-# xblog-web.service
-WorkingDirectory=/home/appuser/xblog/apps/web
-ExecStart=/usr/local/bin/pnpm start
-```
-
-web 的 package.json 已指定端口 10241，不添加 `-H`。前端未限制监听地址，安全组或防火墙不要开放 10241/10242；nginx 仍通过回环地址访问。
-
-在仓库根目录安装 unit，先启动 API：
+完成第 3.2 节依赖安装与数据库初始化后，安装并启动 API：
 
 ```bash
 cd /home/appuser/xblog
 sudo cp deploy/systemd/xblog-api.service /etc/systemd/system/
-sudo cp deploy/systemd/xblog-web.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable xblog-api xblog-web
-sudo systemctl start xblog-api
+sudo systemctl enable --now xblog-api
+curl --fail http://127.0.0.1:10242/api/v1/public/health
 curl --fail http://127.0.0.1:10242/api/v1/public/posts
 ```
 
-以 appuser 在仓库根目录统一安装与构建，不在各应用目录另建锁文件：
+unit 仅读取 `apps/api/.env`，工作目录为 `apps/api`，使用 `/home/appuser/.local/bin/uv run --no-sync uvicorn` 监听 `127.0.0.1:10242`。health 不检查数据库，posts 必须能正常返回。完整配置见 [API unit](../deploy/systemd/xblog-api.service)。
+
+#### C 端公开站：xblog-web.service
+
+前端依赖统一从仓库根目录安装，构建需要开发依赖。首次发布先执行统一检查：
 
 ```bash
 cd /home/appuser/xblog
@@ -324,24 +324,36 @@ pnpm install --frozen-lockfile
 pnpm check
 pnpm typecheck
 pnpm test
-pnpm build
-sudo systemctl start xblog-web
+pnpm --filter @xblog/web build
 ```
 
-管理端产物为 `apps/admin/dist`；公开站产物为 `apps/web/.next`。构建需要 TypeScript、Vite、Tailwind 等开发依赖。修改 `VITE_*` 必须重新构建管理端，修改 `NEXT_PUBLIC_*` 必须重新构建公开站。
-
-nginx 配置包含 `/admin` → `/admin/` 跳转、`/admin/` SPA 深链接回退，以及 `/admin/assets/` 缺失资源 404。nginx worker 必须能逐级访问 `/home/appuser/xblog/apps/admin/dist` 并读取文件；使用专用组或 ACL 授权，不对整个项目开放写权限。部署后测试 `/admin/posts`、`/admin/logs/login`，不能只测试首页。
-
-已有服务先用 `systemctl cat xblog-web` 检查旧 override 是否覆盖主文件。修改 unit 后执行：
+构建产物为 `apps/web/.next`。首次构建前确保 API 和数据库可用，避免将降级内容写入站点地图。再由运维账号安装并启动公开站服务：
 
 ```bash
+cd /home/appuser/xblog
+sudo cp deploy/systemd/xblog-web.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl restart xblog-api xblog-web
-sudo systemctl show xblog-web -p ExecStart -p WorkingDirectory
-sudo ss -ltnp '( sport = :10241 or sport = :10242 )'
+sudo systemctl enable --now xblog-web
+curl --fail http://127.0.0.1:10241/
 ```
 
-首次构建前保证 API 可用，避免将空内容写入站点地图；API 不可达时构建会在请求超时后使用已有降级逻辑，但不代表业务验收成功。
+unit 仅读取 `apps/web/.env`，工作目录为 `apps/web`，使用 `/usr/local/bin/pnpm start`；package.json 已指定端口 10241，不添加 `-H`。公开站未限制监听地址，防火墙与安全组不要开放 10241/10242/10243。完整配置见 [公开站 unit](../deploy/systemd/xblog-web.service)。
+
+#### 管理端：nginx 静态托管
+
+完成根目录依赖安装后，单独构建管理端：
+
+```bash
+cd /home/appuser/xblog
+pnpm --filter @xblog/admin build
+test -f apps/admin/dist/index.html
+```
+
+产物为 `apps/admin/dist`，不启动任何管理端 systemd 服务。nginx worker 必须能逐级访问该目录并读取文件；使用专用组或 ACL 授权，不对整个项目开放写权限。
+
+唯一生产配置 [xblog.conf](../deploy/nginx/xblog.conf) 将 `/admin/` 指向该目录，公开页转发到 10241，API 转发到 10242。完成第 3.4 节证书与 nginx 安装后，验证 `/admin/posts`、`/admin/logs/login` 深链接，以及缺失 `/admin/assets/` 文件返回 404。
+
+已有部署更新 unit 时，先通过 `systemctl cat xblog-api` 和 `systemctl cat xblog-web` 检查旧 override，再执行 `daemon-reload`，仅重启受影响服务。修改 `NEXT_PUBLIC_*` 需重新构建公开站并重启；修改 `VITE_*` 只需重新构建并发布管理端。
 
 ### 3.4. 用 Certbot 签发免费 SSL 证书
 
@@ -401,11 +413,18 @@ sudo openssl x509 -in /etc/letsencrypt/live/blog.example.com/fullchain.pem \
 
 #### 配置 nginx HTTPS
 
-在系统实际加载的 xblog 站点文件中修改 [nginx 模板](../deploy/nginx/xblog.conf)，保留原有 upstream：Web 为 `127.0.0.1:10241`，API 为 `127.0.0.1:10242`。证书存在后再启用 HTTPS，步骤如下：
+仓库只提供一份生产配置 [xblog.conf](../deploy/nginx/xblog.conf)，已包含 HTTP 跳转和 HTTPS server。证书准备好后再安装配置，不需要取消注释或复制第二组路由：
 
-1. 将 HTTPS 注释示例转换为实际 server 块，替换域名及证书路径。
-2. 保留 `/api/`、`/` 两个完整 location、代理头、`client_max_body_size 32m`、SSE 关闭缓冲和 300 秒读写超时。
-3. 将原有 80 端口的应用代理 server 改为 HTTPS 跳转，避免同域名重复 server 块。
+```bash
+cd /home/appuser/xblog
+sudo cp deploy/nginx/xblog.conf /etc/nginx/sites-available/xblog.conf
+sudo nano /etc/nginx/sites-available/xblog.conf
+sudo ln -sfn /etc/nginx/sites-available/xblog.conf /etc/nginx/sites-enabled/xblog.conf
+```
+
+替换所有 `blog.example.com`、证书路径和管理端 dist 路径。已有站点配置先备份，避免同一域名重复加载。上述目录适用于 Debian/Ubuntu；使用 `conf.d` 的发行版只安装到其实际加载目录，不重复启用。
+
+保留 `/admin/` 静态托管、`/api/` API 代理和 `/` 公开站代理，以及上传限制、代理头和 SSE 设置。
 
 HTTPS server 的 TLS 部分使用：
 
@@ -584,25 +603,126 @@ sudo systemctl status xblog-api xblog-web
 4. 重建 apps/api/.venv 和根 node_modules；不要搬用旧虚拟环境。目录迁移本身不修改数据库 schema，也不重建管理员。
 5. 构建 web/admin 后，同一发布窗口切换 unit 工作目录与 nginx 静态后台路由；确认深链接、登录、OAuth、语言独立、上传与 AI SSE 后再结束维护。
 
-### 本地联调
-
-分别运行根脚本 `pnpm dev:api`、`pnpm dev:web`、`pnpm dev:admin`，再使用 [dev.conf](../deploy/nginx/dev.conf) 启动独立 nginx。浏览器统一访问 `http://localhost:10240`，不要用 10241/10243 的直连入口验收跨端导航和 OAuth。
-
-API 的开发 FRONTEND_URL、公开站 NEXT_PUBLIC_SITE_URL 使用 `http://localhost:10240`；BACKEND_URL 仍指向 10242，REVALIDATE_URL 仍指向 10241。开发 OAuth 应用回调也对应 10240，不能覆盖生产应用设置。Vite HMR 使用 `/admin/hmr`，代理保留 WebSocket Upgrade。
-
 ### 日常更新
 
-1. 记录当前代码版本、依赖锁文件、`uv run --frozen --no-dev alembic current` 输出与服务配置；阅读新版本迁移文件。涉及迁移时安排维护窗口并停止写入。
-2. 备份 PostgreSQL、完整上传目录、前后端环境文件和服务/nginx 配置，确认备份可读取且有异机副本。数据库和文件应在同一停止写入窗口内备份，避免引用错位。
-3. 停止 Web/API 后切换到待发布版本；保留 `.env`、上传文件、旧版本与构建产物。执行后端 frozen 安装和迁移，迁移成功后启动 API。
-4. 在根目录执行前端 frozen 安装与双端构建，成功后启动 Web；管理端静态产物一并发布。unit 改动后需要 `daemon-reload`，环境配置改动需要重启对应进程。
-5. 重做第 4 节验收。未通过时先恢复服务或回滚，不继续追加变更掩盖故障。
+以下命令在部署服务器执行，路径按默认 `/home/appuser/xblog` 编写。依赖安装、迁移与构建由 appuser 执行；`sudo` 命令由具备系统管理权限的账号执行。按本次变更选择应用步骤；同时更新 API 与 C 端时，先更新并验证 API，再构建和重启 C 端。
+
+#### 更新前准备
+
+记录当前代码版本、依赖锁文件、数据库迁移版本和服务配置，阅读待发布版本的迁移文件：
+
+```bash
+cd /home/appuser/xblog
+git rev-parse HEAD
+git status --short
+sudo systemctl cat xblog-api xblog-web
+```
+
+查看当前数据库迁移版本：
+
+```bash
+cd /home/appuser/xblog/apps/api
+uv run --frozen --no-dev alembic current
+```
+
+停止写入后，备份 PostgreSQL、完整上传目录、环境文件、服务/nginx 配置与旧构建产物，备份示例见本节末尾。确认备份可读取且有异机副本，再切换到已确认的待发布代码版本；保留真实 `.env` 和上传文件，不覆盖服务器上的配置。涉及迁移或原地重建时安排维护窗口。以下各步骤失败时立即停止后续发布，不重启到未完成的版本。
+
+#### 更新 API 并重启 xblog-api
+
+先停止 API，再安装锁定依赖并执行迁移：
+
+```bash
+sudo systemctl stop xblog-api
+```
+
+```bash
+cd /home/appuser/xblog/apps/api
+uv sync --frozen --no-dev &&
+uv run --frozen --no-dev alembic upgrade head &&
+uv run --frozen --no-dev alembic current
+```
+
+安装和迁移全部成功后，重启 API 并检查状态（restart 也会启动已停止的服务）：
+
+```bash
+sudo systemctl restart xblog-api
+sudo systemctl status xblog-api --no-pager
+```
+
+确认进程和数据库访问正常，再继续公开站构建：
+
+```bash
+curl --fail http://127.0.0.1:10242/api/v1/public/health &&
+curl --fail http://127.0.0.1:10242/api/v1/public/posts
+```
+
+#### 更新 C 端并重启 xblog-web
+
+当前模板使用工作目录中的 `.next`，原地安装依赖和重建前先停止公开站服务：
+
+```bash
+sudo systemctl stop xblog-web
+```
+
+在仓库根目录安装依赖并单独构建 C 端：
+
+```bash
+cd /home/appuser/xblog
+pnpm install --frozen-lockfile &&
+pnpm --filter @xblog/web build
+```
+
+构建成功后，重启公开站并检查状态：
+
+```bash
+sudo systemctl restart xblog-web
+sudo systemctl status xblog-web --no-pager
+```
+
+```bash
+curl --fail http://127.0.0.1:10241/
+```
+
+#### 更新管理端
+
+管理端使用静态产物，不需要重启 `xblog-api` 或 `xblog-web`。下面为维护窗口内的原地构建命令；构建会更新 `apps/admin/dist`，此期间应暂停管理端访问。需要不中断访问时，在独立发布目录构建后切换 nginx 静态目录，并保留旧资源供已打开页面使用。
+
+```bash
+cd /home/appuser/xblog
+pnpm install --frozen-lockfile &&
+pnpm --filter @xblog/admin build &&
+test -f apps/admin/dist/index.html
+```
+
+根目录依赖由两端共享；如果本次安装会更新公开站使用的运行依赖，应同时按 C 端更新步骤安排停服、构建和重启。发布后刷新管理端页面，检查登录、深链接和静态资源加载。
+
+#### 服务配置与发布验收
+
+若本次修改了 systemd 文件，先按第 6 节“更新 systemd 服务文件”复制对应文件，再重新加载配置，然后执行上面对应服务的重启步骤：
+
+```bash
+sudo systemctl daemon-reload
+```
+
+仅修改应用代码无需执行 daemon-reload。修改 nginx 配置后，校验通过再重载：
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+完成更新后检查两个服务状态，并重做第 4 节业务验收。共享契约或跨端变更需要构建并验收所有受影响应用；未通过时先恢复服务或按回滚边界处理，不继续追加变更掩盖故障。
+
+```bash
+sudo systemctl status xblog-api xblog-web --no-pager
+```
+
+#### 备份示例
 
 备份命令示例在服务器执行，`xblog-backup` 是操作者事先配置的 PostgreSQL service 名称（可通过受限权限的 `.pg_service.conf` / `.pgpass` 提供连接），不是仓库内置服务：
 
 ```bash
 pg_dump --dbname='service=xblog-backup' --format=custom --file=/secure-backups/xblog-before-release.dump
-tar -czf /secure-backups/xblog-uploads-before-release.tar.gz -C /home/appuser/xblog/backend uploads
+tar -czf /secure-backups/xblog-uploads-before-release.tar.gz -C /home/appuser/xblog/apps/api uploads
 pg_restore --list /secure-backups/xblog-before-release.dump
 ```
 
@@ -617,9 +737,199 @@ pg_restore --list /secure-backups/xblog-before-release.dump
 
 ## 6. 日常运维与排障
 
+### systemctl 服务管理
+
+以下命令在部署服务器上由具备 sudo 权限的账号执行，与当前工作目录无关。`xblog-api` 是后端 API，`xblog-web` 是 C 端公开站；管理端静态文件由 nginx 托管，无需单独的 systemd 服务。
+
+#### 启动
+
+API：
+
+```bash
+sudo systemctl start xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl start xblog-web
+```
+
+#### 停止
+
+API：
+
+```bash
+sudo systemctl stop xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl stop xblog-web
+```
+
+#### 重启
+
+API：
+
+```bash
+sudo systemctl restart xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl restart xblog-web
+```
+
+#### 查看状态
+
+API：
+
+```bash
+sudo systemctl status xblog-api --no-pager
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl status xblog-web --no-pager
+```
+
+#### 设置开机自启
+
+API：
+
+```bash
+sudo systemctl enable xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl enable xblog-web
+```
+
+#### 取消开机自启
+
+API：
+
+```bash
+sudo systemctl disable xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl disable xblog-web
+```
+
+#### 查看自启状态
+
+API：
+
+```bash
+sudo systemctl is-enabled xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl is-enabled xblog-web
+```
+
+#### 查看运行状态
+
+API：
+
+```bash
+sudo systemctl is-active xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl is-active xblog-web
+```
+
+#### 查看 unit 与覆盖配置
+
+API：
+
+```bash
+sudo systemctl cat xblog-api
+```
+
+C 端公开站：
+
+```bash
+sudo systemctl cat xblog-web
+```
+
+#### 自启与运行状态说明
+
+`enable` / `disable` 只修改开机自启设置，不立即启动或停止服务。需要同时操作时，使用 `enable --now` 或 `disable --now`。正常运行时 `is-active` 返回 `active`，已设置自启时 `is-enabled` 返回 `enabled`；进程运行不代表数据库和业务接口可用，仍需执行第 4 节验收。
+
+需要同时管理两个服务时，可以在同一命令中列出服务名：
+
+查看两个服务的状态：
+
+```bash
+sudo systemctl status xblog-api xblog-web --no-pager
+```
+
+重启两个服务：
+
+```bash
+sudo systemctl restart xblog-api xblog-web
+```
+
+仅修改其中一个应用时，只重启对应服务。首次启动或 API 更新后，先验证 API 与数据库可用，再启动公开站。
+
+#### 更新 systemd 服务文件
+
+修改仓库 `deploy/systemd/` 中的文件后，需要先复制到 `/etc/systemd/system/`，再重新加载配置、重启对应服务并检查状态。以下命令按默认部署目录执行；自定义路径时替换 `cd` 的目录。复制前确认模板中的用户、工作目录和启动路径与服务器一致。
+
+更新 API 服务：
+
+```bash
+cd /home/appuser/xblog
+sudo cp deploy/systemd/xblog-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart xblog-api
+sudo systemctl status xblog-api --no-pager
+```
+
+更新 C 端公开站服务：
+
+```bash
+cd /home/appuser/xblog
+sudo cp deploy/systemd/xblog-web.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart xblog-web
+sudo systemctl status xblog-web --no-pager
+```
+
+如果直接修改了 `/etc/systemd/system/` 中的服务文件或 override，跳过复制步骤，从 `daemon-reload` 开始执行，避免用仓库模板覆盖服务器上的修改。已有 override 会继续生效，可用前述 `systemctl cat` 命令核对最终配置。
+
+预期状态为 `active (running)`；启动失败时查看对应服务日志，检查启动路径、目录权限和环境配置。服务启动后仍需执行第 4 节业务验收。
+
+`daemon-reload` 不会重启应用；只修改 `.env` 不需要执行它，但需重启对应服务。构建时注入的前端变量仍需先重新构建，不能只重启。
+
+### 查看日志与排查监听端口
+
 ```bash
 sudo journalctl -u xblog-api -n 100 --no-pager
 sudo journalctl -u xblog-web -n 100 --no-pager
+```
+
+持续查看某个服务的新日志，按 `Ctrl+C` 退出查看（不会停止服务）：
+
+```bash
+sudo journalctl -u xblog-api -f
+# 查看公开站时使用：
+# sudo journalctl -u xblog-web -f
 ```
 
 nginx 模板日志为 `/var/log/nginx/xblog.access.log` 和 `/var/log/nginx/xblog.error.log`。
@@ -647,7 +957,7 @@ sudo ss -ltnp 'sport = :5432'
 未引用上传清理仅覆盖 `covers/`、`link-logos/`，不包含头像、站点 LOGO 和 Skill。先在后端工作目录预览，再由具备文件和数据库权限的服务账号执行：
 
 ```bash
-cd /home/appuser/xblog/backend
+cd /home/appuser/xblog/apps/api
 uv run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600 --dry-run
 uv run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600
 ```
@@ -655,7 +965,7 @@ uv run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600
 确认预览后，可在服务账号 crontab 配置以下每小时任务。uv 绝对路径按前述配置替换；这里同样使用 `--no-sync` 运行部署时已安装的环境。该命令不自动读取 systemd EnvironmentFile，但会从工作目录加载 `.env`：
 
 ```cron
-15 * * * * cd /home/appuser/xblog/backend && /home/appuser/.local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600
+15 * * * * cd /home/appuser/xblog/apps/api && /home/appuser/.local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600
 ```
 
 TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小时。监控 cron 输出；不要扩展成全上传目录删除。
@@ -673,7 +983,3 @@ TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小�
 | 配置 aliyun 后收不到短信 | sms_service.py | 当前未真正发送；不要据日志成功启用生产短信入口 |
 
 后端 AI 限流是进程内状态，4 worker 不提供跨进程统一的 60 次/分钟额度。若调整进程数，不应把该限制当作全局配额保证。
-
-### 本地直接访问后台
-
-运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；跨端导航与 OAuth 联调使用 nginx 统一入口 `http://localhost:10240`。
