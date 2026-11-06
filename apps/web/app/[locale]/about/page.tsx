@@ -7,6 +7,7 @@ import { PageShell } from "@/components/page-shell";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { ProseHtml } from "@/components/prose-html";
 import { getPage } from "@/lib/api";
+import { prepareArticleContent } from "@/lib/article-headings";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -39,7 +40,7 @@ export default async function AboutPage({ params }: Props) {
   return (
     <PageShell title={page.title} description={t("description")} narrow>
       <PageViewTracker path="/about" />
-      <ProseHtml html={page.content_html} />
+      <ProseHtml html={prepareArticleContent(page.content_html).html} />
     </PageShell>
   );
 }

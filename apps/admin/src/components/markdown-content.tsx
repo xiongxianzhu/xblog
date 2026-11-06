@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { useLocale, useTranslations } from "use-intl";
 
 import { MarkdownPreBlock } from "@/components/markdown-pre-block";
+import { rehypeHeadingIds } from "@/lib/markdown-headings";
 import { type MermaidDiagramLabels, renderMermaidDiagrams } from "@/lib/mermaid-diagram";
 import type { ProseCodeCopyLabels } from "@/lib/prose-code-blocks";
 import type { SitePublicColorMode } from "@/lib/themes";
@@ -170,7 +171,7 @@ const MarkdownProse = memo(
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
+          rehypePlugins={[rehypeRaw, rehypeHeadingIds]}
           components={markdownComponents}
         >
           {content}
