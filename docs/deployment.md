@@ -280,20 +280,29 @@ psql -X -h 127.0.0.1 -p 5432 -U xblog -d xblog -W \
 
 ### 3.2. 安装后端与初始化
 
-在部署账号下执行。后端管理命令统一通过 `uv run --frozen --no-dev` 运行：使用锁文件且不更新它，并排除开发依赖组；无需手动激活虚拟环境或指定平台相关的 `.venv/bin/` 路径。
+在部署账号下执行。后端管理命令统一通过 `uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev` 运行：使用锁文件且不更新它，并排除开发依赖组；无需手动激活虚拟环境或指定平台相关的 `.venv/bin/` 路径。
+
+`--directory` 会在执行 uv 命令前切换工作目录。下列命令使用绝对路径，可以从任意目录执行，无需先 `cd`；自定义部署目录时替换该路径。应用读取 `.env`、Alembic 配置和相对上传路径时仍以 `apps/api` 为基准。`--project` 只指定项目根目录，不切换工作目录，不能替代这里的 `--directory`。参见 [uv 参数说明](https://docs.astral.sh/uv/reference/cli/#uv-run--directory)。
+
+如果当前已经在仓库根目录，也可以使用相对路径：
 
 ```bash
-cd /home/appuser/xblog/apps/api
-uv sync --frozen --no-dev
-uv run --frozen --no-dev alembic upgrade head
-uv run --frozen --no-dev alembic current
-uv run --frozen --no-dev python -m app.cli create-admin --username writer
-uv run --frozen --no-dev python -m app.cli seed-pages
+uv --directory apps/api run --frozen --no-dev alembic current
+```
+
+首次安装与初始化：
+
+```bash
+uv --directory /home/appuser/xblog/apps/api sync --frozen --no-dev
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev alembic upgrade head
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev alembic current
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev python -m app.cli create-admin --username writer
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev python -m app.cli seed-pages
 ```
 
 `writer` 为示例管理员名，密码由终端交互输入。创建管理员只在首次需要时执行，不在每次更新时重复执行。`seed-pages` 创建缺失的 about/projects，已存在则跳过。
 
-当前迁移链到 `014_post_pinned.py`（revision `014_post_pinned`）；以 `uv run --frozen --no-dev alembic heads` 与上述 `current` 输出一致为准。迁移失败立即停止后续发布，保留错误日志，不通过跳过迁移或手工删除表继续。
+当前迁移链到 `014_post_pinned.py`（revision `014_post_pinned`）；以 `uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev alembic heads` 与上述 `current` 输出一致为准。迁移失败立即停止后续发布，保留错误日志，不通过跳过迁移或手工删除表继续。
 
 ### 3.3. 分别部署 API、C 端与管理端
 
@@ -324,7 +333,7 @@ pnpm install --frozen-lockfile
 pnpm check
 pnpm typecheck
 pnpm test
-pnpm --filter @xblog/web build
+pnpm -F @xblog/web build
 ```
 
 构建产物为 `apps/web/.next`。首次构建前确保 API 和数据库可用，避免将降级内容写入站点地图。再由运维账号安装并启动公开站服务：
@@ -345,7 +354,7 @@ unit 仅读取 `apps/web/.env`，工作目录为 `apps/web`，使用 `/usr/local
 
 ```bash
 cd /home/appuser/xblog
-pnpm --filter @xblog/admin build
+pnpm -F @xblog/admin build
 test -f apps/admin/dist/index.html
 ```
 
@@ -621,8 +630,7 @@ sudo systemctl cat xblog-api xblog-web
 查看当前数据库迁移版本：
 
 ```bash
-cd /home/appuser/xblog/apps/api
-uv run --frozen --no-dev alembic current
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev alembic current
 ```
 
 停止写入后，备份 PostgreSQL、完整上传目录、环境文件、服务/nginx 配置与旧构建产物，备份示例见本节末尾。确认备份可读取且有异机副本，再切换到已确认的待发布代码版本；保留真实 `.env` 和上传文件，不覆盖服务器上的配置。涉及迁移或原地重建时安排维护窗口。以下各步骤失败时立即停止后续发布，不重启到未完成的版本。
@@ -636,10 +644,9 @@ sudo systemctl stop xblog-api
 ```
 
 ```bash
-cd /home/appuser/xblog/apps/api
-uv sync --frozen --no-dev &&
-uv run --frozen --no-dev alembic upgrade head &&
-uv run --frozen --no-dev alembic current
+uv --directory /home/appuser/xblog/apps/api sync --frozen --no-dev &&
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev alembic upgrade head &&
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev alembic current
 ```
 
 安装和迁移全部成功后，重启 API 并检查状态（restart 也会启动已停止的服务）：
@@ -669,7 +676,7 @@ sudo systemctl stop xblog-web
 ```bash
 cd /home/appuser/xblog
 pnpm install --frozen-lockfile &&
-pnpm --filter @xblog/web build
+pnpm -F @xblog/web build
 ```
 
 构建成功后，重启公开站并检查状态：
@@ -690,7 +697,7 @@ curl --fail http://127.0.0.1:10241/
 ```bash
 cd /home/appuser/xblog
 pnpm install --frozen-lockfile &&
-pnpm --filter @xblog/admin build &&
+pnpm -F @xblog/admin build &&
 test -f apps/admin/dist/index.html
 ```
 
@@ -954,18 +961,17 @@ sudo ss -ltnp 'sport = :5432'
 
 检查 `Local Address:Port` 和 `Process` 列：前端应监听 10241（可能显示通配地址），后端监听 `127.0.0.1:10242`。没有匹配记录表示当前没有该 TCP 端口的监听；端口被其他进程占用时，先根据 PID 确认进程归属，再处理对应服务。端口处于 LISTEN 不代表业务或数据库访问正常，仍需执行第 4 节接口检查。
 
-未引用上传清理仅覆盖 `covers/`、`link-logos/`，不包含头像、站点 LOGO 和 Skill。先在后端工作目录预览，再由具备文件和数据库权限的服务账号执行：
+未引用上传清理仅覆盖 `covers/`、`link-logos/`，不包含头像、站点 LOGO 和 Skill。先通过 `--directory` 指定后端工作目录预览，再由具备文件和数据库权限的服务账号执行：
 
 ```bash
-cd /home/appuser/xblog/apps/api
-uv run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600 --dry-run
-uv run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600 --dry-run
+uv --directory /home/appuser/xblog/apps/api run --frozen --no-dev python -m app.cli cleanup-uploads --max-age 3600
 ```
 
 确认预览后，可在服务账号 crontab 配置以下每小时任务。uv 绝对路径按前述配置替换；这里同样使用 `--no-sync` 运行部署时已安装的环境。该命令不自动读取 systemd EnvironmentFile，但会从工作目录加载 `.env`：
 
 ```cron
-15 * * * * cd /home/appuser/xblog/apps/api && /home/appuser/.local/bin/uv run --no-sync python -m app.cli cleanup-uploads --max-age 3600
+15 * * * * /home/appuser/.local/bin/uv --directory /home/appuser/xblog/apps/api run --no-sync python -m app.cli cleanup-uploads --max-age 3600
 ```
 
 TTL 为最小保留时长，叠加定时周期后实际清理可能晚于 1 小时。监控 cron 输出；不要扩展成全上传目录删除。
