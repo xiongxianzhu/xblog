@@ -9,6 +9,10 @@ class TagPublic(SQLModel):
     slug: str
 
 
+class TagCloudItem(TagPublic):
+    post_count: int
+
+
 class PostSummary(SQLModel):
     id: int
     title: str

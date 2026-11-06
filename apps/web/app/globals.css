@@ -396,11 +396,11 @@
 /* Site: flat glass + tight radius */
 [data-site-shell] {
   overflow-x: clip;
-  --radius: 4px;
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 5px;
-  --radius-xl: 6px;
+  --radius: 2px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
 }
 
 [data-site-shell] .site-glass-bar {
@@ -620,12 +620,12 @@
 
 [data-site-shell] .site-locale-trigger {
   color: hsl(var(--foreground));
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.04);
+  box-shadow: none;
 }
 
-[data-site-shell] .site-locale-trigger:hover {
-  border-color: hsl(var(--primary) / 0.35);
-  background: hsl(var(--background) / 0.78);
+[data-site-shell] .site-locale-trigger:hover,
+[data-site-shell] .site-locale-trigger[data-state="open"] {
+  background: hsl(var(--accent));
 }
 
 [data-site-shell] .site-select-content {
@@ -1060,217 +1060,103 @@
   }
 }
 
-/* Pinned post cards — bold editorial feature */
-@keyframes post-pin-shimmer {
-  0% {
-    transform: translateX(-120%);
-  }
-  100% {
-    transform: translateX(220%);
-  }
-}
-
+/* Pinned articles: editorial image, quiet metadata, generous reading space. */
 [data-site-shell] .post-card--pinned {
-  position: relative;
-  isolation: isolate;
-  border-color: hsl(var(--primary) / 0.5);
-  background:
-    linear-gradient(125deg, hsl(var(--primary) / 0.16) 0%, transparent 44%),
-    linear-gradient(180deg, hsl(var(--card) / 0.82) 0%, hsl(var(--card) / 0.56) 100%);
-  box-shadow:
-    0 0 0 1px hsl(var(--primary) / 0.18),
-    0 1px 0 hsl(0 0% 100% / 0.1) inset,
-    0 24px 56px -28px hsl(var(--primary) / 0.5);
-  transform: translateY(0);
-  transition:
-    transform 0.35s ease,
-    box-shadow 0.35s ease,
-    border-color 0.35s ease,
-    background 0.35s ease;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: border-color 200ms ease;
 }
 
-[data-site-shell] .post-card--pinned::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 90% 70% at 100% 0%, hsl(var(--primary) / 0.22), transparent 62%),
-    repeating-linear-gradient(
-      -12deg,
-      hsl(var(--primary) / 0.045) 0,
-      hsl(var(--primary) / 0.045) 1px,
-      transparent 1px,
-      transparent 7px
-    );
-  pointer-events: none;
-  z-index: 0;
+[data-site-shell] .post-card--pinned:hover,
+[data-site-shell] .post-card--pinned:focus-within {
+  border-color: hsl(var(--primary) / 0.55);
+  background: hsl(var(--card));
 }
 
-[data-site-shell] .post-card--pinned:hover {
-  border-color: hsl(var(--primary) / 0.68);
-  background:
-    linear-gradient(125deg, hsl(var(--primary) / 0.22) 0%, transparent 50%),
-    linear-gradient(180deg, hsl(var(--card) / 0.9) 0%, hsl(var(--card) / 0.62) 100%);
-  box-shadow:
-    0 0 0 1px hsl(var(--primary) / 0.28),
-    0 1px 0 hsl(0 0% 100% / 0.12) inset,
-    0 32px 64px -24px hsl(var(--primary) / 0.58);
-  transform: translateY(-3px);
+[data-site-shell] .post-card-pin-body {
+  flex-direction: column;
 }
 
-[data-site-shell] .post-card--pinned > * {
-  position: relative;
-  z-index: 1;
+[data-site-shell] .post-card-pin-cover {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-right: 0;
+  border-bottom: 1px solid hsl(var(--border));
 }
 
-[data-site-shell] .post-card-pin-banner {
-  position: relative;
-  z-index: 2;
-  display: flex;
+[data-site-shell] .post-card-pin-content {
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+[data-site-shell] .post-card-pin-label {
+  display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  overflow: hidden;
-  padding: 0.7rem 1.25rem;
-  border-bottom: 1px solid hsl(var(--primary) / 0.4);
-  background: linear-gradient(
-    100deg,
-    hsl(var(--primary)) 0%,
-    hsl(var(--primary) / 0.9) 45%,
-    hsl(var(--primary) / 0.68) 100%
-  );
-  color: hsl(var(--primary-foreground));
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.32em;
-  line-height: 1;
-  text-transform: uppercase;
+  gap: 0.4rem;
+  color: hsl(var(--primary));
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
-[data-site-shell] .post-card-pin-icon {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.25px;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+[data-site-shell] .post-card-pin-title {
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
 }
 
-[data-site-shell] .post-card-pin-banner-shine {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    hsl(0 0% 100% / 0.15) 32%,
-    hsl(0 0% 100% / 0.42) 50%,
-    hsl(0 0% 100% / 0.15) 68%,
-    transparent 96%
-  );
-  animation: post-pin-shimmer 3.5s ease-in-out infinite;
-  pointer-events: none;
+[data-site-shell] .post-card-pin-sparkles {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-inline-start: 0.3em;
+  vertical-align: 0.02em;
+  color: #d99a20;
+  fill: #f4bd4f;
 }
 
-[data-site-shell] .post-card-pin-fold {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 4;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 3.5rem 3.5rem 0;
-  border-color: transparent hsl(var(--primary) / 0.5) transparent transparent;
-  filter: drop-shadow(-2px 3px 6px hsl(var(--primary) / 0.35));
-  pointer-events: none;
-}
-
-[data-site-shell] .post-card--pinned .post-card-pin-cover {
-  box-shadow: inset 5px 0 0 hsl(var(--primary));
-}
-
-[data-site-shell] .post-card-pin-cover::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 55%, hsl(var(--foreground) / 0.12) 100%);
-  pointer-events: none;
-}
-
-[data-site-shell] .post-card--pinned:hover .post-card-pin-cover img {
-  transform: scale(1.05);
+[data-site-shell].dark .post-card-pin-sparkles {
+  color: #ffc85c;
+  fill: #ffc85c;
 }
 
 [data-site-shell] .post-card-pin-title a {
   color: hsl(var(--foreground));
 }
 
-[data-site-shell] .post-card--pinned:hover .post-card-pin-title a {
+[data-site-shell] .post-card-pin-title a:hover {
   color: hsl(var(--primary));
 }
 
-[data-site-shell] .post-card--pinned .post-card-pin-excerpt {
-  color: hsl(var(--foreground) / 0.7);
+[data-site-shell] .post-card-pin-excerpt {
+  max-width: 68ch;
+  line-height: 1.8;
 }
 
-[data-site-shell].dark .post-card-pin-fold {
-  border-color: transparent hsl(var(--primary) / 0.62) transparent transparent;
-  filter: drop-shadow(-2px 3px 8px hsl(0 0% 0% / 0.45));
-}
+@media (min-width: 640px) {
+  [data-site-shell] .post-card-pin-body {
+    flex-direction: row;
+  }
 
-[data-site-shell].dark .post-card--pinned::before {
-  background:
-    radial-gradient(ellipse 90% 70% at 100% 0%, hsl(var(--primary) / 0.28), transparent 62%),
-    repeating-linear-gradient(
-      -12deg,
-      hsl(var(--primary) / 0.06) 0,
-      hsl(var(--primary) / 0.06) 1px,
-      transparent 1px,
-      transparent 7px
-    );
-}
+  [data-site-shell] .post-card-pin-cover {
+    width: 30%;
+    max-width: 22rem;
+    border-bottom: 0;
+    border-right: 1px solid hsl(var(--border));
+  }
 
-[data-site-shell].dark .post-card--pinned {
-  border-color: hsl(var(--primary) / 0.62);
-  background:
-    linear-gradient(125deg, hsl(var(--primary) / 0.24) 0%, transparent 48%),
-    linear-gradient(180deg, hsl(var(--card) / 0.88) 0%, hsl(var(--card) / 0.58) 100%);
-  box-shadow:
-    0 0 0 1px hsl(var(--primary) / 0.3),
-    0 1px 0 hsl(0 0% 100% / 0.05) inset,
-    0 28px 60px -28px hsl(var(--primary) / 0.58);
-}
-
-[data-site-shell].dark .post-card-pin-banner {
-  background: linear-gradient(
-    100deg,
-    hsl(var(--primary)) 0%,
-    hsl(var(--primary) / 0.84) 50%,
-    hsl(var(--primary) / 0.58) 100%
-  );
+  [data-site-shell] .post-card-pin-content {
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-site-shell] .post-card--pinned:hover {
+  [data-site-shell] .post-card-pin-cover img {
+    transition: none;
     transform: none;
-  }
-
-  [data-site-shell] .post-card-pin-banner-shine {
-    animation: none;
-  }
-
-  [data-site-shell] .post-card--pinned:hover .post-card-pin-cover img {
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  [data-site-shell] .post-card--pinned {
-    background: hsl(var(--card));
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  [data-site-shell] .post-card--pinned::before {
-    background: radial-gradient(ellipse 90% 70% at 100% 0%, hsl(var(--primary) / 0.12), transparent 62%);
   }
 }
 
@@ -1797,3 +1683,49 @@ body.mermaid-fullscreen-open {
 }
 
 /* 实心按钮：背景深则字浅，背景浅则字深（由 *-foreground token 驱动） */
+
+/* Topic index: type size reflects published article count. */
+[data-site-shell] .site-tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  padding-block: 0.5rem 2rem;
+}
+
+[data-site-shell] .site-tag-cloud-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  max-width: 100%;
+  padding: 0.65rem 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 2px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+[data-site-shell] .site-tag-cloud-link:hover,
+[data-site-shell] .site-tag-cloud-link:focus-visible {
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+[data-site-shell] .site-tag-cloud-link:focus-visible {
+  outline: 1px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+
+[data-site-shell] .site-tag-cloud-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-serif);
+}
+
+[data-site-shell] .site-tag-cloud-count {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}

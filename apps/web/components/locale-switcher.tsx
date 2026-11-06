@@ -1,5 +1,6 @@
 "use client";
 
+import { Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,14 +27,20 @@ export function LocaleSwitcher({ className, compact }: LocaleSwitcherProps) {
   return (
     <Select value={locale} disabled={pending} onValueChange={(next) => handleLocaleChange(next as AppLocale)}>
       <SelectTrigger
-        aria-label={t("label")}
+        aria-label={`${t("label")}: ${localeLabels[locale]}`}
+        title={t("label")}
         className={cn(
-          "site-locale-trigger rounded-sm border-border/70 bg-background/60 backdrop-blur-sm",
-          compact ? "h-8 w-auto min-w-[7.5rem] shrink-0 px-2.5 text-xs" : "h-9 w-auto min-w-[8rem] text-sm",
+          "site-locale-trigger w-auto shrink-0 justify-center gap-2 rounded-sm border-0 bg-transparent font-medium [&>svg]:hidden",
+          compact ? "h-10 min-w-16 px-2 text-sm" : "h-10 min-w-16 px-3 text-sm",
           className,
         )}
       >
-        <SelectValue>{localeLabels[locale]}</SelectValue>
+        <SelectValue>
+          <span className="inline-flex items-center gap-2">
+            <Languages className="size-[18px]" aria-hidden="true" />
+            <span>{locale === "en" ? "EN" : locale === "zh-TW" ? "繁" : "中"}</span>
+          </span>
+        </SelectValue>
       </SelectTrigger>
       <SelectContent align="end">
         {locales.map((item) => (

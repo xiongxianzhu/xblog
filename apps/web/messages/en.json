@@ -11,7 +11,8 @@
     "projects": "Projects",
     "links": "Links",
     "search": "Search",
-    "admin": "Admin"
+    "admin": "Admin",
+    "tags": "Tags"
   },
   "locale": {
     "label": "Language",
@@ -91,7 +92,15 @@
     "description": "All posts under this tag.",
     "metaTitle": "Tag: {slug}",
     "emptyTitle": "No posts",
-    "emptyDescription": "Nothing published under this tag yet."
+    "emptyDescription": "Nothing published under this tag yet.",
+    "title": "Tags",
+    "cloudDescription": "Explore topics. Choose a tag to find its articles.",
+    "cloudEmptyTitle": "No tags yet",
+    "cloudEmptyDescription": "Tags will appear when tagged articles are published.",
+    "backToTags": "All tags",
+    "postCount": "{count, plural, one {# article} other {# articles}}",
+    "loadErrorTitle": "Tags are temporarily unavailable",
+    "loadErrorDescription": "Please refresh the page and try again later."
   },
   "common": {
     "copy": "Copy",

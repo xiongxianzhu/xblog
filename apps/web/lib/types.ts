@@ -6,6 +6,7 @@ export type {
   PostNeighbor,
   PostPublic,
   PostSummary,
+  TagCloudItem,
   TagPublic,
   UserPublic,
 } from "@xblog/contracts";

@@ -11,7 +11,8 @@
     "projects": "專案",
     "links": "友鏈",
     "search": "搜尋",
-    "admin": "管理"
+    "admin": "管理",
+    "tags": "標籤"
   },
   "locale": {
     "label": "語言",
@@ -91,7 +92,15 @@
     "description": "該標籤下的全部文章。",
     "metaTitle": "標籤：{slug}",
     "emptyTitle": "暫無文章",
-    "emptyDescription": "該標籤下還沒有已發布的內容。"
+    "emptyDescription": "該標籤下還沒有已發布的內容。",
+    "title": "標籤",
+    "cloudDescription": "依主題探索文章，選擇一個標籤開始閱讀。",
+    "cloudEmptyTitle": "暫無標籤",
+    "cloudEmptyDescription": "發布帶有標籤的文章後，會在這裡顯示。",
+    "backToTags": "返回標籤雲",
+    "postCount": "{count} 篇文章",
+    "loadErrorTitle": "標籤暫時無法載入",
+    "loadErrorDescription": "請稍後重新整理頁面再試。"
   },
   "common": {
     "copy": "複製",

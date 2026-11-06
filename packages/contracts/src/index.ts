@@ -4,6 +4,8 @@ export type TagPublic = {
   slug: string;
 };
 
+export type TagCloudItem = TagPublic & { post_count: number };
+
 export type PostSummary = {
   id: number;
   title: string;

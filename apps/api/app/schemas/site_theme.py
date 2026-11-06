@@ -12,7 +12,7 @@ DEFAULT_COPYRIGHT_CONTENT = (
     "除非特别说明，任何媒体、网站或个人转载本博客的原创内容，请严格遵循 "
     "[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.zh-hans) 的知识共享协议。"
 )
-NAV_ITEMS = ("blog", "about", "projects", "links", "search")
+NAV_ITEMS = ("blog", "tags", "about", "projects", "links", "search")
 DEFAULT_POSTS_PER_PAGE = 10
 MIN_POSTS_PER_PAGE = 5
 MAX_POSTS_PER_PAGE = 50

@@ -8,7 +8,7 @@ from sqlmodel import col, select
 
 from app.api.deps import SessionDep
 from app.models.post import Post, PostTag, Tag
-from app.schemas.post import PaginatedPostSummaries, PostPublic, PostSummary
+from app.schemas.post import PaginatedPostSummaries, PostPublic, PostSummary, TagCloudItem
 from app.services.posts import PUBLIC_POST_LIST_ORDER, to_post_public, to_post_summary
 from app.services.site_settings import get_posts_per_page
 
@@ -22,9 +22,7 @@ async def list_posts(
     page_size: int | None = Query(default=None, ge=1, le=50),
 ) -> PaginatedPostSummaries:
     effective_page_size = page_size if page_size is not None else await get_posts_per_page(session)
-    total_result = await session.exec(
-        select(func.count()).select_from(Post).where(Post.status == "published")
-    )
+    total_result = await session.exec(select(func.count()).select_from(Post).where(Post.status == "published"))
     total = int(total_result.one())
     offset = (page - 1) * effective_page_size
     stmt = (
@@ -51,6 +49,20 @@ async def get_post(session: SessionDep, slug: str) -> PostPublic:
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     return await to_post_public(session, post)
+
+
+@router.get("/tags", response_model=list[TagCloudItem])
+async def list_tags(session: SessionDep) -> list[TagCloudItem]:
+    post_count = func.count(col(Post.id))
+    result = await session.exec(
+        select(Tag, post_count)
+        .join(PostTag, col(PostTag.tag_id) == col(Tag.id))
+        .join(Post, col(Post.id) == col(PostTag.post_id))
+        .where(Post.status == "published")
+        .group_by(col(Tag.id), col(Tag.name), col(Tag.slug))
+        .order_by(post_count.desc(), col(Tag.name), col(Tag.slug))
+    )
+    return [TagCloudItem(id=tag.id or 0, name=tag.name, slug=tag.slug, post_count=count) for tag, count in result.all()]
 
 
 @router.get("/tags/{slug}/posts", response_model=list[PostSummary])

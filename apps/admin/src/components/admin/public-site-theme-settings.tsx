@@ -17,6 +17,7 @@ import { PUBLIC_POSTS_PER_PAGE_OPTIONS, type SitePublicTheme } from "@/lib/theme
 
 const navLabels: Record<string, string> = {
   blog: "博客",
+  tags: "标签",
   about: "关于",
   projects: "项目",
   links: "友链",
@@ -108,7 +109,9 @@ export function PublicSiteThemeSettings() {
     return <p className="text-sm text-destructive">加载失败，请刷新页面。</p>;
   }
 
-  const navOrder = data.nav_order ?? Object.keys(navLabels);
+  const navOrder = [...new Set([...(data.nav_order ?? []), ...Object.keys(navLabels)])].filter(
+    (key) => key in navLabels,
+  );
   function moveNav(index: number, delta: number) {
     const next = [...navOrder];
     const to = index + delta;
@@ -219,7 +222,9 @@ export function PublicSiteThemeSettings() {
         <h3 id="nav-order-title" className="text-sm font-medium">
           导航菜单排序
         </h3>
-        <p className="text-sm text-muted-foreground">上移或下移后自动保存，桌面和手机菜单共用此顺序。</p>
+        <p className="text-sm text-muted-foreground">
+          上移或下移后自动保存，顶部、手机菜单和页脚导航共用此顺序；已打开的公开页需刷新。
+        </p>
         <ol className="max-w-lg divide-y divide-border rounded-sm border border-border">
           {navOrder.map((key, index) => (
             <li key={key} className="flex items-center gap-2 px-3 py-1">

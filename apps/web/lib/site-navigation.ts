@@ -1,5 +1,6 @@
 const defaultNavItems = [
   { href: "/blog", labelKey: "blog" },
+  { href: "/tags", labelKey: "tags" },
   { href: "/about", labelKey: "about" },
   { href: "/projects", labelKey: "projects" },
   { href: "/links", labelKey: "links" },

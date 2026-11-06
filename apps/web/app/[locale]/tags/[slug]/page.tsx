@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { EmptyState } from "@/components/empty-state";
 import { PageShell } from "@/components/page-shell";
 import { PostCard } from "@/components/post-card";
+import { Link } from "@/i18n/navigation";
 import { listPostsByTag } from "@/lib/api";
 import { decodeRouteParam } from "@/lib/utils";
 
@@ -38,6 +39,12 @@ export default async function TagPage({ params }: Props) {
 
   return (
     <PageShell title={`#${tagLabel}`} description={t("description")}>
+      <Link
+        href="/tags"
+        className="mb-6 inline-block text-sm text-primary underline-offset-4 hover:underline"
+      >
+        {t("backToTags")}
+      </Link>
       {posts.length === 0 ? (
         <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : (

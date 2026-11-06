@@ -1,5 +1,12 @@
 import type { SitePublicTheme } from "@/lib/themes";
-import type { FriendLinkPublic, PagePublic, PaginatedPostList, PostPublic, PostSummary } from "@/lib/types";
+import type {
+  FriendLinkPublic,
+  PagePublic,
+  PaginatedPostList,
+  PostPublic,
+  PostSummary,
+  TagCloudItem,
+} from "@/lib/types";
 
 export type { SitePublicTheme };
 
@@ -199,6 +206,10 @@ export async function listPosts(page = 1, pageSize?: number): Promise<PaginatedP
 
 export function getPost(slug: string) {
   return fetchPublic<PostPublic>(`/public/posts/${slug}`);
+}
+
+export function listTags() {
+  return fetchPublic<TagCloudItem[]>("/public/tags");
 }
 
 export function listPostsByTag(slug: string, page = 1, pageSize = 10) {

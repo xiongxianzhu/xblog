@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon, PinIcon } from "lucide-react";
+import { ArrowUpRightIcon, PinIcon, SparklesIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -33,26 +33,13 @@ export function PostCard({ post }: { post: PostSummary }) {
         post.is_pinned && "post-card--pinned",
       )}
     >
-      {post.is_pinned ? (
-        <>
-          <div className="post-card-pin-banner">
-            <PinIcon className="post-card-pin-icon size-4 shrink-0" aria-hidden strokeWidth={2.25} />
-            <span>置顶推荐</span>
-            <span className="post-card-pin-banner-shine" aria-hidden />
-          </div>
-          <div className="post-card-pin-fold" aria-hidden />
-        </>
-      ) : null}
-
       <div className={cn("flex min-h-0", coverSrc && "flex-row", post.is_pinned && "post-card-pin-body")}>
         {coverSrc ? (
           <Link
             href={`/blog/${post.slug}`}
             className={cn(
               "relative aspect-[4/3] shrink-0 self-stretch overflow-hidden border-r border-border/50",
-              post.is_pinned
-                ? "post-card-pin-cover w-[8.5rem] sm:w-52 lg:w-60"
-                : "w-[7.5rem] sm:w-44 lg:w-48",
+              post.is_pinned ? "post-card-pin-cover" : "w-[7.5rem] sm:w-44 lg:w-48",
             )}
             aria-label={post.title}
           >
@@ -70,27 +57,38 @@ export function PostCard({ post }: { post: PostSummary }) {
         <div
           className={cn(
             "flex min-w-0 flex-1 flex-col gap-3",
-            post.is_pinned ? "post-card-pin-content p-5 sm:p-6" : "p-4 sm:p-5",
+            post.is_pinned ? "post-card-pin-content" : "p-4 sm:p-5",
           )}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-2.5 sm:gap-3">
-              {post.published_at ? (
-                <time className="text-xs tracking-wide text-muted-foreground">
-                  {formatDate(post.published_at)}
-                </time>
-              ) : null}
+              <div className="post-card-meta flex flex-wrap items-center gap-x-4 gap-y-2">
+                {post.is_pinned ? (
+                  <span className="post-card-pin-label">
+                    <PinIcon className="size-3.5" aria-hidden="true" strokeWidth={1.75} />
+                    置顶推荐
+                  </span>
+                ) : null}
+                {post.published_at ? (
+                  <time dateTime={post.published_at} className="text-xs tracking-wide text-muted-foreground">
+                    {formatDate(post.published_at)}
+                  </time>
+                ) : null}
+              </div>
               <h2
                 className={cn(
                   "font-serif font-semibold leading-snug tracking-tight",
-                  post.is_pinned ? "post-card-pin-title text-xl sm:text-2xl" : "text-lg sm:text-xl",
+                  post.is_pinned ? "post-card-pin-title text-2xl sm:text-3xl" : "text-lg sm:text-xl",
                 )}
               >
                 <Link href={`/blog/${post.slug}`} className="transition-colors group-hover:text-primary">
                   {post.title}
+                  {post.is_pinned ? (
+                    <SparklesIcon className="post-card-pin-sparkles" aria-hidden="true" strokeWidth={1.5} />
+                  ) : null}
                 </Link>
               </h2>
-              <PostTags tags={post.tags} />
+              {!post.is_pinned ? <PostTags tags={post.tags} /> : null}
             </div>
             <ArrowUpRightIcon
               className={cn(
@@ -112,6 +110,7 @@ export function PostCard({ post }: { post: PostSummary }) {
               {post.excerpt}
             </p>
           ) : null}
+          {post.is_pinned ? <PostTags tags={post.tags} /> : null}
         </div>
       </div>
     </Card>
