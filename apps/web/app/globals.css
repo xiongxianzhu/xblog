@@ -1329,7 +1329,7 @@
   font-size: 0.95em;
 }
 
-[data-site-shell] .article-prose :is(h2, h3, h4)[id] {
+[data-site-shell] .prose :is(h2, h3, h4)[id] {
   scroll-margin-top: 6rem;
 }
 
