@@ -124,7 +124,8 @@
       "aiModels": "AI 模型",
       "skills": "Skills",
       "settings": "设置",
-      "backToSite": "返回站点"
+      "backToSite": "返回站点",
+      "media": "素材库"
     },
     "feedback": {
       "gotIt": "知道了",

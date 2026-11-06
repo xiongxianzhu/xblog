@@ -17,6 +17,7 @@ class User(TimestampMixin, SQLModel, table=True):
     username: str = Field(max_length=50, unique=True, index=True)
     nickname: str | None = Field(default=None, max_length=50)
     password_hash: str = Field(max_length=255)
+    must_change_password: bool = Field(default=False)
     email: str | None = Field(default=None, max_length=255, unique=True, index=True)
     phone: str | None = Field(default=None, max_length=20, unique=True, index=True)
     birth_date: date | None = Field(default=None, sa_type=Date())

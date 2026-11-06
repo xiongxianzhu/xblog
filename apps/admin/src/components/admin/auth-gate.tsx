@@ -8,9 +8,12 @@ type AuthState = "loading" | "authed" | "guest";
 export function AdminAuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isRequiredPasswordPage = pathname === "/admin/require-password-change";
   const isLoginPage = pathname === "/admin";
   const isResetPasswordPage = pathname === "/admin/reset-password";
   const isPublicAdminPage = isLoginPage || isResetPasswordPage;
+  const authScope = isPublicAdminPage || isRequiredPasswordPage ? pathname : "protected";
+  const [checkedScope, setCheckedScope] = useState("");
   const [state, setState] = useState<AuthState>("loading");
 
   useEffect(() => {
@@ -18,8 +21,17 @@ export function AdminAuthGate({ children }: { children: React.ReactNode }) {
 
     async function verify() {
       try {
-        await getMe();
+        const user = await getMe();
         if (cancelled) return;
+        if (user.must_change_password && !isRequiredPasswordPage) {
+          router.replace("/admin/require-password-change");
+          return;
+        }
+        if (!user.must_change_password && isRequiredPasswordPage) {
+          router.replace("/admin/dashboard");
+          return;
+        }
+        setCheckedScope(authScope);
         if (isLoginPage) {
           router.replace("/admin/dashboard");
           return;
@@ -31,6 +43,7 @@ export function AdminAuthGate({ children }: { children: React.ReactNode }) {
         setState("authed");
       } catch {
         if (cancelled) return;
+        setCheckedScope(authScope);
         if (isPublicAdminPage) {
           setState("guest");
         } else {
@@ -43,9 +56,9 @@ export function AdminAuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isResetPasswordPage, isLoginPage, isPublicAdminPage, router]);
+  }, [authScope, isRequiredPasswordPage, isResetPasswordPage, isLoginPage, isPublicAdminPage, router]);
 
-  if (state === "loading") {
+  if (state === "loading" || checkedScope !== authScope) {
     return (
       <div className="admin-login-screen w-full max-w-[26rem]">
         <div className="mb-8 flex items-center gap-2.5">

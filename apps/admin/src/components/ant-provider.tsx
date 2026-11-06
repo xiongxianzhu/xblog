@@ -5,6 +5,7 @@ import zhTW from "antd/locale/zh_TW";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import "dayjs/locale/zh-tw";
+import { ChevronDown } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import { FeedbackBridge } from "@/lib/feedback";
@@ -54,6 +55,12 @@ export function AntProvider({ children }: { children: React.ReactNode }) {
   dayjs.locale(locale === "zh-CN" ? "zh-cn" : locale === "zh-TW" ? "zh-tw" : "en");
   return (
     <ConfigProvider
+      popupMatchSelectWidth={false}
+      select={{
+        suffixIcon: <ChevronDown size={14} className="admin-select-chevron" aria-hidden />,
+        classNames: { popup: { root: "admin-select-popup" } },
+        styles: { popup: { root: { width: "max-content", maxWidth: "calc(100vw - 32px)" } } },
+      }}
       locale={locale === "en" ? enUS : locale === "zh-TW" ? zhTW : zhCN}
       theme={{
         algorithm: (seed, map) => ({

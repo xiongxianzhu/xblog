@@ -31,9 +31,7 @@ export const aiAssistantControlClass = adminBorderlessControlClass;
 export const aiAssistantFieldFocusClass = adminBorderlessFocusClass;
 
 export const aiAssistantModelSelectTriggerClass = cn(
-  adminBorderlessControlClass,
-  adminBorderlessFocusClass,
-  "h-8 max-w-[min(100%,14rem)] bg-transparent px-2 text-xs",
+  "ai-composer-model-select max-w-[min(100%,16rem)] text-xs",
 );
 
 export const aiAssistantSelectContentClass = adminPopoverPanelClass;

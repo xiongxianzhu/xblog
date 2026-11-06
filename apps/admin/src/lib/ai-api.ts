@@ -16,6 +16,7 @@ export type AiProvider = {
   base_url: string;
   model: string;
   has_api_key: boolean;
+  masked_api_key: string | null;
   enabled: boolean;
   is_default: boolean;
   extra_headers: Record<string, string> | null;

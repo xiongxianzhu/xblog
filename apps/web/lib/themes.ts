@@ -30,6 +30,7 @@ export const DEFAULT_SITE_THEME: SitePublicTheme = {
   site_logo_url: null,
   site_icp_number: null,
   posts_per_page: 10,
+  article_share_enabled: false,
   copyright_enabled: false,
   copyright_content:
     "除非特别说明，任何媒体、网站或个人转载本博客的原创内容，请严格遵循 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.zh-hans) 的知识共享协议。",

@@ -55,6 +55,8 @@
     "postNotFound": "文章未找到",
     "comments": "評論",
     "toc": "目錄",
+    "paginationJumpLabel": "跳轉頁碼",
+    "paginationJump": "跳轉",
     "paginationPrev": "上一頁",
     "paginationNext": "下一頁",
     "paginationPage": "第 {page} 頁，共 {totalPages} 頁",
@@ -148,5 +150,18 @@
       "logoutSuccess": "已登出",
       "logoutFailed": "登出失敗"
     }
+  },
+  "articleShare": {
+    "intro": "把這篇文章分享給朋友",
+    "button": "分享文章",
+    "title": "分享文章",
+    "description": "用手機掃描 QR Code，直接開啟這篇文章。",
+    "close": "關閉分享",
+    "qrLabel": "目前文章的 QR Code",
+    "scan": "掃碼閱讀文章",
+    "linkLabel": "文章連結",
+    "copy": "複製文章連結",
+    "copied": "連結已複製",
+    "copyFailed": "複製失敗，請選取上方連結手動複製。"
   }
 }

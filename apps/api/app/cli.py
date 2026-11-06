@@ -38,6 +38,7 @@ async def create_admin(username: str, password: str | None, phone: str | None = 
             User(
                 username=username,
                 password_hash=hash_password(password),
+                must_change_password=True,
                 phone=normalized_phone,
             )
         )
@@ -57,6 +58,7 @@ async def reset_password(username: str, password: str | None) -> None:
         if user is None:
             raise SystemExit(f"User '{username}' not found")
         user.password_hash = hash_password(password)
+        user.must_change_password = True
         await session.commit()
         print(f"Password updated for '{username}'")
 
@@ -116,9 +118,7 @@ def main() -> None:
         asyncio.run(seed_pages())
     elif args.command == "cleanup-uploads":
         try:
-            report = asyncio.run(
-                cleanup_orphan_uploads(max_age_seconds=args.max_age, dry_run=args.dry_run)
-            )
+            report = asyncio.run(cleanup_orphan_uploads(max_age_seconds=args.max_age, dry_run=args.dry_run))
         except Exception as exc:
             raise SystemExit(str(exc)) from exc
 

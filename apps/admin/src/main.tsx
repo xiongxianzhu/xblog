@@ -29,6 +29,12 @@ const Page13 = lazy(() => import("./app/admin/(shell)/profile/page"));
 const Page14 = lazy(() => import("./app/admin/(shell)/projects/page"));
 const Page15 = lazy(() => import("./app/admin/(shell)/settings/page"));
 const Page16 = lazy(() => import("./app/admin/(shell)/users/page"));
+const UserEditorPage = lazy(() => import("./app/admin/(shell)/users/editor-page"));
+const UserDetailPage = lazy(() => import("./app/admin/(shell)/users/detail-page"));
+const LogDetailPage = lazy(() => import("./app/admin/(shell)/logs/detail-page"));
+const PostDetailPage = lazy(() => import("./app/admin/(shell)/posts/detail-page"));
+const LinkEditorPage = lazy(() => import("./app/admin/(shell)/links/editor-page"));
+const MediaLibraryPage = lazy(() => import("./app/admin/(shell)/media/page"));
 function ProtectedLayout() {
   return (
     <AdminAuthGate>
@@ -77,6 +83,7 @@ function Root() {
                 <Route element={<PublicLayout />}>
                   <Route path="" element={<Page0 />} />
                   <Route path="reset-password" element={<Page1 />} />
+                  <Route path="require-password-change" element={<Page9 requiredChange />} />
                 </Route>
                 <Route element={<ProtectedLayout />}>
                   <Route path="about" element={<Page2 />} />
@@ -84,16 +91,25 @@ function Root() {
                   <Route path="ai/skills" element={<Page4 />} />
                   <Route path="dashboard" element={<Page5 />} />
                   <Route path="links" element={<Page6 />} />
+                  <Route path="links/new" element={<LinkEditorPage key="new" />} />
+                  <Route path="links/:id/edit" element={<LinkEditorPage key="edit" />} />
                   <Route path="logs/login" element={<Page7 />} />
+                  <Route path="logs/login/:id" element={<LogDetailPage kind="login" />} />
                   <Route path="logs/operations" element={<Page8 />} />
+                  <Route path="logs/operations/:id" element={<LogDetailPage kind="operation" />} />
                   <Route path="password" element={<Page9 />} />
                   <Route path="posts" element={<Page10 />} />
+                  <Route path="media" element={<MediaLibraryPage />} />
+                  <Route path="posts/:id" element={<PostDetailPage />} />
                   <Route path="posts/new" element={<Page11 />} />
                   <Route path="posts/:id/edit" element={<Page12 />} />
                   <Route path="profile" element={<Page13 />} />
                   <Route path="projects" element={<Page14 />} />
                   <Route path="settings" element={<Page15 />} />
                   <Route path="users" element={<Page16 />} />
+                  <Route path="users/:id" element={<UserDetailPage />} />
+                  <Route path="users/new" element={<UserEditorPage key="new" />} />
+                  <Route path="users/:id/edit" element={<UserEditorPage key="edit" />} />
                 </Route>
                 <Route path="logs" element={<Navigate to="/logs/operations" replace />} />
                 <Route path="settings/ai" element={<Navigate to="/ai/models" replace />} />

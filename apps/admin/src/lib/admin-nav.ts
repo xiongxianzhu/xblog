@@ -3,6 +3,7 @@ import {
   BotIcon,
   BriefcaseIcon,
   FileTextIcon,
+  ImagesIcon,
   KeyRoundIcon,
   LayersIcon,
   LayoutDashboardIcon,
@@ -40,8 +41,8 @@ export const adminNavEntries: AdminNavEntry[] = [
     icon: LayoutDashboardIcon,
     match: "exact",
   },
-  { type: "item", href: "/admin/users", labelKey: "users", icon: UsersIcon, match: "exact" },
   { type: "item", href: "/admin/posts", labelKey: "posts", icon: FileTextIcon, match: "prefix" },
+  { type: "item", href: "/admin/media", labelKey: "media", icon: ImagesIcon, match: "prefix" },
   {
     type: "group",
     id: "extended-pages",
@@ -52,7 +53,7 @@ export const adminNavEntries: AdminNavEntry[] = [
       { type: "item", href: "/admin/projects", labelKey: "projects", icon: BriefcaseIcon, match: "exact" },
     ],
   },
-  { type: "item", href: "/admin/links", labelKey: "links", icon: LinkIcon, match: "exact" },
+  { type: "item", href: "/admin/links", labelKey: "links", icon: LinkIcon, match: "prefix" },
   {
     type: "group",
     id: "ai",
@@ -63,7 +64,7 @@ export const adminNavEntries: AdminNavEntry[] = [
       { type: "item", href: "/admin/ai/skills", labelKey: "skills", icon: SparklesIcon, match: "prefix" },
     ],
   },
-  { type: "item", href: "/admin/settings", labelKey: "settings", icon: SettingsIcon, match: "exact" },
+  { type: "item", href: "/admin/users", labelKey: "users", icon: UsersIcon, match: "prefix" },
   {
     type: "group",
     id: "logs",
@@ -80,6 +81,7 @@ export const adminNavEntries: AdminNavEntry[] = [
       { type: "item", href: "/admin/logs/login", labelKey: "loginLogs", icon: KeyRoundIcon, match: "prefix" },
     ],
   },
+  { type: "item", href: "/admin/settings", labelKey: "settings", icon: SettingsIcon, match: "exact" },
 ];
 
 /** @deprecated 使用 adminNavEntries */

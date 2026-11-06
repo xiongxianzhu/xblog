@@ -2,6 +2,11 @@ import { Loader2Icon, Pencil, PlugZap, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
+import {
+  ACTIVE_FILTER_OPTIONS,
+  AdminListFilter,
+  BOOLEAN_FILTER_OPTIONS,
+} from "@/components/admin/admin-list-filter";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
 
@@ -56,6 +61,7 @@ const emptyForm: FormState = {
 
 export function AiProviderSettings() {
   const { data, error, isLoading, mutate } = useSWR("ai-providers", listAiProviders);
+  const [filters, setFilters] = useState({ provider_type: "", enabled: "", is_default: "", has_api_key: "" });
   const [search, setSearch] = useState("");
   const [requestedPage, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
@@ -73,19 +79,24 @@ export function AiProviderSettings() {
 
   const filtered = useMemo(
     () =>
-      (data ?? []).filter((provider) =>
-        matchQuery(
-          search,
-          provider.name,
-          provider.model,
-          provider.provider_type,
-          getProviderTypeLabel(provider.provider_type),
-          provider.enabled ? "激活" : "未激活",
-          provider.is_default ? "默认" : "",
-          provider.has_api_key ? "已配置" : "未配置",
-        ),
+      (data ?? []).filter(
+        (provider) =>
+          (!filters.provider_type || provider.provider_type === filters.provider_type) &&
+          (!filters.enabled || String(provider.enabled) === filters.enabled) &&
+          (!filters.is_default || String(provider.is_default) === filters.is_default) &&
+          (!filters.has_api_key || String(provider.has_api_key) === filters.has_api_key) &&
+          matchQuery(
+            search,
+            provider.name,
+            provider.model,
+            provider.provider_type,
+            getProviderTypeLabel(provider.provider_type),
+            provider.enabled ? "激活" : "未激活",
+            provider.is_default ? "默认" : "",
+            provider.has_api_key ? "已配置" : "未配置",
+          ),
       ),
-    [data, search],
+    [data, search, filters],
   );
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const visibleRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -216,12 +227,54 @@ export function AiProviderSettings() {
         <Button onClick={openCreate}>新建提供商</Button>
       </div>
 
-      <AdminListSearch
-        value={search}
-        onChange={changeSearch}
-        placeholder="搜索名称、模型、类型…"
-        className="mb-4"
-      />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <AdminListSearch
+          value={search}
+          onChange={changeSearch}
+          placeholder="搜索名称、模型、类型…"
+          className="w-72 max-w-full shrink-0"
+        />
+
+        <AdminListFilter
+          label="厂商类型"
+          value={filters.provider_type}
+          options={Object.keys(PROVIDER_TEMPLATES).map((value) => ({
+            value,
+            label: getProviderTypeLabel(value as AiProviderType),
+          }))}
+          onChange={(value) => {
+            setFilters((current) => ({ ...current, provider_type: value }));
+            setPage(1);
+          }}
+        />
+        <AdminListFilter
+          label="启用状态"
+          value={filters.enabled}
+          options={ACTIVE_FILTER_OPTIONS}
+          onChange={(value) => {
+            setFilters((current) => ({ ...current, enabled: value }));
+            setPage(1);
+          }}
+        />
+        <AdminListFilter
+          label="默认模型"
+          value={filters.is_default}
+          options={BOOLEAN_FILTER_OPTIONS}
+          onChange={(value) => {
+            setFilters((current) => ({ ...current, is_default: value }));
+            setPage(1);
+          }}
+        />
+        <AdminListFilter
+          label="密钥配置"
+          value={filters.has_api_key}
+          options={BOOLEAN_FILTER_OPTIONS}
+          onChange={(value) => {
+            setFilters((current) => ({ ...current, has_api_key: value }));
+            setPage(1);
+          }}
+        />
+      </div>
 
       {error ? <p className="text-sm text-destructive">加载失败</p> : null}
 
@@ -253,8 +306,8 @@ export function AiProviderSettings() {
                       <TableCell className="font-medium">{provider.name}</TableCell>
                       <TableCell>{getProviderTypeLabel(provider.provider_type)}</TableCell>
                       <TableCell className="max-w-[160px] truncate">{provider.model}</TableCell>
-                      <TableCell>
-                        <Switch disabled checked={provider.has_api_key} aria-label="API Key 已配置" />
+                      <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
+                        {provider.has_api_key ? provider.masked_api_key || "********" : "未配置"}
                       </TableCell>
                       <TableCell>
                         <Switch

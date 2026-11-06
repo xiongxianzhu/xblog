@@ -1,5 +1,5 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-
+import { PublicPageJump } from "@/components/public-page-jump";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
@@ -10,6 +10,8 @@ type PublicPaginationProps = {
   prevLabel: string;
   nextLabel: string;
   pageLabel: string;
+  jumpLabel: string;
+  jumpButtonLabel: string;
 };
 
 function pageHref(basePath: string, targetPage: number): string {
@@ -23,6 +25,8 @@ export function PublicPagination({
   prevLabel,
   nextLabel,
   pageLabel,
+  jumpLabel,
+  jumpButtonLabel,
 }: PublicPaginationProps) {
   if (totalPages <= 1) {
     return null;
@@ -38,7 +42,7 @@ export function PublicPagination({
     >
       <p className="text-sm text-muted-foreground">{pageLabel}</p>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         {page <= 1 ? (
           <Button type="button" variant="outline" size="sm" className="gap-1" disabled>
             <ChevronLeftIcon className="size-4" />
@@ -66,6 +70,13 @@ export function PublicPagination({
             </Link>
           </Button>
         )}
+        <PublicPageJump
+          page={page}
+          totalPages={totalPages}
+          basePath={basePath}
+          label={jumpLabel}
+          buttonLabel={jumpButtonLabel}
+        />
       </div>
     </nav>
   );

@@ -16,6 +16,16 @@ from app.services.ai.crypto import decrypt_api_key, encrypt_api_key
 from app.services.ai.llm_client import test_llm_connection
 
 
+def _masked_api_key(cipher: str | None) -> str | None:
+    if not cipher:
+        return None
+    try:
+        key = decrypt_api_key(cipher)
+    except ValueError:
+        return "********"
+    return f"{key[:3]}********{key[-4:]}" if len(key) > 12 else "********"
+
+
 def to_provider_public(provider: AiProvider) -> AiProviderPublic:
     return AiProviderPublic(
         id=provider.id,
@@ -24,6 +34,7 @@ def to_provider_public(provider: AiProvider) -> AiProviderPublic:
         base_url=provider.base_url.rstrip("/"),
         model=provider.model,
         has_api_key=bool(provider.api_key_encrypted),
+        masked_api_key=_masked_api_key(provider.api_key_encrypted),
         enabled=provider.enabled,
         is_default=provider.is_default,
         extra_headers=provider.extra_headers,

@@ -1305,12 +1305,15 @@ body.mermaid-fullscreen-open {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  padding-block: 16px;
+  padding-block: 0;
   font-variant-numeric: tabular-nums;
 }
 .admin-pagination .ant-pagination-total-text {
-  margin-inline-end: auto;
+  margin-inline-end: 0;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
 }
 .admin-pagination .ant-pagination-prev,
 .admin-pagination .ant-pagination-next {
@@ -1338,9 +1341,6 @@ body.mermaid-fullscreen-open {
   }
   .admin-app-header > div {
     gap: 8px;
-  }
-  .admin-pagination .ant-pagination-total-text {
-    width: 100%;
   }
   .admin-pagination .ant-pagination-options {
     margin-inline-start: 0;

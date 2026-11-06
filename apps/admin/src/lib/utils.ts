@@ -20,7 +20,7 @@ export function formatIsoDate(date: Date): string {
 }
 
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return "";
+  if (!value) return "-";
   return new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
     year: "numeric",

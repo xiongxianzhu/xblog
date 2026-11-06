@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from datetime import datetime
+
+from fastapi import APIRouter, HTTPException, Query
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.models.login_log import LoginLog
@@ -16,6 +18,22 @@ from app.schemas.admin.logs import (
 from app.services import audit_logs
 
 router = APIRouter()
+
+
+@router.get("/logs/login/{log_id}", response_model=LoginLogAdmin)
+async def get_login_log(log_id: int, session: SessionDep, _: CurrentUserDep) -> LoginLogAdmin:
+    row = await session.get(LoginLog, log_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="登录日志不存在")
+    return _login_log_to_admin(row)
+
+
+@router.get("/logs/operations/{log_id}", response_model=OperationLogAdmin)
+async def get_operation_log(log_id: int, session: SessionDep, _: CurrentUserDep) -> OperationLogAdmin:
+    row = await session.get(OperationLog, log_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="操作日志不存在")
+    return _operation_log_to_admin(row)
 
 
 def _login_log_to_admin(row: LoginLog) -> LoginLogAdmin:
@@ -54,8 +72,24 @@ async def list_login_logs(
     _: CurrentUserDep,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    success: bool | None = None,
+    method: str | None = Query(default=None, max_length=32),
+    failure_reason: str | None = Query(default=None, max_length=64),
+    q: str | None = Query(default=None, max_length=200),
+    start_at: datetime | None = None,
+    end_at: datetime | None = None,
 ) -> PaginatedLoginLogs:
-    rows, total = await audit_logs.list_login_logs(session, page=page, page_size=page_size)
+    rows, total = await audit_logs.list_login_logs(
+        session,
+        q=q,
+        start_at=start_at,
+        end_at=end_at,
+        page=page,
+        page_size=page_size,
+        success=success,
+        method=method,
+        failure_reason=failure_reason,
+    )
     return PaginatedLoginLogs(
         items=[_login_log_to_admin(row) for row in rows],
         total=total,
@@ -70,8 +104,22 @@ async def list_operation_logs(
     _: CurrentUserDep,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    action: str | None = Query(default=None, max_length=64),
+    resource_type: str | None = Query(default=None, max_length=32),
+    q: str | None = Query(default=None, max_length=200),
+    start_at: datetime | None = None,
+    end_at: datetime | None = None,
 ) -> PaginatedOperationLogs:
-    rows, total = await audit_logs.list_operation_logs(session, page=page, page_size=page_size)
+    rows, total = await audit_logs.list_operation_logs(
+        session,
+        q=q,
+        start_at=start_at,
+        end_at=end_at,
+        page=page,
+        page_size=page_size,
+        action=action,
+        resource_type=resource_type,
+    )
     return PaginatedOperationLogs(
         items=[_operation_log_to_admin(row) for row in rows],
         total=total,

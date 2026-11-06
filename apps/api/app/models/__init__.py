@@ -8,6 +8,7 @@ from app.models.ai_usage_log import AiUsageLog
 from app.models.base import TimestampMixin
 from app.models.friend_link import FriendLink
 from app.models.login_log import LoginLog
+from app.models.media import MediaAsset, MediaGroup
 from app.models.operation_log import OperationLog
 from app.models.page import Page
 from app.models.page_view import PageView
@@ -26,6 +27,8 @@ __all__ = [
     "AiUsageLog",
     "TimestampMixin",
     "LoginLog",
+    "MediaAsset",
+    "MediaGroup",
     "OperationLog",
     "FriendLink",
     "Page",

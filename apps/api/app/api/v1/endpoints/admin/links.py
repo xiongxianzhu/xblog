@@ -60,6 +60,14 @@ async def create_link(
     return link
 
 
+@router.get("/links/{link_id}", response_model=FriendLinkPublic)
+async def get_link(link_id: int, session: SessionDep, _: CurrentUserDep) -> FriendLink:
+    link = await session.get(FriendLink, link_id)
+    if link is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="友链不存在")
+    return link
+
+
 @router.patch("/links/{link_id}", response_model=FriendLinkPublic)
 async def update_link(
     link_id: int,

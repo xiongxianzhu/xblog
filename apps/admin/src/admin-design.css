@@ -120,7 +120,7 @@
   border-radius: 50%;
   border-color: hsl(var(--border));
   background: hsl(var(--card));
-  box-shadow: 0 2px 6px rgb(15 23 42 / 5%);
+  box-shadow: none;
 }
 .admin-account-trigger {
   display: flex;
@@ -192,6 +192,77 @@
 [data-admin-shell] .ant-input:focus-visible {
   outline: none;
 }
+.admin-select-chevron {
+  color: hsl(var(--foreground));
+  pointer-events: none;
+}
+.ant-select-open .admin-select-chevron {
+  transform: rotate(180deg);
+}
+.ant-select-disabled .admin-select-chevron {
+  color: hsl(var(--muted-foreground));
+}
+.admin-select-popup .ant-select-item-option-content {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.admin-content-width-select {
+  display: inline-grid;
+  max-width: 100%;
+  min-width: 100px;
+  vertical-align: middle;
+}
+.admin-content-width-select > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.admin-select-width-label {
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  padding-inline: 12px 42px;
+  font-size: 14px;
+}
+.admin-ai-assistant .ant-tabs-body-holder,
+.admin-ai-assistant .ant-tabs-body,
+.admin-ai-assistant .ant-tabs-content-active {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.admin-ai-assistant .ant-tabs-content-active {
+  flex-direction: column;
+}
+.admin-ai-assistant .ant-tabs-content-hidden {
+  display: none;
+}
+.admin-ai-assistant .ant-tabs-nav {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+[data-admin-shell] .ai-composer-quick-action.ant-btn {
+  min-height: 36px;
+  height: 36px;
+  border-radius: 2px;
+  padding-inline: 10px;
+}
+[data-admin-shell] .ai-composer-input.ant-input:focus,
+[data-admin-shell] .ai-composer-input.ant-input:focus-visible {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+}
+[data-admin-shell] .admin-page-jump-input:focus-within {
+  border-color: hsl(var(--ring));
+  box-shadow: none;
+}
+[data-admin-shell] .admin-page-jump-input input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
 [data-admin-shell] .admin-panel,
 [data-admin-shell] .ant-card,
 [data-admin-shell] .admin-login-panel {
@@ -227,8 +298,12 @@
   background-size: 1px 14px;
   background-repeat: no-repeat;
 }
-.admin-app-content .ant-table-tbody .ant-table-cell-fix-end {
-  border-left: 1px solid hsl(var(--border));
+.admin-app-content .ant-table-wrapper .ant-table-cell.ant-table-cell-fix-end {
+  border-inline-start: 1px solid hsl(var(--border) / 0.55);
+  background-image: none;
+}
+.admin-app-content .ant-table-wrapper .ant-table-cell-fix-end::after {
+  box-shadow: none;
 }
 .admin-table-actions > div {
   justify-content: center;
@@ -417,7 +492,7 @@
   gap: 4px;
   padding: 4px;
   border: 1px solid hsl(var(--border));
-  border-radius: 4px;
+  border-radius: 2px;
   background: hsl(var(--card));
 }
 [data-admin-shell] .admin-editor-view.ant-btn,
@@ -825,12 +900,21 @@
   white-space: nowrap;
 }
 
-/* The page handles vertical scrolling; wide AI tables remain swipeable. */
-.admin-ai-list-table .ant-table-content {
-  scrollbar-width: none;
+/* Wide lists scroll horizontally; the page owns vertical scrolling. */
+.admin-app-content .ant-table-content {
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.5) hsl(var(--muted));
 }
-.admin-ai-list-table .ant-table-content::-webkit-scrollbar {
-  display: none;
+.admin-app-content .ant-table-content::-webkit-scrollbar {
+  height: 8px;
+}
+.admin-app-content .ant-table-content::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+.admin-app-content .ant-table-content::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.5);
+  border-radius: 4px;
 }
 
 .login-contours {

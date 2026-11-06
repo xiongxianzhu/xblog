@@ -275,6 +275,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: 1.5.0
         version: 1.5.0(@types/react@19.3.0)(react@19.3.1)
+      '@rc-component/qrcode':
+        specifier: 2.0.0
+        version: 2.0.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@xblog/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

@@ -66,6 +66,7 @@ class AiProviderPublic(SQLModel):
     base_url: str
     model: str
     has_api_key: bool
+    masked_api_key: str | None = None
     enabled: bool
     is_default: bool
     extra_headers: dict[str, str] | None

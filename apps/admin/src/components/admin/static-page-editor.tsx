@@ -1,8 +1,6 @@
 import useSWR from "swr";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { PageEditorForm } from "@/components/admin/page-editor-form";
-import Link from "@/components/link";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdminPage, updateAdminPage } from "@/lib/api";
 
@@ -25,17 +23,7 @@ export function StaticPageEditor({ slug, title, description, previewPath }: Stat
 
   return (
     <div>
-      <AdminPageHeader
-        title={title}
-        description={description}
-        actions={
-          <Button asChild variant="outline">
-            <Link href={previewPath} target="_blank" rel="noreferrer">
-              预览前台
-            </Link>
-          </Button>
-        }
-      />
+      <AdminPageHeader title={title} description={description} />
 
       {isLoading ? <Skeleton className="h-96 w-full" /> : null}
 

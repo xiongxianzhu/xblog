@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { ArticleCopyright } from "@/components/article-copyright";
 import { ArticleCover } from "@/components/article-cover";
+import { ArticleShare } from "@/components/article-share";
 import { ArticleToc } from "@/components/article-toc";
 import { GiscusComments } from "@/components/giscus";
 import { PageViewTracker } from "@/components/page-view-tracker";
@@ -100,6 +101,8 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="site-glass-panel article-body-panel px-5 py-8 sm:px-8 sm:py-10">
             <ProseHtml html={contentHtml} className="article-prose" colorMode={siteTheme.mode} />
           </div>
+
+          {siteTheme.article_share_enabled ? <ArticleShare title={post.title} /> : null}
 
           <ArticleCopyright
             enabled={siteTheme.copyright_enabled}

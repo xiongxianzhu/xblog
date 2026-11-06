@@ -265,7 +265,7 @@ export function AiAssistantPanel({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border/80 bg-muted/10",
+        "admin-ai-assistant flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded border border-border bg-card",
         className,
       )}
     >
@@ -403,20 +403,25 @@ export function AiAssistantPanel({
                 />
               </Field>
 
-              <Field className={cn(generateFieldClass, "min-h-[180px] flex-1")}>
-                <FieldLabel>大纲（可选）</FieldLabel>
-                <FieldDescription>列出章节与要点，结构越清晰，生成效果越好。</FieldDescription>
+              <div className="flex min-h-[180px] flex-1 flex-col gap-2">
+                <FieldLabel htmlFor="ai-generate-outline" className="shrink-0">
+                  大纲（可选）
+                </FieldLabel>
+                <FieldDescription className="m-0 shrink-0">
+                  列出章节与要点，结构越清晰，生成效果越好。
+                </FieldDescription>
                 <Textarea
+                  id="ai-generate-outline"
                   value={outline}
                   onChange={(e) => setOutline(e.target.value)}
                   placeholder={"# 一、开篇\n引入主题\n\n# 二、核心内容\n- 要点 A"}
                   className={cn(
-                    "min-h-[160px] flex-1 resize-y px-4 py-3 text-sm leading-relaxed",
+                    "min-h-[120px] flex-1 resize-y px-4 py-3 text-sm leading-relaxed sm:min-h-[180px]",
                     adminBorderlessControlClass,
                     adminBorderlessFocusClass,
                   )}
                 />
-              </Field>
+              </div>
 
               <Button
                 type="button"

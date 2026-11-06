@@ -261,8 +261,8 @@ export const AiComposer = forwardRef<AiComposerHandle, AiComposerProps>(function
   const composerDisabled = disabled || streaming || enabledProviders.length === 0;
 
   return (
-    <div className="shrink-0 space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="ai-composer flex min-w-0 shrink-0 flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
         {quickActions.map((action) => {
           const Icon = action.icon;
           const skillReady = enabledSkills.some((item) => item.name === action.skillName);
@@ -272,7 +272,7 @@ export const AiComposer = forwardRef<AiComposerHandle, AiComposerProps>(function
               type="button"
               variant="outline"
               size="sm"
-              className="h-7 rounded-full border-border/70 bg-background/80 px-2.5 text-xs font-normal"
+              className="ai-composer-quick-action border-border bg-background text-xs font-normal"
               disabled={composerDisabled || !skillReady}
               onClick={() => handleQuickAction(action)}
             >
@@ -283,7 +283,7 @@ export const AiComposer = forwardRef<AiComposerHandle, AiComposerProps>(function
         })}
       </div>
 
-      <div className="relative overflow-hidden rounded-lg border border-border/80 bg-background/90 shadow-sm has-[textarea:focus-visible]:border-primary/40 has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-primary/20">
+      <div className="relative min-w-0 overflow-hidden rounded border border-border bg-background focus-within:border-primary/40">
         {selectedSkills.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 border-b border-border/50 px-3 py-2">
             {selectedSkills.map((skill) => (
@@ -292,15 +292,17 @@ export const AiComposer = forwardRef<AiComposerHandle, AiComposerProps>(function
                 variant="secondary"
                 className="gap-1 rounded-md pr-1 font-mono text-[11px] font-normal"
               >
-                {skill.name}
-                <button
-                  type="button"
-                  className="rounded-sm p-0.5 hover:bg-background/80"
-                  aria-label={`移除 ${skill.name}`}
-                  onClick={() => removeSkill(skill.id)}
-                >
-                  <XIcon className="size-3" />
-                </button>
+                <span className="inline-flex items-center gap-1 align-middle">
+                  <span>{skill.name}</span>
+                  <button
+                    type="button"
+                    className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm p-0 leading-none hover:bg-background/80"
+                    aria-label={`移除 ${skill.name}`}
+                    onClick={() => removeSkill(skill.id)}
+                  >
+                    <XIcon className="size-3" />
+                  </button>
+                </span>
               </Badge>
             ))}
           </div>
@@ -356,11 +358,11 @@ export const AiComposer = forwardRef<AiComposerHandle, AiComposerProps>(function
             }}
             placeholder="输入创作需求，输入 / 选择 Skill…"
             disabled={composerDisabled}
-            className="min-h-[88px] resize-none rounded-none border-0 bg-transparent px-3 py-2.5 text-sm leading-6 shadow-none focus-visible:ring-0"
+            className="ai-composer-input min-h-[112px] resize-none rounded-none border-0 bg-transparent px-3 py-3 text-sm leading-6 shadow-none focus-visible:ring-0"
           />
         </Popover>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-2 py-1.5">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-2">
           <Select
             value={providerId}
             onValueChange={(value) => {
@@ -384,12 +386,12 @@ export const AiComposer = forwardRef<AiComposerHandle, AiComposerProps>(function
             </AiAssistantSelectContent>
           </Select>
 
-          <div className="flex items-center gap-2">
-            <span className="hidden text-[10px] text-muted-foreground sm:inline">Ctrl+Enter</span>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Button
               type="button"
               size="sm"
-              className="h-8 gap-1 px-2.5"
+              className="gap-1 px-3"
+              title="发送（Ctrl+Enter）"
               disabled={composerDisabled || !input.trim()}
               onClick={() => void submit(input, selectedSkills, providerId || null)}
             >

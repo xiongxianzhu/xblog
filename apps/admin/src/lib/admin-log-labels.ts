@@ -15,6 +15,9 @@ export const LOGIN_FAILURE_LABELS: Record<string, string> = {
 };
 
 export const OPERATION_ACTION_LABELS: Record<string, string> = {
+  "user.create": "创建用户",
+  "user.update": "编辑用户",
+  "user.reset_password": "重置密码",
   "user.enable": "启用用户",
   "user.disable": "禁用用户",
   "user.delete": "删除用户",

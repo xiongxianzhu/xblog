@@ -1,4 +1,4 @@
-import { Button, Drawer, Dropdown, Layout, Menu } from "antd";
+import { Button, ConfigProvider, Drawer, Dropdown, Layout, Menu } from "antd";
 import {
   ChevronDown,
   ChevronLeft,
@@ -206,17 +206,28 @@ function Shell({ children }: { children: React.ReactNode }) {
           theme="light"
         >
           <div className="admin-sidebar-navigation">{navigation}</div>
-          <Button
-            className="admin-sidebar-toggle"
-            aria-label={collapsed ? "展开导航" : "收起导航"}
-            icon={collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            onClick={toggleCollapsed}
-          />
+          <ConfigProvider wave={{ disabled: true }}>
+            <Button
+              className="admin-sidebar-toggle"
+              aria-label={collapsed ? "展开导航" : "收起导航"}
+              icon={collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              onClick={toggleCollapsed}
+            />
+          </ConfigProvider>
         </Layout.Sider>
         <Layout.Content className="admin-app-content">{children}</Layout.Content>
       </Layout>
       <Drawer
-        title={null}
+        title={
+          <SiteBrand
+            admin
+            siteName={brand?.site_name || "xblog"}
+            siteLogoUrl={brand?.site_logo_url}
+            showTagline={false}
+            className="max-w-44"
+            onNavigate={() => setMobile(false)}
+          />
+        }
         size={288}
         placement="left"
         closeIcon={<X size={18} />}

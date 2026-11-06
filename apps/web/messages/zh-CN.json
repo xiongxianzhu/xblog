@@ -55,6 +55,8 @@
     "postNotFound": "文章未找到",
     "comments": "评论",
     "toc": "目录",
+    "paginationJumpLabel": "跳转页码",
+    "paginationJump": "跳转",
     "paginationPrev": "上一页",
     "paginationNext": "下一页",
     "paginationPage": "第 {page} 页，共 {totalPages} 页",
@@ -148,5 +150,18 @@
       "logoutSuccess": "已退出登录",
       "logoutFailed": "退出失败"
     }
+  },
+  "articleShare": {
+    "intro": "把这篇文章分享给朋友",
+    "button": "分享文章",
+    "title": "分享文章",
+    "description": "用手机扫描二维码，直接打开这篇文章。",
+    "close": "关闭分享",
+    "qrLabel": "当前文章的二维码",
+    "scan": "扫码阅读文章",
+    "linkLabel": "文章链接",
+    "copy": "复制文章链接",
+    "copied": "链接已复制",
+    "copyFailed": "复制失败，请选中上方链接手动复制。"
   }
 }

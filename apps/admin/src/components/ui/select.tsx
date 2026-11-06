@@ -1,6 +1,6 @@
-import { Select as AntSelect } from "antd";
-import { ChevronDown } from "lucide-react";
+import type { Select as AntSelect } from "antd";
 import { Children, type ComponentProps, isValidElement, type ReactNode } from "react";
+import { ContentWidthSelect } from "@/components/ui/content-width-select";
 
 type Part = {
   children?: ReactNode;
@@ -56,7 +56,7 @@ export function Select({
   }
   visit(children);
   return (
-    <AntSelect
+    <ContentWidthSelect
       {...props}
       id={id}
       className={className}
@@ -64,7 +64,6 @@ export function Select({
       style={{ minWidth: 100, ...props.style }}
       options={options}
       onChange={onValueChange}
-      suffixIcon={<ChevronDown size={14} />}
       getPopupContainer={() => document.body}
     />
   );

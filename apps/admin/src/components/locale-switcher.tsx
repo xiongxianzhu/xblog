@@ -1,5 +1,6 @@
-import { Button, Dropdown, Select } from "antd";
+import { Button, Dropdown } from "antd";
 import { Languages } from "lucide-react";
+import { ContentWidthSelect as Select } from "@/components/ui/content-width-select";
 import { useAdminLocale } from "@/lib/locale";
 export function LocaleSwitcher({ className, compact = false }: { className?: string; compact?: boolean }) {
   const { locale, setLocale } = useAdminLocale();

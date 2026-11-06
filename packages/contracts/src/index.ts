@@ -74,6 +74,7 @@ export type SitePublicTheme = {
   site_icp_number: string | null;
   nav_order?: string[];
   posts_per_page: number;
+  article_share_enabled: boolean;
   copyright_enabled: boolean;
   copyright_content: string;
 };

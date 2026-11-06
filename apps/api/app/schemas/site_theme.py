@@ -27,6 +27,7 @@ class SiteThemePublic(SQLModel):
     site_icp_number: str | None = None
     nav_order: list[str] = Field(default_factory=lambda: list(NAV_ITEMS))
     posts_per_page: int = DEFAULT_POSTS_PER_PAGE
+    article_share_enabled: bool = False
     copyright_enabled: bool = False
     copyright_content: str = DEFAULT_COPYRIGHT_CONTENT
 
@@ -40,5 +41,6 @@ class SiteThemeUpdate(SQLModel):
     site_icp_number: str | None = Field(default=None, max_length=50)
     nav_order: list[str] | None = None
     posts_per_page: int | None = Field(default=None, ge=MIN_POSTS_PER_PAGE, le=MAX_POSTS_PER_PAGE)
+    article_share_enabled: bool | None = None
     copyright_enabled: bool | None = None
     copyright_content: str | None = Field(default=None, max_length=500)

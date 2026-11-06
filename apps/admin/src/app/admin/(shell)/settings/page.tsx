@@ -1,7 +1,8 @@
 import { Anchor } from "antd";
-import { Bot, FileText, Globe, type LucideIcon, Palette, ShieldCheck, UserRound } from "lucide-react";
+import { Bot, FileText, Globe, type LucideIcon, Palette, Share2, ShieldCheck, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { ArticleShareSettingsPanel } from "@/components/admin/article-share-settings-panel";
 import { AuthSettingsPanel } from "@/components/admin/auth-settings-panel";
 import { CopyrightSettingsPanel } from "@/components/admin/copyright-settings-panel";
 import { HeaderLinkSettingsPanel } from "@/components/admin/header-link-settings-panel";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 const sections = [
   { key: "site", href: "#settings-site", title: "公开站设置" },
   { key: "header-link", href: "#settings-header-link", title: "顶栏快捷入口" },
+  { key: "sharing", href: "#settings-sharing", title: "文章分享" },
   { key: "copyright", href: "#settings-copyright", title: "文章版权声明" },
   { key: "auth", href: "#settings-auth", title: "登录与验证" },
   { key: "appearance", href: "#settings-appearance", title: "后台外观" },
@@ -85,6 +87,14 @@ export default function AdminSettingsPage() {
             icon={Globe}
           >
             <HeaderLinkSettingsPanel />
+          </SettingsSection>
+          <SettingsSection
+            id="settings-sharing"
+            title="文章分享"
+            description="控制公开文章详情页的分享入口与二维码。"
+            icon={Share2}
+          >
+            <ArticleShareSettingsPanel />
           </SettingsSection>
           <SettingsSection
             id="settings-copyright"

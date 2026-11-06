@@ -24,6 +24,7 @@ type FriendLinkLogoEditorProps = {
   savedLogoUrl?: string;
   onChange: (logoUrl: string) => void;
   disabled?: boolean;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
 export function FriendLinkLogoEditor({
@@ -31,6 +32,7 @@ export function FriendLinkLogoEditor({
   savedLogoUrl = "",
   onChange,
   disabled,
+  onUploadingChange,
 }: FriendLinkLogoEditorProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -50,6 +52,7 @@ export function FriendLinkLogoEditor({
 
     setError("");
     setLoading(true);
+    onUploadingChange?.(true);
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
 
@@ -68,6 +71,7 @@ export function FriendLinkLogoEditor({
       setError(err instanceof Error ? err.message : "上传失败");
     } finally {
       setLoading(false);
+      onUploadingChange?.(false);
     }
   }
 
@@ -101,7 +105,7 @@ export function FriendLinkLogoEditor({
           <Upload
             accept="image/*"
             showUploadList={false}
-            disabled={loading}
+            disabled={disabled || loading}
             beforeUpload={(file) => {
               void handleFileChange(file);
               return false;

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_
 from sqlmodel import col, select
@@ -25,7 +27,11 @@ from app.services.uploads import delete_post_cover_file, is_managed_post_cover_u
 router = APIRouter()
 
 
-def _apply_post_search(stmt, q: str | None):
+def _apply_post_search(stmt, q: str | None, post_status: str | None = None, is_pinned: bool | None = None):
+    if post_status is not None:
+        stmt = stmt.where(Post.status == post_status)
+    if is_pinned is not None:
+        stmt = stmt.where(col(Post.is_pinned).is_(is_pinned))
     if not q or not q.strip():
         return stmt
     term = f"%{q.strip()}%"
@@ -45,15 +51,22 @@ async def list_posts(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     q: str | None = Query(default=None, max_length=200),
+    post_status: Literal["draft", "published"] | None = Query(default=None, alias="status"),
+    is_pinned: bool | None = None,
 ) -> PaginatedPostAdmins:
-    count_stmt = _apply_post_search(select(func.count()).select_from(Post), q)
+    count_stmt = _apply_post_search(select(func.count()).select_from(Post), q, post_status, is_pinned)
     total = int((await session.exec(count_stmt)).one())
     offset = (page - 1) * page_size
-    stmt = _apply_post_search(select(Post), q).order_by(
-        col(Post.is_pinned).desc(),
-        col(Post.updated_at).desc(),
-        col(Post.id).desc(),
-    ).offset(offset).limit(page_size)
+    stmt = (
+        _apply_post_search(select(Post), q, post_status, is_pinned)
+        .order_by(
+            col(Post.is_pinned).desc(),
+            col(Post.updated_at).desc(),
+            col(Post.id).desc(),
+        )
+        .offset(offset)
+        .limit(page_size)
+    )
     result = await session.exec(stmt)
     posts = list(result.all())
     return PaginatedPostAdmins(

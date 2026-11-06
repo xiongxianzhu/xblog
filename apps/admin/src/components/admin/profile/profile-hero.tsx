@@ -9,6 +9,7 @@ import {
   VenusAndMars,
 } from "lucide-react";
 import { AvatarEditor } from "@/components/admin/avatar-editor";
+import { CopyFieldButton } from "@/components/admin/copy-field-button";
 import Link from "@/components/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -125,13 +126,15 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
           {user.email ? (
             <p className="flex items-center gap-2 truncate text-muted-foreground">
               <MailIcon className="size-3.5 shrink-0" />
-              <span className="truncate">{user.email}</span>
+              <span className="min-w-0 truncate">{user.email}</span>
+              <CopyFieldButton value={user.email} label="邮箱" />
             </p>
           ) : null}
           {user.phone ? (
             <p className="flex items-center gap-2 text-muted-foreground">
               <PhoneIcon className="size-3.5 shrink-0" />
               {user.phone}
+              <CopyFieldButton value={user.phone} label="手机号" />
             </p>
           ) : null}
         </div>

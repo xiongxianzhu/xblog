@@ -45,6 +45,7 @@ function normalizeTheme(raw: Partial<SitePublicTheme> | null | undefined): SiteP
     site_icp_number,
     nav_order: Array.isArray(raw?.nav_order) ? raw.nav_order : undefined,
     posts_per_page,
+    article_share_enabled: raw?.article_share_enabled === true,
     copyright_enabled: raw?.copyright_enabled === true,
     copyright_content:
       typeof raw?.copyright_content === "string"
@@ -73,7 +74,7 @@ async function fetchSiteThemeFromApi(): Promise<SitePublicTheme> {
   }
 }
 
-const getPublicSiteThemeCached = unstable_cache(fetchSiteThemeFromApi, ["public-site-theme-v7"], {
+const getPublicSiteThemeCached = unstable_cache(fetchSiteThemeFromApi, ["public-site-theme-v8"], {
   tags: ["site-theme"],
   revalidate: 3600,
 });

@@ -11,7 +11,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import get_settings
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.core.timezone import now
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
@@ -71,7 +71,12 @@ async def reset_password_with_token(session: AsyncSession, token: str, new_passw
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
 
+    if len(new_password.encode()) > 72:
+        raise HTTPException(status_code=422, detail="密码 UTF-8 编码不得超过 72 字节")
+    if verify_password(new_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="新密码不能与当前密码相同")
     user.password_hash = hash_password(new_password)
+    user.must_change_password = False
     reset_token.used_at = now()
     session.add(user)
     session.add(reset_token)

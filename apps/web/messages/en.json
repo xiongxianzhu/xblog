@@ -55,6 +55,8 @@
     "postNotFound": "Post not found",
     "comments": "Comments",
     "toc": "On this page",
+    "paginationJumpLabel": "Page number",
+    "paginationJump": "Go",
     "paginationPrev": "Previous",
     "paginationNext": "Next",
     "paginationPage": "Page {page} of {totalPages}",
@@ -148,5 +150,18 @@
       "logoutSuccess": "Signed out",
       "logoutFailed": "Sign-out failed"
     }
+  },
+  "articleShare": {
+    "intro": "Share this article with a friend",
+    "button": "Share article",
+    "title": "Share article",
+    "description": "Scan the QR code with your phone to open this article.",
+    "close": "Close sharing",
+    "qrLabel": "QR code for this article",
+    "scan": "Scan to read",
+    "linkLabel": "Article link",
+    "copy": "Copy article link",
+    "copied": "Link copied",
+    "copyFailed": "Could not copy. Select the link above and copy it manually."
   }
 }

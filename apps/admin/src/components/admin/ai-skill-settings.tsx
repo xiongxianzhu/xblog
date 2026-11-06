@@ -2,6 +2,7 @@ import { Upload } from "antd";
 import { Eye, Loader2Icon, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
+import { ACTIVE_FILTER_OPTIONS, AdminListFilter } from "@/components/admin/admin-list-filter";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ function upsertSkillInList(list: AiSkill[] | undefined, skill: AiSkill) {
 export function AiSkillSettings() {
   const { data, error, isLoading, mutate } = useSWR("ai-skills", listAiSkills);
   const { data: defaults, mutate: mutateDefaults } = useSWR("ai-skill-defaults", getAiSkillDefaults);
+  const [filters, setFilters] = useState({ enabled: "", is_builtin: "" });
   const [search, setSearch] = useState("");
   const [requestedPage, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
@@ -169,10 +171,13 @@ export function AiSkillSettings() {
   const skillOptions = data ?? [];
   const filteredSkills = useMemo(
     () =>
-      skillOptions.filter((skill) =>
-        matchQuery(search, skill.name, skill.description, skill.is_builtin ? "内置" : "自定义"),
+      skillOptions.filter(
+        (skill) =>
+          (!filters.enabled || String(skill.enabled) === filters.enabled) &&
+          (!filters.is_builtin || String(skill.is_builtin) === filters.is_builtin) &&
+          matchQuery(search, skill.name, skill.description, skill.is_builtin ? "内置" : "自定义"),
       ),
-    [skillOptions, search],
+    [skillOptions, search, filters],
   );
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(filteredSkills.length / pageSize)));
   const visibleRows = filteredSkills.slice((page - 1) * pageSize, page * pageSize);
@@ -225,6 +230,37 @@ export function AiSkillSettings() {
         </CardContent>
       </Card>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <AdminListSearch
+          value={search}
+          onChange={changeSearch}
+          placeholder="搜索 name、description…"
+          className="w-72 max-w-full shrink-0"
+        />
+
+        <AdminListFilter
+          label="启用状态"
+          value={filters.enabled}
+          options={ACTIVE_FILTER_OPTIONS}
+          onChange={(value) => {
+            setFilters((current) => ({ ...current, enabled: value }));
+            setPage(1);
+          }}
+        />
+        <AdminListFilter
+          label="来源"
+          value={filters.is_builtin}
+          options={[
+            { value: "true", label: "内置" },
+            { value: "false", label: "自定义" },
+          ]}
+          onChange={(value) => {
+            setFilters((current) => ({ ...current, is_builtin: value }));
+            setPage(1);
+          }}
+        />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Skill 列表</CardTitle>
@@ -233,12 +269,6 @@ export function AiSkillSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="min-w-0">
-          <AdminListSearch
-            value={search}
-            onChange={changeSearch}
-            placeholder="搜索 name、description…"
-            className="mb-4"
-          />
           {isLoading ? (
             <p className="text-sm text-muted-foreground">加载中…</p>
           ) : (

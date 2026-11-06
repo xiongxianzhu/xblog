@@ -59,6 +59,8 @@ export default async function BlogPage({ params, searchParams }: Props) {
         prevLabel={t("paginationPrev")}
         nextLabel={t("paginationNext")}
         pageLabel={t("paginationPage", { page, totalPages })}
+        jumpLabel={t("paginationJumpLabel")}
+        jumpButtonLabel={t("paginationJump")}
       />
     </PageShell>
   );

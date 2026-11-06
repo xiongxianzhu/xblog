@@ -30,6 +30,7 @@ SITE_TAGLINE_KEY = "site.brand.tagline"
 SITE_LOGO_URL_KEY = "site.brand.logo_url"
 SITE_ICP_NUMBER_KEY = "site.brand.icp_number"
 POSTS_PER_PAGE_KEY = "site.content.posts_per_page"
+ARTICLE_SHARE_ENABLED_KEY = "site.content.article_share_enabled"
 COPYRIGHT_ENABLED_KEY = "site.content.copyright_enabled"
 COPYRIGHT_CONTENT_KEY = "site.content.copyright_content"
 
@@ -107,12 +108,15 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
         site_logo_url=site_logo_url,
         site_icp_number=site_icp_number,
         posts_per_page=posts_per_page,
+        article_share_enabled=await _get_value(session, ARTICLE_SHARE_ENABLED_KEY) == "true",
         copyright_enabled=copyright_enabled,
         copyright_content=copyright_content if copyright_content is not None else DEFAULT_COPYRIGHT_CONTENT,
     )
 
 
 async def update_site_theme(session: AsyncSession, payload: SiteThemeUpdate) -> SiteThemePublic:
+    if payload.article_share_enabled is not None:
+        await _set_value(session, ARTICLE_SHARE_ENABLED_KEY, "true" if payload.article_share_enabled else "false")
     if payload.nav_order is not None:
         if sorted(payload.nav_order) != sorted(NAV_ITEMS):
             raise HTTPException(status_code=422, detail="导航顺序必须完整包含所有菜单项且不能重复。")

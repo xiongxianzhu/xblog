@@ -15,7 +15,7 @@ from app.models.user import User
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
-async def get_current_user(
+async def get_session_user(
     response: Response,
     session: SessionDep,
     access_token: str | None = Cookie(default=None, alias=ACCESS_COOKIE),
@@ -24,6 +24,15 @@ async def get_current_user(
     user = await resolve_current_user(session, response, access_token, refresh_token)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    return user
+
+
+SessionUserDep = Annotated[User, Depends(get_session_user)]
+
+
+async def get_current_user(user: SessionUserDep) -> User:
+    if user.must_change_password:
+        raise HTTPException(status_code=403, detail="PASSWORD_CHANGE_REQUIRED")
     return user
 
 

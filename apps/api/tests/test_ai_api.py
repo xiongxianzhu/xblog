@@ -33,6 +33,43 @@ def test_ai_providers_requires_auth(client: TestClient) -> None:
     assert resp.json()["code"] == -1
 
 
+def test_provider_responses_mask_keys(client: TestClient) -> None:
+    _login(client)
+    key = "sk-test-secret-key-1234567890"
+    created = client.post(
+        "/api/v1/admin/ai/providers",
+        json={
+            "name": "masked-provider",
+            "base_url": "https://example.com/v1",
+            "model": "test",
+            "api_key": key,
+        },
+    )
+    assert created.status_code == 201
+    provider = unwrap_api_response(created)
+    assert provider["masked_api_key"] == "sk-********7890"
+    assert provider["has_api_key"] is True
+    assert key not in created.text
+    listed = client.get("/api/v1/admin/ai/providers")
+    assert unwrap_api_response(listed)[0]["masked_api_key"] == "sk-********7890"
+    assert key not in listed.text
+    assert "api_key_encrypted" not in listed.text
+    short = client.patch(f"/api/v1/admin/ai/providers/{provider['id']}", json={"api_key": "tiny-key"})
+    assert unwrap_api_response(short)["masked_api_key"] == "********"
+    assert "tiny-key" not in short.text
+    cleared = client.patch(f"/api/v1/admin/ai/providers/{provider['id']}", json={"api_key": ""})
+    assert unwrap_api_response(cleared)["masked_api_key"] is None
+    assert unwrap_api_response(cleared)["has_api_key"] is False
+
+
+def test_unreadable_key_mask_does_not_break_listing() -> None:
+    from app.models.ai_provider import AiProvider
+    from app.services.ai.providers import to_provider_public
+
+    provider = AiProvider(name="legacy", base_url="https://example.com", model="test", api_key_encrypted="invalid")
+    assert to_provider_public(provider).masked_api_key == "********"
+
+
 def test_ai_complete_without_provider(client: TestClient) -> None:
     _login(client)
     resp = client.post(

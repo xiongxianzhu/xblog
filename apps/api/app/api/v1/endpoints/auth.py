@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlmodel import select
 
 from app.api.auth_cookies import clear_auth_cookies, set_auth_cookies
-from app.api.deps import CurrentUserDep, SessionDep
+from app.api.deps import CurrentUserDep, SessionDep, SessionUserDep
 from app.core.security import REFRESH_COOKIE, decode_token, hash_password, verify_password
 from app.core.timezone import now
 from app.models.user import User
@@ -130,7 +130,7 @@ async def refresh(
 
 
 @router.get("/me", response_model=UserPublic)
-async def me(current_user: CurrentUserDep) -> UserPublic:
+async def me(current_user: SessionUserDep) -> UserPublic:
     return user_to_public(current_user)
 
 
@@ -213,11 +213,17 @@ async def remove_avatar(current_user: CurrentUserDep, session: SessionDep) -> No
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_password(
     payload: ChangePasswordRequest,
-    current_user: CurrentUserDep,
+    current_user: SessionUserDep,
     session: SessionDep,
 ) -> None:
-    if not verify_password(payload.current_password, current_user.password_hash):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    if not current_user.must_change_password:
+        if not payload.current_password or not verify_password(payload.current_password, current_user.password_hash):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    if len(payload.new_password.encode()) > 72:
+        raise HTTPException(status_code=422, detail="密码 UTF-8 编码不得超过 72 字节")
+    if not current_user.must_change_password and verify_password(payload.new_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="新密码不能与当前密码相同")
     current_user.password_hash = hash_password(payload.new_password)
+    current_user.must_change_password = False
     session.add(current_user)
     await session.commit()

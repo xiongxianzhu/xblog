@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import Literal
 
 from pydantic import EmailStr, field_validator
+from pydantic import Field as PydanticField
 from sqlmodel import Field, SQLModel
 
 
@@ -12,7 +13,7 @@ class LoginRequest(SQLModel):
 
 
 class ChangePasswordRequest(SQLModel):
-    current_password: str = Field(min_length=1, max_length=128)
+    current_password: str | None = Field(default=None, min_length=1, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
 
 
@@ -22,6 +23,7 @@ class TokenResponse(SQLModel):
 
 class UserPublic(SQLModel):
     username: str
+    must_change_password: bool = False
     nickname: str | None = None
     avatar_url: str | None = None
     phone: str | None = None
@@ -40,6 +42,7 @@ class UserAdmin(SQLModel):
     gender: str | None
     avatar_url: str | None
     is_active: bool
+    must_change_password: bool
     created_at: datetime | None
     last_login_at: datetime | None
 
@@ -118,3 +121,28 @@ class ProfileUpdateRequest(SQLModel):
             return value  # type: ignore[return-value]
         trimmed = value.strip()
         return trimmed or None
+
+
+class AdminUserUpdate(ProfileUpdateRequest):
+    email: EmailStr | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=20)
+    is_active: bool = True
+
+    @field_validator("email", "phone", mode="before")
+    @classmethod
+    def normalize_contact(cls, value: object) -> object:
+        return value.strip() or None if isinstance(value, str) else value
+
+
+class AdminUserCreate(AdminUserUpdate):
+    username: str = PydanticField(min_length=1, max_length=50, pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$")
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def strip_username(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+
+class AdminPasswordResetResult(SQLModel):
+    username: str
+    password: str

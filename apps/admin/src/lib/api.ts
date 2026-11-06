@@ -176,6 +176,19 @@ export async function fetchAuth<T>(
         },
   });
 
+  if (response.status === 403) {
+    const body = await response
+      .clone()
+      .json()
+      .catch(() => null);
+    if (
+      body?.msg === "PASSWORD_CHANGE_REQUIRED" &&
+      window.location.pathname !== "/admin/require-password-change"
+    ) {
+      window.location.assign("/admin/require-password-change");
+    }
+  }
+
   const shouldRefresh =
     response.status === 401 &&
     !retried &&
@@ -431,6 +444,7 @@ export type AdminUser = {
   gender: ProfileGender | null;
   avatar_url: string | null;
   is_active: boolean;
+  must_change_password: boolean;
   created_at: string | null;
   last_login_at: string | null;
 };
@@ -439,6 +453,7 @@ export type ProfileGender = "male" | "female" | "other";
 
 export type AdminUserMe = {
   username: string;
+  must_change_password: boolean;
   nickname: string | null;
   avatar_url: string | null;
   phone: string | null;
@@ -491,7 +506,7 @@ export function deleteAvatar() {
   return fetchAuth<void>("/auth/avatar", { method: "DELETE" });
 }
 
-export function changePassword(currentPassword: string, newPassword: string) {
+export function changePassword(currentPassword: string | undefined, newPassword: string) {
   return fetchAuth<void>("/auth/change-password", {
     method: "POST",
     body: JSON.stringify({
@@ -509,11 +524,45 @@ export type PaginatedUsers = PaginatedResponse<AdminUser> & {
   active_count: number;
 };
 
-export function listAdminUsers(page = 1, pageSize = 20, q?: string) {
+export function listAdminUsers(
+  page = 1,
+  pageSize = 20,
+  q?: string,
+  filters: { is_active?: string; gender?: string; must_change_password?: string } = {},
+) {
   return fetchAuth<PaginatedUsers>("/admin/users", undefined, false, {
     page,
     page_size: pageSize,
+    is_active: filters.is_active || undefined,
+    gender: filters.gender || undefined,
+    must_change_password: filters.must_change_password || undefined,
     q: q?.trim() || undefined,
+  });
+}
+
+export type AdminUserPayload = {
+  nickname: string | null;
+  email: string | null;
+  phone: string | null;
+  birth_date: string | null;
+  gender: ProfileGender | null;
+};
+
+export function getAdminUser(id: number) {
+  return fetchAuth<AdminUser>(`/admin/users/${id}`);
+}
+
+export function createAdminUser(payload: AdminUserPayload & { username: string }) {
+  return fetchAuth<AdminUser>("/admin/users", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updateAdminUser(id: number, payload: AdminUserPayload) {
+  return fetchAuth<AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function resetAdminUserPassword(id: number) {
+  return fetchAuth<{ username: string; password: string }>(`/admin/users/${id}/reset-password`, {
+    method: "POST",
   });
 }
 
@@ -559,17 +608,51 @@ export type OperationLogAdmin = {
   created_at: string | null;
 };
 
-export function listLoginLogs(page = 1, pageSize = 20) {
+export function getLoginLog(id: number) {
+  return fetchAuth<LoginLogAdmin>(`/admin/logs/login/${id}`);
+}
+
+export function getOperationLog(id: number) {
+  return fetchAuth<OperationLogAdmin>(`/admin/logs/operations/${id}`);
+}
+
+export function listLoginLogs(
+  page = 1,
+  pageSize = 20,
+  filters: {
+    success?: string;
+    method?: string;
+    failure_reason?: string;
+    q?: string;
+    start_at?: string;
+    end_at?: string;
+  } = {},
+) {
   return fetchAuth<PaginatedResponse<LoginLogAdmin>>("/admin/logs/login", undefined, false, {
     page,
     page_size: pageSize,
+    q: filters.q?.trim() || undefined,
+    start_at: filters.start_at || undefined,
+    end_at: filters.end_at || undefined,
+    success: filters.success || undefined,
+    method: filters.method || undefined,
+    failure_reason: filters.failure_reason || undefined,
   });
 }
 
-export function listOperationLogs(page = 1, pageSize = 20) {
+export function listOperationLogs(
+  page = 1,
+  pageSize = 20,
+  filters: { action?: string; resource_type?: string; q?: string; start_at?: string; end_at?: string } = {},
+) {
   return fetchAuth<PaginatedResponse<OperationLogAdmin>>("/admin/logs/operations", undefined, false, {
     page,
     page_size: pageSize,
+    q: filters.q?.trim() || undefined,
+    start_at: filters.start_at || undefined,
+    end_at: filters.end_at || undefined,
+    action: filters.action || undefined,
+    resource_type: filters.resource_type || undefined,
   });
 }
 
@@ -583,10 +666,17 @@ export function getAdminPostStats() {
   return fetchAuth<PostStats>("/admin/posts/stats");
 }
 
-export function listAdminPosts(page = 1, pageSize = 20, q?: string) {
+export function listAdminPosts(
+  page = 1,
+  pageSize = 20,
+  q?: string,
+  filters: { status?: string; is_pinned?: string } = {},
+) {
   return fetchAuth<PaginatedResponse<import("@/lib/types").PostAdmin>>("/admin/posts", undefined, false, {
     page,
     page_size: pageSize,
+    status: filters.status || undefined,
+    is_pinned: filters.is_pinned || undefined,
     q: q?.trim() || undefined,
   });
 }
@@ -632,6 +722,10 @@ export function listAdminLinks() {
   return fetchAuth<FriendLinkPublic[]>("/admin/links");
 }
 
+export function getAdminLink(id: number) {
+  return fetchAuth<FriendLinkPublic>(`/admin/links/${id}`);
+}
+
 export function createAdminLink(payload: {
   name: string;
   url: string;
@@ -673,6 +767,7 @@ export function uploadFriendLinkLogo(file: File) {
 export function deleteFriendLinkLogo(logoUrl: string) {
   return fetchAuth<{ message: string }>(`/admin/links/logo?logo_url=${encodeURIComponent(logoUrl)}`, {
     method: "DELETE",
+    keepalive: true,
   });
 }
 
