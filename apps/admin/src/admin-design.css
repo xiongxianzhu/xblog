@@ -192,16 +192,6 @@
 [data-admin-shell] .ant-input:focus-visible {
   outline: none;
 }
-.admin-select-chevron {
-  color: hsl(var(--foreground));
-  pointer-events: none;
-}
-.ant-select-open .admin-select-chevron {
-  transform: rotate(180deg);
-}
-.ant-select-disabled .admin-select-chevron {
-  color: hsl(var(--muted-foreground));
-}
 .admin-select-popup .ant-select-item-option-content {
   white-space: normal;
   overflow-wrap: anywhere;

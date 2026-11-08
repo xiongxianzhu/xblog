@@ -1,0 +1,61 @@
+.admin-menu-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: inherit;
+  pointer-events: none;
+}
+
+.admin-menu-arrow-strokes {
+  position: relative;
+  display: block;
+  width: var(--admin-arrow-size);
+  height: 0;
+  transition: transform var(--admin-arrow-duration) var(--admin-arrow-easing);
+}
+
+.admin-menu-arrow-strokes::before,
+.admin-menu-arrow-strokes::after {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: calc(var(--admin-arrow-size) * 0.6);
+  height: calc(var(--admin-arrow-size) * 0.15);
+  border-radius: var(--admin-arrow-radius);
+  background: currentColor;
+  content: "";
+  transition: transform var(--admin-arrow-duration) var(--admin-arrow-easing);
+}
+
+.admin-menu-arrow-strokes::before {
+  transform: rotate(-45deg) translateX(calc(var(--admin-arrow-size) * 0.25));
+}
+
+.admin-menu-arrow-strokes::after {
+  transform: rotate(45deg) translateX(calc(var(--admin-arrow-size) * -0.25));
+}
+
+.admin-menu-arrow[data-open="true"] .admin-menu-arrow-strokes,
+.ant-select-open .admin-menu-arrow .admin-menu-arrow-strokes {
+  transform: translateY(calc(var(--admin-arrow-size) * -0.2));
+}
+
+.admin-menu-arrow[data-open="true"] .admin-menu-arrow-strokes::before,
+.ant-select-open .admin-menu-arrow .admin-menu-arrow-strokes::before {
+  transform: rotate(45deg) translateX(calc(var(--admin-arrow-size) * 0.25));
+}
+
+.admin-menu-arrow[data-open="true"] .admin-menu-arrow-strokes::after,
+.ant-select-open .admin-menu-arrow .admin-menu-arrow-strokes::after {
+  transform: rotate(-45deg) translateX(calc(var(--admin-arrow-size) * -0.25));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-menu-arrow-strokes,
+  .admin-menu-arrow-strokes::before,
+  .admin-menu-arrow-strokes::after {
+    transition: none;
+  }
+}

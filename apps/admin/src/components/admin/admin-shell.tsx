@@ -1,6 +1,5 @@
 import { Button, ConfigProvider, Drawer, Dropdown, Layout, Menu } from "antd";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -19,6 +18,7 @@ import useSWR, { mutate } from "swr";
 import { useTranslations } from "use-intl";
 import { AdminBackToTopButton } from "@/components/admin/admin-back-to-top-button";
 import { AdminLoginSuccessToast } from "@/components/admin/admin-login-success-toast";
+import { AdminMenuArrow } from "@/components/admin/admin-menu-arrow";
 import { AdminSidebarProvider, useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import { UserAvatar } from "@/components/admin/user-avatar";
@@ -41,6 +41,8 @@ function Shell({ children }: { children: React.ReactNode }) {
   const tProfile = useTranslations("admin.profile");
   const { collapsed, toggleCollapsed } = useAdminSidebar();
   const [mobile, setMobile] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { data: me } = useSWR("admin-me", getMe);
   const { data: brand } = useSWR("public-site-theme", getPublicSiteThemeClient);
   const { data: headerLink } = useSWR("admin-header-link", getHeaderLink);
@@ -83,14 +85,6 @@ function Shell({ children }: { children: React.ReactNode }) {
           container: "admin-nav-hint",
         },
       }}
-      expandIcon={({ isOpen }) => (
-        <ChevronDown
-          size={14}
-          style={{
-            transform: isOpen ? "rotate(180deg)" : undefined,
-          }}
-        />
-      )}
       selectedKeys={adminNavItems.filter((item) => isNavItemActive(path, item)).map((item) => item.href)}
       defaultOpenKeys={["ai", "extended-pages", "logs"]}
       items={items}
@@ -131,6 +125,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="admin-header-actions">
           <Dropdown
+            open={themeMenuOpen}
+            onOpenChange={setThemeMenuOpen}
             trigger={["click"]}
             placement="bottomRight"
             menu={{
@@ -165,6 +161,7 @@ function Shell({ children }: { children: React.ReactNode }) {
                 },
               ],
               onClick: ({ key }) => {
+                setThemeMenuOpen(false);
                 if (key === "light" || key === "dark" || key === "system") setMode(key);
                 else if (isAdminPaletteId(key)) setPalette(key);
               },
@@ -174,9 +171,13 @@ function Shell({ children }: { children: React.ReactNode }) {
               type="text"
               className="admin-header-icon"
               aria-label={txt("m0356")}
+              aria-haspopup="menu"
+              aria-expanded={themeMenuOpen}
               title={txt("m0356")}
               icon={<Palette size={18} />}
-            />
+            >
+              <AdminMenuArrow open={themeMenuOpen} />
+            </Button>
           </Dropdown>
           <LocaleSwitcher compact className="admin-header-language" />
           {headerLink?.enabled ? (
@@ -196,6 +197,8 @@ function Shell({ children }: { children: React.ReactNode }) {
             classNames={{
               root: "admin-account-menu",
             }}
+            open={accountMenuOpen}
+            onOpenChange={setAccountMenuOpen}
             placement="bottomRight"
             trigger={["click"]}
             align={{
@@ -223,6 +226,7 @@ function Shell({ children }: { children: React.ReactNode }) {
                 },
               ],
               onClick: async ({ key }) => {
+                setAccountMenuOpen(false);
                 if (key === "logout") {
                   try {
                     await logout();
@@ -238,13 +242,19 @@ function Shell({ children }: { children: React.ReactNode }) {
             }}
           >
             <div className="admin-account-trigger">
-              <Button type="text" className="admin-account-button" aria-label={txt("m0357")}>
+              <Button
+                type="text"
+                className="admin-account-button"
+                aria-label={txt("m0357")}
+                aria-haspopup="menu"
+                aria-expanded={accountMenuOpen}
+              >
                 <UserAvatar username={me?.username || txt("m0358")} avatarUrl={me?.avatar_url} size="sm" />
                 <span className="admin-account-copy">
                   <strong>{me?.nickname || me?.username || txt("m0358")}</strong>
                   <small>{tProfile("administrator")}</small>
                 </span>
-                <ChevronDown size={14} />
+                <AdminMenuArrow open={accountMenuOpen} />
               </Button>
             </div>
           </Dropdown>

@@ -5,8 +5,8 @@ import zhTW from "antd/locale/zh_TW";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import "dayjs/locale/zh-tw";
-import { ChevronDown } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
+import { AdminMenuArrow } from "@/components/admin/admin-menu-arrow";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import { FeedbackBridge } from "@/lib/feedback";
 import { useAdminLocale } from "@/lib/locale";
@@ -57,7 +57,7 @@ export function AntProvider({ children }: { children: React.ReactNode }) {
     <ConfigProvider
       popupMatchSelectWidth={false}
       select={{
-        suffixIcon: <ChevronDown size={14} className="admin-select-chevron" aria-hidden />,
+        suffixIcon: <AdminMenuArrow />,
         classNames: { popup: { root: "admin-select-popup" } },
         styles: { popup: { root: { width: "max-content", maxWidth: "calc(100vw - 32px)" } } },
       }}

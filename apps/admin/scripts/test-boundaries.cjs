@@ -163,3 +163,44 @@ assert.equal(hslChannelsToHex("215.156 61.905% 40.784%"), "#285da8");
 assert.equal(hslChannelsToHex("24.6 95% 53.1%"), "#f97316");
 assert.throws(() => hslChannelsToHex(""), /Invalid theme color/);
 console.log("Theme color conversion passed: neutral, blue, orange and invalid channels.");
+
+// Check the rendered geometry, not just the rotation angle: a wrong translation
+// can swap the strokes while leaving the expanded arrow pointing down.
+const arrowCss = fs.readFileSync("src/components/admin/admin-menu-arrow.css", "utf8");
+const arrowTransforms = [
+  ...arrowCss.matchAll(
+    /transform: rotate\((-?[\d.]+)deg\) translateX\(calc\(var\(--admin-arrow-size\) \* (-?[\d.]+)\)\)/g,
+  ),
+];
+assert.equal(arrowTransforms.length, 4);
+function strokeEndpoints(match, size) {
+  const angle = (Number(match[1]) * Math.PI) / 180;
+  const offset = Number(match[2]) * size;
+  const halfWidth = size * 0.3;
+  return [-halfWidth, halfWidth].map((x) => ({
+    x: halfWidth + (x + offset) * Math.cos(angle),
+    y: (x + offset) * Math.sin(angle),
+  }));
+}
+for (const size of [10, 12, 14]) {
+  for (const [state, transforms] of [
+    ["closed", arrowTransforms.slice(0, 2)],
+    ["open", arrowTransforms.slice(2)],
+  ]) {
+    const [a, b] = transforms.map((match) => strokeEndpoints(match, size));
+    const pairs = [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
+    ];
+    const [i, j] = pairs.sort(
+      ([ai, bi], [aj, bj]) =>
+        Math.hypot(a[ai].x - b[bi].x, a[ai].y - b[bi].y) - Math.hypot(a[aj].x - b[bj].x, a[aj].y - b[bj].y),
+    )[0];
+    const tipY = (a[i].y + b[j].y) / 2;
+    const outsideY = (a[1 - i].y + b[1 - j].y) / 2;
+    assert.ok(state === "open" ? tipY < outsideY : tipY > outsideY, `${state} arrow at ${size}px`);
+  }
+}
+console.log("Menu arrow geometry passed: closed points down, open points up at three sizes.");

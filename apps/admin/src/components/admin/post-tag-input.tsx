@@ -1,5 +1,6 @@
 import { Select } from "antd";
 import { X } from "lucide-react";
+import { AdminMenuArrow } from "@/components/admin/admin-menu-arrow";
 export const POST_TAG_INPUT_MAX_TAGS = 10;
 export function PostTagInput({
   value,
@@ -18,9 +19,9 @@ export function PostTagInput({
     <Select
       {...props}
       mode="tags"
+      showSearch={{ searchIcon: <AdminMenuArrow /> }}
       value={value}
       tokenSeparators={[",", "，"]}
-      suffixIcon={null}
       removeIcon={<X size={12} />}
       style={{ width: "100%" }}
       maxCount={maxTags}
