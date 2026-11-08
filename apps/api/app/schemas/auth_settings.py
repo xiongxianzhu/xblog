@@ -8,6 +8,8 @@ class LoginMethodsResponse(SQLModel):
 
 
 class AuthSettingsAdmin(SQLModel):
+    password_sms_enabled: bool
+    password_sms_configured: bool
     sms_enabled: bool
     sms_configured: bool
     github_enabled: bool
@@ -19,6 +21,7 @@ class AuthSettingsAdmin(SQLModel):
 
 
 class AuthSettingsUpdate(SQLModel):
+    password_sms_enabled: bool | None = None
     sms_enabled: bool | None = None
     github_enabled: bool | None = None
     wechat_enabled: bool | None = None

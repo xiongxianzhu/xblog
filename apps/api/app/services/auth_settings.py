@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from fastapi import HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -13,6 +14,7 @@ OAUTH_GITHUB_ENABLED_KEY = "auth.oauth.github.enabled"
 OAUTH_WECHAT_ENABLED_KEY = "auth.oauth.wechat.enabled"
 SMS_ENABLED_KEY = "auth.sms.enabled"
 TURNSTILE_ENABLED_KEY = "auth.turnstile.enabled"
+PASSWORD_SMS_ENABLED_KEY = "auth.password_sms.enabled"
 
 
 async def _get_value(session: AsyncSession, key: str) -> str | None:
@@ -58,9 +60,21 @@ def turnstile_configured() -> bool:
     return bool(settings.turnstile_site_key and settings.turnstile_secret_key)
 
 
+def password_sms_configured() -> bool:
+    # The aliyun branch currently only logs codes; it is not a delivery provider.
+    settings = get_settings()
+    return settings.sms_provider == "dev" and settings.app_env != "production"
+
+
+async def is_password_sms_enabled(session: AsyncSession) -> bool:
+    return _parse_bool(await _get_value(session, PASSWORD_SMS_ENABLED_KEY))
+
+
 async def get_auth_settings_admin(session: AsyncSession) -> AuthSettingsAdmin:
     settings = get_settings()
     return AuthSettingsAdmin(
+        password_sms_enabled=await is_password_sms_enabled(session),
+        password_sms_configured=password_sms_configured(),
         sms_enabled=_parse_bool(await _get_value(session, SMS_ENABLED_KEY)),
         sms_configured=sms_configured(),
         github_enabled=_parse_bool(await _get_value(session, OAUTH_GITHUB_ENABLED_KEY)),
@@ -73,6 +87,10 @@ async def get_auth_settings_admin(session: AsyncSession) -> AuthSettingsAdmin:
 
 
 async def update_auth_settings(session: AsyncSession, payload: AuthSettingsUpdate) -> AuthSettingsAdmin:
+    if payload.password_sms_enabled is not None:
+        if payload.password_sms_enabled and not password_sms_configured():
+            raise HTTPException(status_code=400, detail="PASSWORD_SMS_NOT_CONFIGURED")
+        await _set_value(session, PASSWORD_SMS_ENABLED_KEY, _format_bool(payload.password_sms_enabled))
     if payload.sms_enabled is not None:
         await _set_value(session, SMS_ENABLED_KEY, _format_bool(payload.sms_enabled))
     if payload.github_enabled is not None:

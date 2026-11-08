@@ -2,6 +2,11 @@ import { adminErrorText, translatedAdminNotice } from "@/lib/admin-messages";
 
 type ErrorKey = Parameters<typeof adminErrorText>[0];
 const errors: Record<string, ErrorKey> = {
+  PASSWORD_SMS_PHONE_REQUIRED: "passwordSmsPhoneRequired",
+  PASSWORD_SMS_NOT_CONFIGURED: "passwordSmsNotConfigured",
+  PASSWORD_SMS_INVALID: "passwordSmsInvalid",
+  PASSWORD_SMS_SEND_LIMIT: "passwordSmsSendLimit",
+  PASSWORD_SMS_ATTEMPTS_EXCEEDED: "passwordSmsAttemptsExceeded",
   "Invalid credentials": "credentials",
   "User is disabled": "disabled",
   "User not found": "notFound",

@@ -206,7 +206,17 @@
       "rateLimit": "Too many requests. Try again later.",
       "notLinked": "Sign in with your password first, then link this account in your profile.",
       "oauthFailed": "External sign-in failed. Try again later.",
-      "alreadyLinked": "This account is already linked to another administrator."
+      "alreadyLinked": "This account is already linked to another administrator.",
+      "passwordSmsTitle": "Phone verification",
+      "passwordSmsIntro": "Password verified. Complete phone verification to sign in.",
+      "passwordSmsSent": "A code has been generated to verify your linked phone {phone}.",
+      "passwordSmsExpired": "Verification expired. Return to password sign-in to request a new code.",
+      "passwordSmsVerify": "Verify and sign in",
+      "passwordSmsRestart": "Back to password sign-in / request a new code",
+      "passwordSmsSetting": "Phone verification after password sign-in",
+      "passwordSmsSettingHint": "Off by default. When enabled, a correct password must be followed by verification of the linked phone. Accounts without a phone cannot sign in with a password. Link your phone in your profile before enabling. Separate SMS and third-party sign-in methods are unchanged.",
+      "passwordSmsDevHint": "Development log delivery is active. Codes appear only in backend logs; no SMS is sent.",
+      "passwordSmsUnavailable": "No production SMS delivery service is implemented, so this cannot be enabled. You can still turn it off if enabled."
     },
     "profile": {
       "title": "Profile",
@@ -1125,7 +1135,12 @@
       "zipPath": "The ZIP contains an unsafe file path.",
       "fileType": "Unsupported file format.",
       "noMarkdown": "No Markdown files were found to import.",
-      "baseUrl": "Enter a valid HTTP/HTTPS URL without credentials, query parameters or fragments."
+      "baseUrl": "Enter a valid HTTP/HTTPS URL without credentials, query parameters or fragments.",
+      "passwordSmsPhoneRequired": "Link a phone number first. Contact an administrator if your account has no linked phone.",
+      "passwordSmsNotConfigured": "SMS delivery for phone verification is unavailable. Contact an administrator.",
+      "passwordSmsInvalid": "The code is incorrect or verification is no longer valid. Retry or return to password sign-in for a new code.",
+      "passwordSmsSendLimit": "Codes are being requested too frequently. Wait before returning to password sign-in to request another code.",
+      "passwordSmsAttemptsExceeded": "Too many code attempts. Wait, then verify your password again to request a new code."
     }
   }
 }

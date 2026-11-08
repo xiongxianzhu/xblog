@@ -21,6 +21,19 @@ class TokenResponse(SQLModel):
     username: str
 
 
+class PasswordSmsChallenge(SQLModel):
+    sms_required: Literal[True] = True
+    challenge_token: str
+    masked_phone: str
+    expires_in: int
+    delivery: Literal["dev"] = "dev"
+
+
+class PasswordSmsVerifyRequest(SQLModel):
+    challenge_token: str = Field(min_length=1, max_length=4096)
+    code: str = Field(min_length=6, max_length=6)
+
+
 class UserPublic(SQLModel):
     username: str
     must_change_password: bool = False

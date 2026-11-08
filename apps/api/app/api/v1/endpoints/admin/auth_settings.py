@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.schemas.auth_settings import AuthSettingsAdmin, AuthSettingsUpdate
@@ -20,6 +20,8 @@ async def read_auth_settings(session: SessionDep, _: CurrentUserDep) -> AuthSett
 async def patch_auth_settings(
     payload: AuthSettingsUpdate,
     session: SessionDep,
-    _: CurrentUserDep,
+    user: CurrentUserDep,
 ) -> AuthSettingsAdmin:
+    if payload.password_sms_enabled and not user.phone:
+        raise HTTPException(status_code=400, detail="PASSWORD_SMS_PHONE_REQUIRED")
     return await auth_settings.update_auth_settings(session, payload)

@@ -186,6 +186,7 @@ export async function fetchAuth<T>(
     response.status === 401 &&
     !retried &&
     path !== "/auth/login" &&
+    path !== "/auth/login/sms" &&
     path !== "/auth/logout" &&
     path !== "/auth/refresh" &&
     path !== "/auth/forgot-password" &&
@@ -325,10 +326,15 @@ export function getLoginGuard(username?: string) {
   const path = username ? `/auth/login-guard?username=${encodeURIComponent(username)}` : "/auth/login-guard";
   return fetchAuth<LoginGuard>(path);
 }
+export type PasswordSmsChallenge = {
+  sms_required: true;
+  challenge_token: string;
+  masked_phone: string;
+  expires_in: number;
+  delivery: "dev";
+};
 export function login(username: string, password: string, turnstileToken?: string) {
-  return fetchAuth<{
-    username: string;
-  }>("/auth/login", {
+  return fetchAuth<{ username: string } | PasswordSmsChallenge>("/auth/login", {
     method: "POST",
     body: JSON.stringify({
       username,
@@ -346,12 +352,20 @@ export function logout() {
     method: "POST",
   });
 }
+export function verifyPasswordSms(challengeToken: string, code: string) {
+  return fetchAuth<{ username: string }>("/auth/login/sms", {
+    method: "POST",
+    body: JSON.stringify({ challenge_token: challengeToken, code }),
+  });
+}
 export type LoginMethods = {
   sms: boolean;
   github: boolean;
   wechat: boolean;
 };
 export type AuthSettingsAdmin = {
+  password_sms_enabled: boolean;
+  password_sms_configured: boolean;
   sms_enabled: boolean;
   sms_configured: boolean;
   github_enabled: boolean;
@@ -369,7 +383,10 @@ export function getAdminAuthSettings() {
 }
 export function updateAdminAuthSettings(
   payload: Partial<
-    Pick<AuthSettingsAdmin, "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled">
+    Pick<
+      AuthSettingsAdmin,
+      "password_sms_enabled" | "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled"
+    >
   >,
 ) {
   return fetchAuth<AuthSettingsAdmin>("/admin/auth-settings", {

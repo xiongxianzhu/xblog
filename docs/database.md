@@ -300,8 +300,9 @@
 | --- | --- | --- | --- | --- | --- |
 | `id` | INTEGER | 否 | `None（待分配）` | `序列生成` | 主键；记录主键 |
 | `phone` | VARCHAR(20) | 否 | `无` | `无` | 手机号；业务层规范化大陆手机号 |
-| `code_hash` | VARCHAR(255) | 否 | `无` | `无` | 短信验证码 SHA-256 哈希 |
-| `purpose` | VARCHAR(32) | 否 | `'login'` | `login` | 验证码用途，当前为 login |
+| `code_hash` | VARCHAR(255) | 否 | `无` | `无` | 独立短信登录使用 SHA-256；密码二次验证使用绑定记录 ID 的 HMAC-SHA256 |
+| `purpose` | VARCHAR(32) | 否 | `'login'` | `login` | `login` 为独立短信登录，`password_login` 为密码登录二次验证 |
+| `attempts` | INTEGER | 否 | `0` | `0` | 密码二次验证错误次数，达到 5 次后将挑战标记为已使用 |
 | `expires_at` | TIMESTAMP WITH TIME ZONE | 否 | `无` | `无` | 到期时间 |
 | `used_at` | TIMESTAMP WITH TIME ZONE | 是 | `None` | `无` | 已使用时间；null 表示尚未使用，不表示尚未过期 |
 | `created_at` | TIMESTAMP WITH TIME ZONE | 否 | `now()` | `无` | 创建时间，应用 now() 提供 |
@@ -383,6 +384,7 @@
 | auth.oauth.github.enabled | true / false | false |
 | auth.oauth.wechat.enabled | true / false | false |
 | auth.sms.enabled | true / false | false |
+| auth.password_sms.enabled | true / false；密码登录后是否要求手机二次验证 | false |
 | auth.turnstile.enabled | true / false | false |
 
 布尔读取还接受 1、yes、on（忽略大小写与首尾空白），写入统一为 true/false。开关开启不代表外部凭据齐全，也不证明真实服务可用。后台个人外观存浏览器 localStorage，不在数据库。
@@ -428,6 +430,7 @@
 | [012_audit_logs](../apps/api/alembic/versions/012_audit_logs.py) | login_log、operation_log 及索引 |
 | [013_friend_link_description](../apps/api/alembic/versions/013_friend_link_description.py) | friend_links.description |
 | [014_post_pinned](../apps/api/alembic/versions/014_post_pinned.py) | posts.is_pinned、pinned_at 与 is_pinned 索引 |
+| [017_password_sms_attempts](../apps/api/alembic/versions/017_password_sms_attempts.py) | sms_verification_codes.attempts；保留已有验证码历史 |
 
 [env.py](../apps/api/alembic/env.py) 使用模型 metadata，并开启 compare_type。迁移前先备份数据库、上传目录与配置，在隔离 PostgreSQL 环境确认迁移和恢复；完整顺序见 [部署文档](deployment.md)。新增字段需要新增迁移，不能只改模型后依赖 create_all 更新已有库。
 

@@ -20,11 +20,13 @@ from app.schemas.auth import (
     ChangePasswordRequest,
     LoginGuardResponse,
     LoginRequest,
+    PasswordSmsChallenge,
+    PasswordSmsVerifyRequest,
     ProfileUpdateRequest,
     TokenResponse,
     UserPublic,
 )
-from app.services import audit_logs, login_guard, sms_service
+from app.services import audit_logs, auth_settings, login_guard, password_sms, sms_service
 from app.services.uploads import delete_avatar_file, save_user_avatar
 from app.services.users import ensure_user_can_authenticate, get_user_by_login_identifier, user_to_public
 
@@ -40,8 +42,10 @@ async def get_login_guard(
     return await login_guard.login_guard_status(session, request, username=username)
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, response: Response, session: SessionDep, request: Request) -> TokenResponse:
+@router.post("/login", response_model=TokenResponse | PasswordSmsChallenge)
+async def login(
+    payload: LoginRequest, response: Response, session: SessionDep, request: Request
+) -> TokenResponse | PasswordSmsChallenge:
     await login_guard.enforce_login_guard(
         session,
         request,
@@ -83,6 +87,14 @@ async def login(payload: LoginRequest, response: Response, session: SessionDep, 
         )
         await session.commit()
         raise exc
+    if await auth_settings.is_password_sms_enabled(session):
+        return await password_sms.begin_challenge(session, user)
+    return await _complete_password_login(session, request, response, user)
+
+
+async def _complete_password_login(
+    session: SessionDep, request: Request, response: Response, user: User
+) -> TokenResponse:
     user.last_login_at = now()
     session.add(user)
     await audit_logs.record_login(
@@ -96,6 +108,14 @@ async def login(payload: LoginRequest, response: Response, session: SessionDep, 
     await session.commit()
     set_auth_cookies(response, user.username)
     return TokenResponse(username=user.username)
+
+
+@router.post("/login/sms", response_model=TokenResponse)
+async def verify_password_sms(
+    payload: PasswordSmsVerifyRequest, response: Response, session: SessionDep, request: Request
+) -> TokenResponse:
+    user = await password_sms.verify_challenge(session, request, payload.challenge_token, payload.code)
+    return await _complete_password_login(session, request, response, user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

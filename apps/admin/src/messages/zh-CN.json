@@ -206,7 +206,17 @@
       "rateLimit": "请求过于频繁，请稍后再试",
       "notLinked": "该第三方账号尚未绑定管理员，请先用账号密码登录，在个人资料中绑定。",
       "oauthFailed": "第三方登录失败，请稍后重试。",
-      "alreadyLinked": "该 GitHub / 微信账号已绑定其他管理员。"
+      "alreadyLinked": "该 GitHub / 微信账号已绑定其他管理员。",
+      "passwordSmsTitle": "手机二次验证",
+      "passwordSmsIntro": "密码已验证，请完成手机验证后登录。",
+      "passwordSmsSent": "请验证绑定手机 {phone}，验证码已生成。",
+      "passwordSmsExpired": "验证已过期，请返回密码登录重新获取验证码。",
+      "passwordSmsVerify": "验证并登录",
+      "passwordSmsRestart": "返回密码登录 / 重新获取验证码",
+      "passwordSmsSetting": "密码登录的手机二次验证",
+      "passwordSmsSettingHint": "默认关闭。开启后，密码正确仍需验证绑定手机；未绑定手机的账号无法使用密码登录。开启前请先在个人资料绑定手机。此开关不改变独立短信登录和第三方登录方式。",
+      "passwordSmsDevHint": "当前为开发日志模式，验证码仅写入后端日志，不会发送到手机。",
+      "passwordSmsUnavailable": "当前未接入可用的生产短信发送服务，暂不能开启；已开启时仍可关闭。"
     },
     "profile": {
       "title": "个人资料",
@@ -1125,7 +1135,12 @@
       "zipPath": "ZIP 含有不安全的文件路径。",
       "fileType": "文件格式不受支持。",
       "noMarkdown": "没有找到可导入的 Markdown 文件。",
-      "baseUrl": "请输入有效的 HTTP/HTTPS 地址，不要包含账号、密码、查询参数或锚点。"
+      "baseUrl": "请输入有效的 HTTP/HTTPS 地址，不要包含账号、密码、查询参数或锚点。",
+      "passwordSmsPhoneRequired": "请先绑定手机号；未绑定的账号请联系管理员。",
+      "passwordSmsNotConfigured": "手机二次验证的短信发送服务尚不可用，请联系管理员。",
+      "passwordSmsInvalid": "验证码错误或验证已失效，请重试或返回密码登录重新获取。",
+      "passwordSmsSendLimit": "发送过于频繁，请稍后返回密码登录重新获取验证码。",
+      "passwordSmsAttemptsExceeded": "验证码尝试次数过多，请稍后重新验证密码获取新验证码。"
     }
   }
 }

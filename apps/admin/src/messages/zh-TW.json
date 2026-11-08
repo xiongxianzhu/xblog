@@ -206,7 +206,17 @@
       "rateLimit": "請求過於頻繁，請稍後再試",
       "notLinked": "此第三方帳號尚未綁定管理員，請先登入並於個人資料中綁定。",
       "oauthFailed": "第三方登入失敗，請稍後再試。",
-      "alreadyLinked": "此 GitHub / 微信帳號已綁定其他管理員。"
+      "alreadyLinked": "此 GitHub / 微信帳號已綁定其他管理員。",
+      "passwordSmsTitle": "手機二次驗證",
+      "passwordSmsIntro": "密碼已驗證，請完成手機驗證後登入。",
+      "passwordSmsSent": "請驗證綁定手機 {phone}，驗證碼已產生。",
+      "passwordSmsExpired": "驗證已過期，請返回密碼登入重新取得驗證碼。",
+      "passwordSmsVerify": "驗證並登入",
+      "passwordSmsRestart": "返回密碼登入 / 重新取得驗證碼",
+      "passwordSmsSetting": "密碼登入的手機二次驗證",
+      "passwordSmsSettingHint": "預設關閉。開啟後，密碼正確仍需驗證綁定手機；未綁定手機的帳號無法使用密碼登入。開啟前請先在個人資料綁定手機。此開關不改變獨立簡訊登入和第三方登入方式。",
+      "passwordSmsDevHint": "目前為開發日誌模式，驗證碼僅寫入後端日誌，不會發送到手機。",
+      "passwordSmsUnavailable": "目前未接入可用的正式簡訊發送服務，暫不能開啟；已開啟時仍可關閉。"
     },
     "profile": {
       "title": "個人資料",
@@ -1125,7 +1135,12 @@
       "zipPath": "ZIP 含有不安全的檔案路徑。",
       "fileType": "檔案格式不受支援。",
       "noMarkdown": "找不到可匯入的 Markdown 檔案。",
-      "baseUrl": "請輸入有效的 HTTP/HTTPS 網址，不要包含帳號、密碼、查詢參數或錨點。"
+      "baseUrl": "請輸入有效的 HTTP/HTTPS 網址，不要包含帳號、密碼、查詢參數或錨點。",
+      "passwordSmsPhoneRequired": "請先綁定手機號碼；未綁定的帳號請聯絡管理員。",
+      "passwordSmsNotConfigured": "手機二次驗證的簡訊發送服務尚不可用，請聯絡管理員。",
+      "passwordSmsInvalid": "驗證碼錯誤或驗證已失效，請重試或返回密碼登入重新取得。",
+      "passwordSmsSendLimit": "發送過於頻繁，請稍後返回密碼登入重新取得驗證碼。",
+      "passwordSmsAttemptsExceeded": "驗證碼嘗試次數過多，請稍後重新驗證密碼取得新驗證碼。"
     }
   }
 }

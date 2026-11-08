@@ -6,6 +6,7 @@ import asyncio
 import os
 from tempfile import TemporaryDirectory
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,7 +15,16 @@ from httpx import Response
 # Never allow developer/production settings or uploaded files into this test suite.
 _test_uploads = TemporaryDirectory(prefix="xblog-api-tests-")
 os.environ["SECRET_KEY"] = "testing-secret-key-isolated-suite-32"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+test_database_url = os.environ.get("XBLOG_TEST_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+if test_database_url != "sqlite+aiosqlite:///:memory:":
+    test_database = urlparse(test_database_url)
+    if (
+        test_database.scheme != "postgresql+asyncpg"
+        or test_database.hostname not in {"localhost", "127.0.0.1"}
+        or not test_database.path.startswith("/xblog_test_")
+    ):
+        raise RuntimeError("Tests require an isolated local xblog_test_ PostgreSQL database")
+os.environ["DATABASE_URL"] = test_database_url
 os.environ["APP_ENV"] = "testing"
 os.environ["UPLOAD_DIR"] = _test_uploads.name
 os.environ["REVALIDATE_SECRET"] = ""
@@ -22,6 +32,20 @@ os.environ["REVALIDATE_SECRET"] = ""
 from app.core.config import Settings  # noqa: E402
 
 Settings.model_config["env_file"] = None
+
+if test_database_url.startswith("postgresql+"):
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import NullPool
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    from app.db import session as db_session
+
+    # Tests deliberately use multiple asyncio.run loops; pooled asyncpg connections
+    # must not leak across those loops.
+    db_session.engine = create_async_engine(test_database_url, poolclass=NullPool)
+    db_session.async_session_factory = async_sessionmaker(
+        db_session.engine, class_=AsyncSession, expire_on_commit=False
+    )
 
 
 def unwrap_api_response(response: Response) -> Any:
@@ -73,7 +97,8 @@ def pytest_configure(config: object) -> None:
             await conn.run_sync(SQLModel.metadata.create_all)
         async with AsyncSession(engine) as session:
             for scene in ("polish", "chat", "generate"):
-                session.add(AiSkillDefault(scene=scene, skill_id=None))
+                if await session.get(AiSkillDefault, scene) is None:
+                    session.add(AiSkillDefault(scene=scene, skill_id=None))
             await session.commit()
 
     asyncio.run(init_db())

@@ -1,17 +1,20 @@
 import { useState } from "react";
 import useSWR from "swr";
+import { useTranslations } from "use-intl";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { localizeAdminNotice } from "@/lib/admin-messages";
 import { getAdminAuthSettings, updateAdminAuthSettings } from "@/lib/api";
 import { useAdminMessages } from "@/lib/use-admin-messages";
 export function AuthSettingsPanel() {
   const txt = useAdminMessages();
+  const t = useTranslations("admin.login");
   const { data, error, isLoading, mutate } = useSWR("admin-auth-settings", getAdminAuthSettings);
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   async function toggle(
-    key: "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled",
+    key: "password_sms_enabled" | "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled",
     value: boolean,
   ) {
     if (!data || saving) return;
@@ -23,8 +26,8 @@ export function AuthSettingsPanel() {
       });
       await mutate(saved, false);
       setMessage(txt("m0520"));
-    } catch {
-      setMessage(txt("m0521"));
+    } catch (error) {
+      setMessage(getAdminErrorMessage(error));
     } finally {
       setSaving(null);
     }
@@ -38,6 +41,21 @@ export function AuthSettingsPanel() {
   return (
     <div className="space-y-5">
       <FieldGroup className="gap-5">
+        <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="password-sms-enabled">{t("passwordSmsSetting")}</FieldLabel>
+            <FieldDescription>{t("passwordSmsSettingHint")}</FieldDescription>
+            <FieldDescription>
+              {data.password_sms_configured ? t("passwordSmsDevHint") : t("passwordSmsUnavailable")}
+            </FieldDescription>
+          </div>
+          <Switch
+            id="password-sms-enabled"
+            checked={data.password_sms_enabled}
+            disabled={Boolean(saving) || (!data.password_sms_configured && !data.password_sms_enabled)}
+            onCheckedChange={(checked) => void toggle("password_sms_enabled", checked)}
+          />
+        </Field>
         <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
           <div className="space-y-1">
             <FieldLabel htmlFor="sms-enabled">{txt("m0523")}</FieldLabel>

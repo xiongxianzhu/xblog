@@ -9,7 +9,7 @@ const catalogs = Object.fromEntries(
   locales.map((locale) => [locale, JSON.parse(fs.readFileSync(`src/messages/${locale}.json`, "utf8"))]),
 );
 for (const locale of locales) {
-  for (const namespace of ["ui", "errors"]) {
+  for (const namespace of ["ui", "errors", "login"]) {
     const messages = catalogs[locale].admin[namespace];
     assert.deepEqual(Object.keys(messages).sort(), Object.keys(catalogs.en.admin[namespace]).sort());
     const errors = [];

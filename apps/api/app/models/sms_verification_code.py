@@ -17,5 +17,6 @@ class SmsVerificationCode(TimestampMixin, SQLModel, table=True):
     phone: str = Field(max_length=20, index=True)
     code_hash: str = Field(max_length=255)
     purpose: str = Field(default="login", max_length=32)
+    attempts: int = Field(default=0)
     expires_at: datetime = Field(sa_type=DateTime(timezone=True))
     used_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))

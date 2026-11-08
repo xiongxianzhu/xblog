@@ -1,12 +1,16 @@
 # xblog API 文档
 
-> 文档版本：1.1.0
+> 文档版本：1.2.0
 > 创建日期：2026-10-31
-> 更新日期：2026-11-01
+> 更新日期：2026-11-09
 > 文档语法：Markdown
 > 范围：当前工作区实现；示例均为虚构数据，不代表线上状态。
 
 ## 修改记录
+
+### 1.2.0
+
+- 2026-11-09：增加可配置的密码登录手机二次验证和 `/auth/login/sms`。默认关闭；开启后 `/auth/login` 的成功响应可能是短信挑战，客户端必须完成第二步才能取得会话 Cookie。登录方式配置新增 `password_sms_enabled`、`password_sms_configured`。
 
 ### 1.1.0
 
@@ -75,6 +79,7 @@ curl -b cookies.txt http://127.0.0.1:10242/api/v1/auth/me
 | 3.9 | GET | `/api/v1/public/site-theme` | 公开站点主题 |
 | 3.10 | GET | `/api/v1/auth/login-guard` | 查询登录防护状态 |
 | 3.11 | POST | `/api/v1/auth/login` | 密码登录 |
+| 3.11.1 | POST | `/api/v1/auth/login/sms` | 完成密码登录的手机二次验证 |
 | 3.12 | POST | `/api/v1/auth/logout` | 退出登录 |
 | 3.13 | POST | `/api/v1/auth/refresh` | 刷新登录会话 |
 | 3.14 | GET | `/api/v1/auth/me` | 当前用户资料 |
@@ -881,7 +886,29 @@ curl -b cookies.txt http://127.0.0.1:10242/api/v1/auth/me
 
 不要求当前登录会话。
 
-用户名字段也支持邮箱和手机号。成功通过 Set-Cookie 写入令牌，不在 JSON 返回 token；防护启用且达到失败阈值时必须提交 turnstile_token。默认 15 分钟内失败 3 次触发验证码、10 次锁定；以服务端配置为准。
+用户名字段也支持邮箱和手机号。完成登录后通过 Set-Cookie 写入会话令牌，不在 JSON 返回会话 token；防护启用且达到失败阈值时必须提交 turnstile_token。默认 15 分钟内失败 3 次触发验证码、10 次锁定；以服务端配置为准。
+
+#### 密码登录的手机二次验证
+
+`site_settings` 中的 `auth.password_sms.enabled` 默认关闭，可通过管理端 `PATCH /api/v1/admin/auth-settings` 的 `password_sms_enabled` 动态更新。开启前当前管理员必须绑定手机号；仅影响新的密码登录，不改变已有会话、独立短信登录或 OAuth。
+
+开启后，密码正确时 `/auth/login` 返回 HTTP 200，但**不签发会话 Cookie，也不记录登录成功**。此时 `data` 为：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| sms_required | true | 需要完成手机二次验证 |
+| challenge_token | string | 短期验证凭据，只用于下述验证接口，不可作为会话令牌 |
+| masked_phone | string | 绑定手机号的脱敏值，如 `138****8000` |
+| expires_in | int | 有效秒数，来自 `SMS_CODE_EXPIRE_MINUTES` |
+| delivery | string | 当前为 `dev`，验证码只写开发日志，不实际发送短信 |
+
+客户端随后调用 `POST /api/v1/auth/login/sms`，JSON 提交 `challenge_token`（最长 4096 字符）和 `code`（6 位）。验证成功后返回 `username` 并写入 HttpOnly Cookie。凭据只保存在页面内存中；返回密码登录可重新验证密码并申请新码，受短信发送间隔限制。
+
+验证码一次有效，每个挑战最多允许 5 次错误；错误写入密码登录失败日志并计入现有账号/IP 限流。过期、重复使用、账号停用、手机号或密码变更、关闭二次验证开关后，旧挑战不能登录。并发验证由 PostgreSQL 行锁保证单次消费。
+
+`PASSWORD_SMS_PHONE_REQUIRED` 表示未绑定手机；`PASSWORD_SMS_NOT_CONFIGURED` 表示发送能力不可用；`PASSWORD_SMS_INVALID` 表示验证码或挑战无效；`PASSWORD_SMS_SEND_LIMIT`、`PASSWORD_SMS_ATTEMPTS_EXCEEDED` 返回 HTTP 429。当前阿里云分支尚未实际发送短信，因此生产环境不能开启该功能；非生产 `dev` 模式可用于验证流程，服务端不可用时始终允许关闭开关。
+
+#### 密码请求与直接登录响应
 
 上行参数：
 
@@ -945,6 +972,69 @@ curl -b cookies.txt http://127.0.0.1:10242/api/v1/auth/me
     "data": {}
 }
 ```
+
+### 3.11.1. 完成密码登录的手机二次验证
+
+`POST` `/api/v1/auth/login/sms`
+
+不要求会话 Cookie；必须提供密码验证成功后签发的短期挑战凭据。
+
+`request headers` 参数：
+
+| 参数 | 类型 | 必填 | 默认值 | 备注 |
+| --- | --- | --- | --- | --- |
+| Content-Type | string | 是 | — | `application/json` |
+
+`request params` 参数（path / query / cookie）：无。
+
+`request json` 参数：
+
+| 参数 | 类型 | 必填 | 默认值 | 备注 |
+| --- | --- | --- | --- | --- |
+| challenge_token | string | 是 | — | 原样传回密码验证阶段返回的凭据；1–4096 字符 |
+| code | string | 是 | — | 收到的 6 位验证码，保留前导零 |
+
+请求示例（凭据为不可用于登录的占位值）：
+
+```json
+{
+    "challenge_token": "<password-login-challenge>",
+    "code": "012345"
+}
+```
+
+下行参数：
+
+| 参数 | 类型 | 默认值 | 备注 |
+| --- | --- | --- | --- |
+| code | int | — | 0 成功，-1 失败 |
+| msg | string | — | 响应说明 |
+| data | object | — | 业务数据 |
+| └username | string | — | 验证通过的账号用户名 |
+
+成功：HTTP 200，通过 Set-Cookie 写入 HttpOnly 会话 Cookie。
+
+```json
+{
+    "code": 0,
+    "msg": "ok",
+    "data": {
+        "username": "writer"
+    }
+}
+```
+
+失败：HTTP 400，无效验证码、过期或已消费的挑战；不会签发 Cookie。
+
+```json
+{
+    "code": -1,
+    "msg": "PASSWORD_SMS_INVALID",
+    "data": {}
+}
+```
+
+达到错误次数或现有密码登录限流阈值返回 HTTP 429，`msg` 为 `PASSWORD_SMS_ATTEMPTS_EXCEEDED`。账号停用返回 HTTP 403，`msg` 为 `User is disabled`；字段长度不合法返回 HTTP 422。
 
 ### 3.12. 退出登录
 
@@ -4317,6 +4407,8 @@ status 业务枚举：draft=草稿、published=已发布。PATCH 省略字段保
 | code | int | — | 响应业务码：0 成功，-1 失败 |
 | msg | string | — | 响应说明 |
 | data | object | — | 业务数据 |
+| └password_sms_enabled | bool | — | 密码登录手机二次验证开关，默认关闭 |
+| └password_sms_configured | bool | — | 二次验证发送能力是否可用；当前仅非生产 dev 模式为 true |
 | └sms_enabled | bool | — | 短信 后台开关 |
 | └sms_configured | bool | — | 短信 服务端配置是否齐全 |
 | └github_enabled | bool | — | GitHub 后台开关 |
@@ -4333,6 +4425,8 @@ status 业务枚举：draft=草稿、published=已发布。PATCH 省略字段保
     "code": 0,
     "msg": "ok",
     "data": {
+        "password_sms_enabled": false,
+        "password_sms_configured": false,
         "sms_enabled": false,
         "sms_configured": false,
         "github_enabled": false,
@@ -4381,6 +4475,7 @@ status 业务枚举：draft=草稿、published=已发布。PATCH 省略字段保
 
 | 参数 | 类型 | 必填 | 默认值 | 备注 |
 | --- | --- | --- | --- | --- |
+| password_sms_enabled | bool / null | 否 | null | 密码登录手机二次验证；null 不修改，开启需当前账号已绑定手机且发送能力可用 |
 | sms_enabled | bool / null | 否 | — | 短信 后台开关；允许 null；是否清空以本接口业务说明为准 |
 | github_enabled | bool / null | 否 | — | GitHub 后台开关；允许 null；是否清空以本接口业务说明为准 |
 | wechat_enabled | bool / null | 否 | — | 微信 后台开关；允许 null；是否清空以本接口业务说明为准 |
@@ -4390,6 +4485,7 @@ status 业务枚举：draft=草稿、published=已发布。PATCH 省略字段保
 
 ```json
 {
+    "password_sms_enabled": null,
     "sms_enabled": null,
     "github_enabled": null,
     "wechat_enabled": null,
@@ -4404,6 +4500,8 @@ status 业务枚举：draft=草稿、published=已发布。PATCH 省略字段保
 | code | int | — | 响应业务码：0 成功，-1 失败 |
 | msg | string | — | 响应说明 |
 | data | object | — | 业务数据 |
+| └password_sms_enabled | bool | — | 密码登录手机二次验证开关，默认关闭 |
+| └password_sms_configured | bool | — | 二次验证发送能力是否可用；当前仅非生产 dev 模式为 true |
 | └sms_enabled | bool | — | 短信 后台开关 |
 | └sms_configured | bool | — | 短信 服务端配置是否齐全 |
 | └github_enabled | bool | — | GitHub 后台开关 |
@@ -4420,6 +4518,8 @@ status 业务枚举：draft=草稿、published=已发布。PATCH 省略字段保
     "code": 0,
     "msg": "ok",
     "data": {
+        "password_sms_enabled": false,
+        "password_sms_configured": false,
         "sms_enabled": false,
         "sms_configured": false,
         "github_enabled": false,

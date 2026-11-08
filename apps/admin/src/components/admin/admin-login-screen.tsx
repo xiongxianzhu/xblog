@@ -5,6 +5,7 @@ import { useTranslations } from "use-intl";
 import { AdminLoginBrand } from "@/components/admin/admin-login-brand";
 import { showAdminLoginSuccessToast } from "@/components/admin/admin-login-success-toast";
 import { AdminOAuthButtons, AdminOAuthButtonsSkeleton } from "@/components/admin/admin-oauth-buttons";
+import { AdminPasswordSmsForm } from "@/components/admin/admin-password-sms-form";
 import { AdminSmsLoginForm } from "@/components/admin/admin-sms-login-form";
 import { AdminTurnstile } from "@/components/admin/admin-turnstile";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   type LoginGuard,
   type LoginMethods,
   login,
+  type PasswordSmsChallenge,
 } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { useRouter, useSearchParams } from "@/lib/navigation";
@@ -71,6 +73,7 @@ export function AdminLoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [smsChallenge, setSmsChallenge] = useState<PasswordSmsChallenge | null>(null);
   const [methods, setMethods] = useState<LoginMethods>({ sms: false, github: false, wechat: false });
   const [methodsLoaded, setMethodsLoaded] = useState(false);
   const [loginGuard, setLoginGuard] = useState<LoginGuard | null>(null);
@@ -136,6 +139,13 @@ export function AdminLoginScreen() {
     setLoading(true);
     try {
       const user = await login(username, password, turnstileToken ?? undefined);
+      if ("sms_required" in user) {
+        setSmsChallenge(user);
+        setPassword("");
+        setTurnstileToken(null);
+        setTurnstileKey((value) => value + 1);
+        return;
+      }
       showAdminLoginSuccessToast(tFeedback, user.username);
       router.push("/admin/dashboard");
       router.refresh();
@@ -194,14 +204,23 @@ export function AdminLoginScreen() {
         />
         <div className="px-6 pt-6 text-center sm:px-8 [@media(max-height:820px)]:pt-3">
           <h1 className="m-0 text-2xl font-semibold leading-tight tracking-tight">
-            {view === "login" ? t("signIn") : t("forgot")}
+            {smsChallenge ? t("passwordSmsTitle") : view === "login" ? t("signIn") : t("forgot")}
           </h1>
           <p className="mb-0 mt-2 text-sm leading-relaxed text-muted-foreground">
-            {view === "login" ? t("intro") : t("forgotIntro")}
+            {smsChallenge ? t("passwordSmsIntro") : view === "login" ? t("intro") : t("forgotIntro")}
           </p>
         </div>
 
-        {view === "login" ? (
+        {smsChallenge ? (
+          <AdminPasswordSmsForm
+            challenge={smsChallenge}
+            onSuccess={handleSmsLoginSuccess}
+            onBack={() => {
+              setSmsChallenge(null);
+              void refreshLoginGuard(username);
+            }}
+          />
+        ) : view === "login" ? (
           <>
             {showLoginTabs ? (
               <AntTabs
