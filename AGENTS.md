@@ -128,6 +128,5 @@ uv run --directory apps/api python -m app.cli cleanup-uploads --max-age 3600 --d
 - 未经用户明确要求，不执行 git commit 或 git push。
 - 用户明确调用 `git-commit` Skill 时，提交当前任务相关改动后推送当前分支。
 - 只提交任务相关变更，保留用户其他未提交修改。
-- 分支使用 feat/、fix/、docs/、refactor/、chore/、test/、ci/、build/。
-- Commit 使用 Conventional Commits，描述用简体中文。
+- Commit 必须遵循 [Conventional Commits](https://www.conventionalcommits.org/)，分支使用 feat/、fix/、docs/、refactor/、chore/、test/、ci/、build/等，描述用简体中文。
 - PR 使用 [模板](.github/PULL_REQUEST_TEMPLATE.md)，按 [Git 工作流](docs/git-workflow.md) 完成本地检查和 Squash merge。
