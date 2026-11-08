@@ -1,4 +1,4 @@
-import { Modal, Typography } from "antd";
+import { Modal, type ModalProps, Typography } from "antd";
 import { X } from "lucide-react";
 import { type ComponentProps, createContext, type ReactNode, useContext } from "react";
 
@@ -14,12 +14,19 @@ export function Dialog({
 }) {
   return <Context.Provider value={{ open, onOpenChange }}>{children}</Context.Provider>;
 }
-export function DialogContent({ children, className }: ComponentProps<"div">) {
+export function DialogContent({
+  children,
+  className,
+  mask,
+  keyboard,
+}: ComponentProps<"div"> & Pick<ModalProps, "mask" | "keyboard">) {
   const { open, onOpenChange } = useContext(Context);
   return (
     <Modal
       open={open}
       onCancel={() => onOpenChange(false)}
+      mask={mask}
+      keyboard={keyboard}
       footer={null}
       closeIcon={<X size={18} />}
       width={640}

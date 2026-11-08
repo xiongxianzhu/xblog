@@ -233,7 +233,7 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" mask={{ closable: false }} keyboard={false}>
           <DialogHeader>
             <DialogTitle>{txt("m0481")}</DialogTitle>
             <DialogDescription>
