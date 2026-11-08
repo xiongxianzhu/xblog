@@ -4,21 +4,30 @@ import { lazy, Suspense } from "react";
 import useSWR from "swr";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { CopyFieldButton } from "@/components/admin/copy-field-button";
+import { PostExportButton } from "@/components/admin/post-transfer-actions";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAdminPost } from "@/lib/api";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { getAdminPost, getAdminSiteTheme } from "@/lib/api";
 import { useParams, useRouter } from "@/lib/navigation";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
+import { getPublicPostUrl } from "@/lib/public-site-url";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
 
 const MarkdownContent = lazy(() =>
-  import("@/components/markdown-content").then((module) => ({ default: module.MarkdownContent })),
+  import("@/components/markdown-content").then((module) => ({
+    default: module.MarkdownContent,
+  })),
 );
-
 export default function PostDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const txt = useAdminMessages();
+  const { id } = useParams<{
+    id: string;
+  }>();
   const router = useRouter();
   const { resolvedMode } = useAdminTheme();
+  const { data: siteTheme, error: siteThemeError } = useSWR("admin-site-theme", getAdminSiteTheme);
   const postId = Number(id);
   const valid = Number.isSafeInteger(postId) && postId > 0;
   const {
@@ -31,31 +40,32 @@ export default function PostDetailPage() {
   return (
     <div>
       <AdminPageHeader
-        title="文章详情"
-        description="预览文章正文与发布信息。"
+        title={txt("m0164")}
+        description={txt("m0165")}
         actions={
           <>
-            <Button onClick={() => router.push("/admin/posts")}>返回文章列表</Button>
+            <Button onClick={() => router.push("/admin/posts")}>{txt("m0166")}</Button>
+            {post ? <PostExportButton postId={post.id} /> : null}
             {post ? (
               <Button
                 type="primary"
                 icon={<Pencil size={16} />}
                 onClick={() => router.push(`/admin/posts/${post.id}/edit`)}
               >
-                编辑文章
+                {txt("m0167")}
               </Button>
             ) : null}
           </>
         }
       />
       {!valid ? (
-        <Alert type="error" title="文章编号无效" />
+        <Alert type="error" title={txt("m0168")} />
       ) : error ? (
         <Alert
           type="error"
-          title="无法加载文章"
-          description={error instanceof Error ? error.message : "请稍后重试"}
-          action={<Button onClick={() => void mutate()}>重试</Button>}
+          title={txt("m0169")}
+          description={getAdminErrorMessage(error)}
+          action={<Button onClick={() => void mutate()}>{txt("m0028")}</Button>}
         />
       ) : isLoading || !post ? (
         <Spin />
@@ -64,19 +74,20 @@ export default function PostDetailPage() {
           <Card>
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Tag color={post.status === "published" ? "success" : "default"}>
-                {post.status === "published" ? "已发布" : "草稿"}
+                {post.status === "published" ? txt("m0030") : txt("m0170")}
               </Tag>
               {post.is_pinned ? (
                 <Tag>
                   <span className="inline-flex items-center gap-1">
                     <Pin size={12} />
-                    已置顶
+                    {txt("m0171")}
                   </span>
                 </Tag>
               ) : null}
               <span className="text-xs text-muted-foreground">
-                文章 #{post.id}
-                <CopyFieldButton value={post.id} label="文章 ID" />
+                {txt("m0172")}
+                {post.id}
+                <CopyFieldButton value={post.id} label={txt("m0173")} />
               </span>
             </div>
             <h2 className="m-0 break-words text-2xl font-semibold leading-snug sm:text-3xl">{post.title}</h2>
@@ -98,11 +109,11 @@ export default function PostDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText size={18} />
-                  正文预览
+                  {txt("m0174")}
                 </CardTitle>
               </CardHeader>
               {cover ? (
-                <img src={cover} alt="文章封面" className="mb-6 max-h-96 w-full rounded object-contain" />
+                <img src={cover} alt={txt("m0175")} className="mb-6 max-h-96 w-full rounded object-contain" />
               ) : null}
               <Suspense
                 fallback={
@@ -111,25 +122,29 @@ export default function PostDetailPage() {
                   </div>
                 }
               >
-                <MarkdownContent content={post.content_md} colorMode={resolvedMode} emptyHint="暂无正文" />
+                <MarkdownContent
+                  content={post.content_md}
+                  colorMode={resolvedMode}
+                  emptyHint={txt("m0176")}
+                />
               </Suspense>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>发布信息</CardTitle>
+                <CardTitle>{txt("m0177")}</CardTitle>
               </CardHeader>
               <dl className="m-0 flex flex-col gap-5">
                 <div>
-                  <dt className="text-sm text-muted-foreground">文章路径（slug）</dt>
+                  <dt className="text-sm text-muted-foreground">{txt("m0178")}</dt>
                   <dd className="m-0 mt-2 break-all font-mono text-sm">
                     {post.slug}
-                    <CopyFieldButton value={post.slug} label="文章路径" />
+                    <CopyFieldButton value={post.slug} label={txt("m0179")} />
                   </dd>
                 </div>
                 {[
-                  ["创建时间", post.created_at],
-                  ["更新时间", post.updated_at],
-                  ["发布时间", post.published_at],
+                  [txt("m0180"), post.created_at],
+                  [txt("m0181"), post.updated_at],
+                  [txt("m0182"), post.published_at],
                 ].map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-sm text-muted-foreground">{label}</dt>
@@ -140,17 +155,17 @@ export default function PostDetailPage() {
               <div className="mt-6 border-t pt-5">
                 {post.status === "published" ? (
                   <Button
-                    href={`/blog/${encodeURIComponent(post.slug)}`}
+                    href={siteTheme ? getPublicPostUrl(post.slug, siteTheme.site_base_url) : undefined}
+                    disabled={!siteTheme}
+                    title={siteThemeError ? txt("m0183") : undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     icon={<ExternalLink size={16} />}
                   >
-                    在公开站查看
+                    {txt("m0184")}
                   </Button>
                 ) : (
-                  <p className="m-0 text-sm leading-6 text-muted-foreground">
-                    此文章为草稿，仅在管理端预览，公开站不可访问。
-                  </p>
+                  <p className="m-0 text-sm leading-6 text-muted-foreground">{txt("m0185")}</p>
                 )}
               </div>
             </Card>

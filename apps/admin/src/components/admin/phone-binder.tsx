@@ -1,10 +1,12 @@
 import { CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { bindPhone } from "@/lib/api";
 import { toast } from "@/lib/feedback";
+import { profileErrorKey } from "@/lib/profile-errors";
 
 type PhoneBinderProps = {
   phone?: string | null;
@@ -13,6 +15,7 @@ type PhoneBinderProps = {
 };
 
 export function PhoneBinder({ phone, onUpdated, embedded = false }: PhoneBinderProps) {
+  const t = useTranslations("admin.profile");
   const [value, setValue] = useState(phone ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -22,17 +25,17 @@ export function PhoneBinder({ phone, onUpdated, embedded = false }: PhoneBinderP
 
   async function handleSave() {
     if (!value.trim()) {
-      toast.error("请输入手机号");
+      toast.error(t("enterPhone"));
       return;
     }
     setSaving(true);
     try {
       const user = await bindPhone(value.trim());
       onUpdated(user.phone ?? value.trim());
-      toast.success("手机号已绑定", { description: "可在登录页使用手机验证码登录。" });
+      toast.success(t("phoneSaved"), { description: t("phoneSavedDescription") });
     } catch (err) {
-      toast.error("绑定失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(t("linkFailed"), {
+        description: t(profileErrorKey(err)),
       });
     } finally {
       setSaving(false);
@@ -45,17 +48,17 @@ export function PhoneBinder({ phone, onUpdated, embedded = false }: PhoneBinderP
         <div className="flex min-h-11 items-center gap-2 rounded-[2px] border border-border/50 bg-muted/25 px-3 py-2.5 text-xs">
           <CheckCircle2Icon className="size-3.5 shrink-0 text-primary" />
           <p className="m-0 min-w-0 break-all leading-normal text-muted-foreground">
-            当前绑定 <span className="font-medium text-foreground">{phone}</span>
+            {t("currentlyLinked")} <span className="font-medium text-foreground">{phone}</span>
           </p>
         </div>
       ) : null}
       <Field>
-        <FieldLabel htmlFor="profile-phone">{phone ? "更换手机号" : "手机号"}</FieldLabel>
+        <FieldLabel htmlFor="profile-phone">{phone ? t("changePhone") : t("phone")}</FieldLabel>
         <Input
           id="profile-phone"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="11 位中国大陆手机号"
+          placeholder={t("phoneHint")}
           inputMode="tel"
           autoComplete="tel"
         />
@@ -70,10 +73,10 @@ export function PhoneBinder({ phone, onUpdated, embedded = false }: PhoneBinderP
         {saving ? (
           <>
             <Loader2Icon className="size-4 animate-spin" />
-            保存中…
+            {t("saving")}
           </>
         ) : (
-          "保存手机号"
+          t("savePhone")
         )}
       </Button>
     </FieldGroup>
@@ -84,10 +87,8 @@ export function PhoneBinder({ phone, onUpdated, embedded = false }: PhoneBinderP
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
       <div>
-        <p className="text-sm font-medium">手机号登录</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          绑定后可在登录页使用短信验证码；需在设置中开启手机验证码登录。
-        </p>
+        <p className="text-sm font-medium">{t("phoneLogin")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("phoneDescription")}</p>
       </div>
       {form}
     </div>

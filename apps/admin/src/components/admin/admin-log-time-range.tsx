@@ -1,7 +1,7 @@
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import { CalendarDays } from "lucide-react";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export function AdminLogTimeRange({
   start,
   end,
@@ -11,17 +11,20 @@ export function AdminLogTimeRange({
   end: string;
   onChange: (field: "start_at" | "end_at", value: string) => void;
 }) {
+  const txt = useAdminMessages();
   return (
     <>
       {(["start_at", "end_at"] as const).map((field) => {
         const value = field === "start_at" ? start : end;
-        const label = field === "start_at" ? "开始时间" : "结束时间";
+        const label = field === "start_at" ? txt("m0335") : txt("m0336");
         return (
           <DatePicker
             key={field}
             aria-label={label}
             placeholder={label}
-            title={`${label}（北京时间）`}
+            title={txt("m0337", {
+              p0: label,
+            })}
             showTime
             needConfirm={false}
             format="YYYY-MM-DD HH:mm:ss"
@@ -40,7 +43,7 @@ export function AdminLogTimeRange({
           />
         );
       })}
-      <span className="text-xs text-muted-foreground">北京时间</span>
+      <span className="text-xs text-muted-foreground">{txt("m0338")}</span>
     </>
   );
 }

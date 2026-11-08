@@ -1,8 +1,9 @@
 import { PenLineIcon } from "lucide-react";
 import useSWR from "swr";
-
+import { adminText } from "@/lib/admin-messages";
 import { getPublicSiteThemeClient } from "@/lib/api";
 import { DEFAULT_SITE_THEME } from "@/lib/themes";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type AdminLoginBrandProps = {
@@ -10,12 +11,12 @@ type AdminLoginBrandProps = {
   className?: string;
   centered?: boolean;
 };
-
 export function AdminLoginBrand({
-  subtitle = "管理后台",
+  subtitle = adminText("m0339"),
   className,
   centered = false,
 }: AdminLoginBrandProps) {
+  useAdminMessages();
   const markSize = centered ? "size-16 rounded-full" : "size-9 rounded-sm";
   const { data, isLoading } = useSWR("public-site-theme", getPublicSiteThemeClient);
   if (!data && isLoading) {
@@ -28,7 +29,6 @@ export function AdminLoginBrand({
   }
   const brand = data ?? DEFAULT_SITE_THEME;
   const secondaryLine = data ? data.site_tagline?.trim() : subtitle;
-
   return (
     <div className={cn("mb-8 flex items-center gap-2.5", className)}>
       {brand.site_logo_url ? (

@@ -1,9 +1,10 @@
 import { Button, Drawer, Input } from "antd";
 import { useState } from "react";
 import { ContentWidthSelect } from "@/components/ui/content-width-select";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { toast } from "@/lib/feedback";
 import { type MediaAsset, type MediaGroup, updateMedia } from "@/lib/media-api";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export function MediaEditor({
   asset,
   groups,
@@ -15,30 +16,34 @@ export function MediaEditor({
   onClose: () => void;
   onSaved: () => Promise<unknown>;
 }) {
+  const txt = useAdminMessages();
   const [name, setName] = useState(asset.name);
   const [group, setGroup] = useState<number | null>(asset.group_id);
   const [saving, setSaving] = useState(false);
   return (
-    <Drawer open title="素材信息" size={440} onClose={() => !saving && onClose()} closable={!saving}>
+    <Drawer open title={txt("m0599")} size={440} onClose={() => !saving && onClose()} closable={!saving}>
       <form
         onSubmit={async (event) => {
           event.preventDefault();
           if (!name.trim() || saving) return;
           setSaving(true);
           try {
-            await updateMedia(asset.id, { name: name.trim(), group_id: group });
+            await updateMedia(asset.id, {
+              name: name.trim(),
+              group_id: group,
+            });
             await onSaved();
-            toast.success("素材已更新");
+            toast.success(txt("m0600"));
             onClose();
           } catch (err) {
-            toast.error(err instanceof Error ? err.message : "更新失败");
+            toast.error(getAdminErrorMessage(err));
           } finally {
             setSaving(false);
           }
         }}
       >
         <label htmlFor="media-name" className="mb-2 block text-sm font-medium">
-          名称
+          {txt("m0061")}
         </label>
         <Input
           id="media-name"
@@ -49,7 +54,7 @@ export function MediaEditor({
           onChange={(event) => setName(event.target.value)}
         />
         <label htmlFor="media-group" className="mb-2 mt-6 block text-sm font-medium">
-          所属分组
+          {txt("m0601")}
         </label>
         <ContentWidthSelect<number>
           id="media-group"
@@ -58,17 +63,26 @@ export function MediaEditor({
           onChange={(value) => setGroup(value || null)}
           className="w-full"
           options={[
-            { value: 0, label: "未分组" },
-            ...groups.map((item) => ({ value: item.id, label: item.name })),
+            {
+              value: 0,
+              label: txt("m0125"),
+            },
+            ...groups.map((item) => ({
+              value: item.id,
+              label: item.name,
+            })),
           ]}
         />
-        <p className="mt-4 break-all text-xs text-muted-foreground">原文件：{asset.original_name}</p>
+        <p className="mt-4 break-all text-xs text-muted-foreground">
+          {txt("m0602")}
+          {asset.original_name}
+        </p>
         <div className="mt-6 flex justify-end gap-3 border-t pt-5">
           <Button disabled={saving} onClick={onClose}>
-            取消
+            {txt("m0217")}
           </Button>
           <Button htmlType="submit" type="primary" loading={saving} disabled={!name.trim()}>
-            保存
+            {txt("m0465")}
           </Button>
         </div>
       </form>

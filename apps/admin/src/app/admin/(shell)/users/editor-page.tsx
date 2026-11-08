@@ -2,11 +2,15 @@ import { Alert, Button, Spin } from "antd";
 import useSWR from "swr";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminUserForm } from "@/components/admin/admin-user-form";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { getAdminUser } from "@/lib/api";
 import { useParams, useRouter } from "@/lib/navigation";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export default function UserEditorPage() {
-  const { id } = useParams<{ id: string }>();
+  const txt = useAdminMessages();
+  const { id } = useParams<{
+    id: string;
+  }>();
   const router = useRouter();
   const userId = Number(id);
   const editing = id !== undefined;
@@ -20,22 +24,18 @@ export default function UserEditorPage() {
   return (
     <div>
       <AdminPageHeader
-        title={editing ? "编辑用户" : "创建用户"}
-        description={
-          editing
-            ? "维护管理员账号的基本资料与联系方式。"
-            : "创建管理员账号；创建后可在用户列表中重置登录密码。"
-        }
-        actions={<Button onClick={() => router.push("/admin/users")}>返回用户列表</Button>}
+        title={editing ? txt("m0279") : txt("m0280")}
+        description={editing ? txt("m0281") : txt("m0282")}
+        actions={<Button onClick={() => router.push("/admin/users")}>{txt("m0255")}</Button>}
       />
       {editing && !validId ? (
-        <Alert type="error" title="用户编号无效" />
+        <Alert type="error" title={txt("m0256")} />
       ) : error ? (
         <Alert
           type="error"
-          title="无法加载用户"
-          description={error instanceof Error ? error.message : "请稍后重试"}
-          action={<Button onClick={() => void mutate()}>重试</Button>}
+          title={txt("m0257")}
+          description={getAdminErrorMessage(error)}
+          action={<Button onClick={() => void mutate()}>{txt("m0028")}</Button>}
         />
       ) : editing && (isLoading || !user) ? (
         <Spin />

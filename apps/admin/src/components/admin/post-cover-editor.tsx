@@ -1,8 +1,6 @@
 import { Upload } from "antd";
-
 import { ImagePlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-
 import {
   adminBorderlessControlClass,
   adminBorderlessFocusClass,
@@ -10,9 +8,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { localizeAdminNotice } from "@/lib/admin-messages";
 import { uploadPostCover } from "@/lib/api";
 import { discardManagedPostCover } from "@/lib/pending-upload-cleanup";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type PostCoverEditorProps = {
@@ -21,29 +22,25 @@ type PostCoverEditorProps = {
   onChange: (coverUrl: string) => void;
   disabled?: boolean;
 };
-
 export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled }: PostCoverEditorProps) {
+  const txt = useAdminMessages();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const displayUrl = resolveAdminAssetPreviewUrl(previewUrl ?? (value || null));
-
   async function handleFileChange(file: File) {
     if (!file.type.startsWith("image/")) {
-      setError("请选择图片文件");
+      setError(txt("m0554"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("图片不能超过 5MB");
+      setError(txt("m0555"));
       return;
     }
-
     setError("");
     setLoading(true);
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
-
     try {
       const previous = value.trim();
       const result = await uploadPostCover(file);
@@ -56,22 +53,20 @@ export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled 
     } catch (err) {
       setPreviewUrl(null);
       URL.revokeObjectURL(localPreview);
-      setError(err instanceof Error ? err.message : "上传失败");
+      setError(getAdminErrorMessage(err));
     } finally {
       setLoading(false);
     }
   }
-
   async function handleRemove() {
     await discardManagedPostCover(value, savedCoverUrl);
     onChange("");
     setPreviewUrl(null);
     setError("");
   }
-
   return (
     <Field className="md:col-span-2">
-      <FieldLabel htmlFor="cover_url">封面</FieldLabel>
+      <FieldLabel htmlFor="cover_url">{txt("m0623")}</FieldLabel>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div className="relative aspect-[21/9] min-h-[8rem] w-full max-w-md overflow-hidden rounded-sm border border-border/70 bg-muted/20 lg:w-72">
           {displayUrl ? (
@@ -79,7 +74,7 @@ export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled 
             <img src={displayUrl} alt="" className="block size-full object-cover" />
           ) : (
             <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-              暂无封面
+              {txt("m0624")}
             </div>
           )}
         </div>
@@ -88,7 +83,7 @@ export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled 
             id="cover_url"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="https://… 或上传本地图片"
+            placeholder={txt("m0625")}
             disabled={disabled || loading}
             className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
           />
@@ -104,7 +99,7 @@ export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled 
             >
               <Button type="button" variant="outline" size="sm" disabled={disabled || loading}>
                 <ImagePlusIcon data-icon="inline-start" />
-                {loading ? "上传中…" : "上传封面"}
+                {loading ? txt("m0557") : txt("m0626")}
               </Button>
             </Upload>
             {value ? (
@@ -116,12 +111,12 @@ export function PostCoverEditor({ value, savedCoverUrl = "", onChange, disabled 
                 onClick={() => void handleRemove()}
               >
                 <Trash2Icon data-icon="inline-start" />
-                移除
+                {txt("m0559")}
               </Button>
             ) : null}
           </div>
-          <FieldDescription>支持 JPG、PNG、WebP、GIF，最大 5MB；也可粘贴外链 URL。</FieldDescription>
-          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+          <FieldDescription>{txt("m0627")}</FieldDescription>
+          {error ? <p className="text-xs text-destructive">{localizeAdminNotice(error)}</p> : null}
         </div>
       </div>
     </Field>

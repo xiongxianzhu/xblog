@@ -1,10 +1,12 @@
 import { CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { bindEmail } from "@/lib/api";
 import { toast } from "@/lib/feedback";
+import { profileErrorKey } from "@/lib/profile-errors";
 
 type EmailBinderProps = {
   email?: string | null;
@@ -15,6 +17,7 @@ type EmailBinderProps = {
 };
 
 export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderProps) {
+  const t = useTranslations("admin.profile");
   const [value, setValue] = useState(email ?? "");
 
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,7 @@ export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderP
     const trimmed = value.trim();
 
     if (!trimmed) {
-      toast.error("请输入邮箱");
+      toast.error(t("enterEmail"));
 
       return;
     }
@@ -39,10 +42,10 @@ export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderP
 
       onUpdated(user.email ?? trimmed);
 
-      toast.success("邮箱已保存", { description: "可用于密码登录与找回密码。" });
+      toast.success(t("emailSaved"), { description: t("emailSavedDescription") });
     } catch (err) {
-      toast.error("保存失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(t("saveFailed"), {
+        description: t(profileErrorKey(err)),
       });
     } finally {
       setSaving(false);
@@ -56,13 +59,13 @@ export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderP
           <CheckCircle2Icon className="size-3.5 shrink-0 text-primary" />
 
           <p className="m-0 min-w-0 break-all leading-normal text-muted-foreground">
-            当前绑定 <span className="font-medium text-foreground">{email}</span>
+            {t("currentlyLinked")} <span className="font-medium text-foreground">{email}</span>
           </p>
         </div>
       ) : null}
 
       <Field>
-        <FieldLabel htmlFor="profile-email">{email ? "更换邮箱" : "邮箱地址"}</FieldLabel>
+        <FieldLabel htmlFor="profile-email">{email ? t("changeEmail") : t("emailAddress")}</FieldLabel>
 
         <Input
           id="profile-email"
@@ -84,10 +87,10 @@ export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderP
         {saving ? (
           <>
             <Loader2Icon className="size-4 animate-spin" />
-            保存中…
+            {t("saving")}
           </>
         ) : (
-          "保存邮箱"
+          t("saveEmail")
         )}
       </Button>
     </FieldGroup>
@@ -98,11 +101,9 @@ export function EmailBinder({ email, onUpdated, embedded = false }: EmailBinderP
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
       <div>
-        <p className="text-sm font-medium">邮箱</p>
+        <p className="text-sm font-medium">{t("email")}</p>
 
-        <p className="mt-1 text-xs text-muted-foreground">
-          绑定后可使用邮箱 + 密码登录；找回密码邮件将发送到此地址（需配置 SMTP）。
-        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("emailHint")}</p>
       </div>
 
       {form}

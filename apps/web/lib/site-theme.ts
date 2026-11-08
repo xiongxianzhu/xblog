@@ -45,6 +45,9 @@ function normalizeTheme(raw: Partial<SitePublicTheme> | null | undefined): SiteP
     site_icp_number,
     nav_order: Array.isArray(raw?.nav_order) ? raw.nav_order : undefined,
     posts_per_page,
+    site_base_url: typeof raw?.site_base_url === "string" ? raw.site_base_url : "",
+    github_link_enabled: raw?.github_link_enabled === true,
+    github_link_url: typeof raw?.github_link_url === "string" ? raw.github_link_url : "",
     article_share_enabled: raw?.article_share_enabled === true,
     copyright_enabled: raw?.copyright_enabled === true,
     copyright_content:
@@ -74,7 +77,7 @@ async function fetchSiteThemeFromApi(): Promise<SitePublicTheme> {
   }
 }
 
-const getPublicSiteThemeCached = unstable_cache(fetchSiteThemeFromApi, ["public-site-theme-v8"], {
+const getPublicSiteThemeCached = unstable_cache(fetchSiteThemeFromApi, ["public-site-theme-v9"], {
   tags: ["site-theme"],
   revalidate: 3600,
 });

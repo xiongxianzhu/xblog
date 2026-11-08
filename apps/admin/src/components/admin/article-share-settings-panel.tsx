@@ -2,43 +2,47 @@ import { Alert, Switch } from "antd";
 import { useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { getAdminSiteTheme, updateAdminSiteTheme } from "@/lib/api";
 import { toast } from "@/lib/feedback";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export function ArticleShareSettingsPanel() {
+  const txt = useAdminMessages();
   const { data, error, isLoading, mutate } = useSWR("admin-site-theme", getAdminSiteTheme);
   const [saving, setSaving] = useState(false);
   async function save(enabled: boolean) {
     if (saving) return;
     setSaving(true);
     try {
-      const updated = await updateAdminSiteTheme({ article_share_enabled: enabled });
+      const updated = await updateAdminSiteTheme({
+        article_share_enabled: enabled,
+      });
       await mutate(updated, false);
-      toast.success(enabled ? "文章分享已开启" : "文章分享已关闭");
+      toast.success(enabled ? txt("m0514") : txt("m0515"));
     } catch (err) {
-      toast.error("保存失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0434"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setSaving(false);
     }
   }
-  if (isLoading) return <p className="text-sm text-muted-foreground">加载文章分享设置…</p>;
+  if (isLoading) return <p className="text-sm text-muted-foreground">{txt("m0516")}</p>;
   if (error || !data)
     return (
       <Alert
         type="error"
-        title="文章分享设置加载失败"
-        action={<Button onClick={() => void mutate()}>重试</Button>}
+        title={txt("m0517")}
+        action={<Button onClick={() => void mutate()}>{txt("m0028")}</Button>}
       />
     );
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
         <label htmlFor="article-share-enabled" className="text-sm font-medium">
-          开启文章分享
+          {txt("m0518")}
         </label>
-        <p className="mb-0 mt-1 text-xs leading-5 text-muted-foreground">
-          正文下方显示分享按钮，可复制链接或扫码访问当前文章。修改后自动保存；已打开的文章需刷新后生效。
-        </p>
+        <p className="mb-0 mt-1 text-xs leading-5 text-muted-foreground">{txt("m0519")}</p>
       </div>
       <Switch
         id="article-share-enabled"

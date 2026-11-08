@@ -9,7 +9,6 @@ import {
 } from "@/components/admin/admin-list-filter";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -25,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import {
   type AiProvider,
   type AiProviderType,
@@ -38,6 +38,7 @@ import {
 } from "@/lib/ai-api";
 import { toast } from "@/lib/feedback";
 import { matchQuery } from "@/lib/match-query";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 
 type FormState = {
   name: string;
@@ -48,7 +49,6 @@ type FormState = {
   enabled: boolean;
   is_default: boolean;
 };
-
 const emptyForm: FormState = {
   name: "",
   provider_type: "openai_compatible",
@@ -58,10 +58,15 @@ const emptyForm: FormState = {
   enabled: false,
   is_default: false,
 };
-
 export function AiProviderSettings() {
+  const txt = useAdminMessages();
   const { data, error, isLoading, mutate } = useSWR("ai-providers", listAiProviders);
-  const [filters, setFilters] = useState({ provider_type: "", enabled: "", is_default: "", has_api_key: "" });
+  const [filters, setFilters] = useState({
+    provider_type: "",
+    enabled: "",
+    is_default: "",
+    has_api_key: "",
+  });
   const [search, setSearch] = useState("");
   const [requestedPage, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
@@ -76,7 +81,6 @@ export function AiProviderSettings() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AiProvider | null>(null);
   const [deleting, setDeleting] = useState(false);
-
   const filtered = useMemo(
     () =>
       (data ?? []).filter(
@@ -91,22 +95,20 @@ export function AiProviderSettings() {
             provider.model,
             provider.provider_type,
             getProviderTypeLabel(provider.provider_type),
-            provider.enabled ? "激活" : "未激活",
-            provider.is_default ? "默认" : "",
-            provider.has_api_key ? "已配置" : "未配置",
+            provider.enabled ? txt("m0423") : txt("m0424"),
+            provider.is_default ? txt("m0425") : "",
+            provider.has_api_key ? txt("m0426") : txt("m0427"),
           ),
       ),
-    [data, search, filters],
+    [data, search, filters, txt],
   );
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const visibleRows = filtered.slice((page - 1) * pageSize, page * pageSize);
-
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
     setOpen(true);
   }
-
   function openEdit(provider: AiProvider) {
     setEditing(provider);
     setForm({
@@ -120,7 +122,6 @@ export function AiProviderSettings() {
     });
     setOpen(true);
   }
-
   function applyTemplate(type: AiProviderType) {
     const template = PROVIDER_TEMPLATES[type];
     setForm((prev) => ({
@@ -130,7 +131,6 @@ export function AiProviderSettings() {
       model: template.model,
     }));
   }
-
   async function handleSave() {
     setSaving(true);
     try {
@@ -149,155 +149,181 @@ export function AiProviderSettings() {
         await updateAiProvider(editing.id, payload);
       } else {
         if (!form.api_key.trim()) {
-          throw new Error("新建提供商时请填写 API Key");
+          throw new Error(txt("m0428"));
         }
         payload.api_key = form.api_key.trim();
         await createAiProvider(payload);
       }
       setOpen(false);
       await mutate();
-      toast.success(editing ? "保存成功" : "创建成功", {
-        description: `提供商「${form.name.trim()}」已${editing ? "更新" : "添加"}。`,
+      toast.success(editing ? txt("m0429") : txt("m0430"), {
+        description: txt("m0431", {
+          p0: form.name.trim(),
+          p1: editing ? txt("m0432") : txt("m0433"),
+        }),
       });
     } catch (err) {
-      toast.error("保存失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(txt("m0434"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setSaving(false);
     }
   }
-
   const [changingProvider, setChangingProvider] = useState<string | null>(null);
-  async function changeFlags(id: string, flags: { enabled?: boolean; is_default?: boolean }) {
+  async function changeFlags(
+    id: string,
+    flags: {
+      enabled?: boolean;
+      is_default?: boolean;
+    },
+  ) {
     setChangingProvider(id);
     try {
       await updateAiProvider(id, flags);
       await mutate();
     } catch (err) {
-      toast.error("更新失败", { description: err instanceof Error ? err.message : "请重试" });
+      toast.error(txt("m0435"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setChangingProvider(null);
     }
   }
-
   async function confirmDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
       await deleteAiProvider(deleteTarget.id);
       await mutate();
-      toast.success("删除成功", { description: `提供商「${deleteTarget.name}」已移除。` });
+      toast.success(txt("m0437"), {
+        description: txt("m0438", {
+          p0: deleteTarget.name,
+        }),
+      });
       setDeleteTarget(null);
     } catch (err) {
-      toast.error("删除失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(txt("m0049"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setDeleting(false);
     }
   }
-
   async function handleTest(provider: AiProvider) {
     setTestingId(provider.id);
     try {
       const result = await testAiProvider(provider.id);
       if (result.ok) {
-        toast.success("连接测试成功", {
-          description: `延迟 ${result.latency_ms}ms · ${provider.name}`,
+        toast.success(txt("m0439"), {
+          description: txt("m0440", {
+            p0: result.latency_ms,
+            p1: provider.name,
+          }),
         });
       } else {
-        toast.error("连接测试失败", { description: result.message });
+        toast.error(txt("m0441"), {
+          description: getAdminErrorMessage(result.message, "aiFailed"),
+        });
       }
     } catch (err) {
-      toast.error("连接测试失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(txt("m0441"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setTestingId(null);
     }
   }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          自行添加 LLM 提供商并激活后，编辑器 AI 功能才可用。API Key 仅保存在服务端。
-        </p>
-        <Button onClick={openCreate}>新建提供商</Button>
+        <p className="text-sm text-muted-foreground">{txt("m0442")}</p>
+        <Button onClick={openCreate}>{txt("m0443")}</Button>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <AdminListSearch
           value={search}
           onChange={changeSearch}
-          placeholder="搜索名称、模型、类型…"
+          placeholder={txt("m0444")}
           className="w-72 max-w-full shrink-0"
         />
 
         <AdminListFilter
-          label="厂商类型"
+          label={txt("m0445")}
           value={filters.provider_type}
           options={Object.keys(PROVIDER_TEMPLATES).map((value) => ({
             value,
             label: getProviderTypeLabel(value as AiProviderType),
           }))}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, provider_type: value }));
+            setFilters((current) => ({
+              ...current,
+              provider_type: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="启用状态"
+          label={txt("m0293")}
           value={filters.enabled}
           options={ACTIVE_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, enabled: value }));
+            setFilters((current) => ({
+              ...current,
+              enabled: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="默认模型"
+          label={txt("m0446")}
           value={filters.is_default}
           options={BOOLEAN_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, is_default: value }));
+            setFilters((current) => ({
+              ...current,
+              is_default: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="密钥配置"
+          label={txt("m0447")}
           value={filters.has_api_key}
           options={BOOLEAN_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, has_api_key: value }));
+            setFilters((current) => ({
+              ...current,
+              has_api_key: value,
+            }));
             setPage(1);
           }}
         />
       </div>
 
-      {error ? <p className="text-sm text-destructive">加载失败</p> : null}
+      {error ? <p className="text-sm text-destructive">{txt("m0448")}</p> : null}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">提供商列表</CardTitle>
-          <CardDescription>至少激活一个并设为默认，才能在编辑器中使用 AI。</CardDescription>
+          <CardTitle className="text-base">{txt("m0449")}</CardTitle>
+          <CardDescription>{txt("m0450")}</CardDescription>
         </CardHeader>
         <CardContent className="min-w-0">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">加载中…</p>
+            <p className="text-sm text-muted-foreground">{txt("m0222")}</p>
           ) : (
             <>
               <Table className="admin-ai-list-table">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>名称</TableHead>
-                    <TableHead>类型</TableHead>
-                    <TableHead>模型</TableHead>
-                    <TableHead>Key</TableHead>
-                    <TableHead>激活</TableHead>
-                    <TableHead>默认</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>{txt("m0061")}</TableHead>
+                    <TableHead>{txt("m0451")}</TableHead>
+                    <TableHead>{txt("m0452")}</TableHead>
+                    <TableHead>{txt("m0795")}</TableHead>
+                    <TableHead>{txt("m0423")}</TableHead>
+                    <TableHead>{txt("m0425")}</TableHead>
+                    <TableHead className="text-right">{txt("m0063")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -307,33 +333,50 @@ export function AiProviderSettings() {
                       <TableCell>{getProviderTypeLabel(provider.provider_type)}</TableCell>
                       <TableCell className="max-w-[160px] truncate">{provider.model}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
-                        {provider.has_api_key ? provider.masked_api_key || "********" : "未配置"}
+                        {provider.has_api_key ? provider.masked_api_key || "********" : txt("m0427")}
                       </TableCell>
                       <TableCell>
                         <Switch
                           checked={provider.enabled}
-                          aria-label={`激活 ${provider.name}`}
+                          aria-label={txt("m0453", {
+                            p0: provider.name,
+                          })}
                           disabled={changingProvider !== null}
-                          onCheckedChange={(enabled) => void changeFlags(provider.id, { enabled })}
+                          onCheckedChange={(enabled) =>
+                            void changeFlags(provider.id, {
+                              enabled,
+                            })
+                          }
                         />
                       </TableCell>
                       <TableCell>
                         <Switch
                           checked={provider.is_default}
-                          aria-label={`默认模型 ${provider.name}`}
+                          aria-label={txt("m0454", {
+                            p0: provider.name,
+                          })}
                           disabled={changingProvider !== null}
                           onCheckedChange={(checked) =>
                             void changeFlags(
                               provider.id,
-                              checked ? { is_default: true, enabled: true } : { is_default: false },
+                              checked
+                                ? {
+                                    is_default: true,
+                                    enabled: true,
+                                  }
+                                : {
+                                    is_default: false,
+                                  },
                             )
                           }
                         />
                       </TableCell>
                       <TableCell className="space-x-2 text-right">
                         <Button
-                          aria-label={`编辑 ${provider.name}`}
-                          title="编辑"
+                          aria-label={txt("m0065", {
+                            p0: provider.name,
+                          })}
+                          title={txt("m0039")}
                           variant="ghost"
                           size="icon"
                           onClick={() => openEdit(provider)}
@@ -341,8 +384,10 @@ export function AiProviderSettings() {
                           <Pencil />
                         </Button>
                         <Button
-                          aria-label={`测试 ${provider.name}`}
-                          title="测试"
+                          aria-label={txt("m0455", {
+                            p0: provider.name,
+                          })}
+                          title={txt("m0456")}
                           variant="ghost"
                           size="icon"
                           disabled={testingId === provider.id || !provider.has_api_key}
@@ -351,8 +396,10 @@ export function AiProviderSettings() {
                           {testingId === provider.id ? <Loader2Icon className="animate-spin" /> : <PlugZap />}
                         </Button>
                         <Button
-                          aria-label={`删除 ${provider.name}`}
-                          title="删除"
+                          aria-label={txt("m0066", {
+                            p0: provider.name,
+                          })}
+                          title={txt("m0067")}
                           variant="ghost"
                           className="text-destructive"
                           size="icon"
@@ -366,9 +413,9 @@ export function AiProviderSettings() {
                   {!data?.length ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground">
-                        尚未配置提供商。
+                        {txt("m0457")}
                         <Button variant="ghost" size="sm" className="h-auto px-1" onClick={openCreate}>
-                          立即添加
+                          {txt("m0458")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -376,7 +423,7 @@ export function AiProviderSettings() {
                   {data?.length && !filtered.length ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground">
-                        无匹配结果
+                        {txt("m0056")}
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -400,16 +447,24 @@ export function AiProviderSettings() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "编辑提供商" : "新建提供商"}</DialogTitle>
-            <DialogDescription>选择类型可自动填充建议 base URL，请按需修改。</DialogDescription>
+            <DialogTitle>{editing ? txt("m0459") : txt("m0443")}</DialogTitle>
+            <DialogDescription>{txt("m0460")}</DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <Field>
-              <FieldLabel>名称</FieldLabel>
-              <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+              <FieldLabel>{txt("m0061")}</FieldLabel>
+              <Input
+                value={form.name}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    name: e.target.value,
+                  }))
+                }
+              />
             </Field>
             <Field>
-              <FieldLabel>类型</FieldLabel>
+              <FieldLabel>{txt("m0451")}</FieldLabel>
               <Select
                 value={form.provider_type}
                 onValueChange={(value) => applyTemplate(value as AiProviderType)}
@@ -427,23 +482,41 @@ export function AiProviderSettings() {
               </Select>
             </Field>
             <Field>
-              <FieldLabel>Base URL</FieldLabel>
+              <FieldLabel>{txt("m0794")}</FieldLabel>
               <Input
                 value={form.base_url}
-                onChange={(e) => setForm((p) => ({ ...p, base_url: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    base_url: e.target.value,
+                  }))
+                }
               />
             </Field>
             <Field>
-              <FieldLabel>模型</FieldLabel>
-              <Input value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
+              <FieldLabel>{txt("m0452")}</FieldLabel>
+              <Input
+                value={form.model}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    model: e.target.value,
+                  }))
+                }
+              />
             </Field>
             <Field>
-              <FieldLabel>API Key</FieldLabel>
+              <FieldLabel>{txt("m0795")}</FieldLabel>
               <Input
                 type="password"
                 value={form.api_key}
-                placeholder={editing?.has_api_key ? "留空表示不修改" : "必填"}
-                onChange={(e) => setForm((p) => ({ ...p, api_key: e.target.value }))}
+                placeholder={editing?.has_api_key ? txt("m0461") : txt("m0462")}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    api_key: e.target.value,
+                  }))
+                }
               />
             </Field>
             <div className="flex items-center gap-6">
@@ -451,34 +524,44 @@ export function AiProviderSettings() {
                 <Switch
                   id="provider-enabled"
                   checked={form.enabled}
-                  onCheckedChange={(checked) => setForm((p) => ({ ...p, enabled: checked }))}
+                  onCheckedChange={(checked) =>
+                    setForm((p) => ({
+                      ...p,
+                      enabled: checked,
+                    }))
+                  }
                 />
-                激活
+                {txt("m0423")}
               </label>
               <label htmlFor="provider-default" className="flex items-center gap-2 text-sm">
                 <Switch
                   id="provider-default"
                   checked={form.is_default}
-                  onCheckedChange={(checked) => setForm((p) => ({ ...p, is_default: checked }))}
+                  onCheckedChange={(checked) =>
+                    setForm((p) => ({
+                      ...p,
+                      is_default: checked,
+                    }))
+                  }
                 />
-                设为默认
+                {txt("m0463")}
               </label>
             </div>
           </FieldGroup>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
-              取消
+              {txt("m0217")}
             </Button>
             <Button disabled={saving} onClick={handleSave}>
               {saving ? (
                 <>
                   <Loader2Icon className="animate-spin" />
-                  {editing ? "保存中…" : "创建中…"}
+                  {editing ? txt("m0015") : txt("m0464")}
                 </>
               ) : editing ? (
-                "保存"
+                txt("m0465")
               ) : (
-                "创建"
+                txt("m0466")
               )}
             </Button>
           </DialogFooter>
@@ -488,13 +571,15 @@ export function AiProviderSettings() {
       <AdminConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}
-        title="删除提供商"
+        title={txt("m0467")}
         description={
           deleteTarget
-            ? `确定删除「${deleteTarget.name}」？删除后编辑器将无法使用该配置，此操作不可撤销。`
+            ? txt("m0468", {
+                p0: deleteTarget.name,
+              })
             : ""
         }
-        confirmLabel="确认删除"
+        confirmLabel={txt("m0070")}
         variant="destructive"
         loading={deleting}
         onConfirm={confirmDelete}

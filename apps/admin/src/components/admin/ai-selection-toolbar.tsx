@@ -12,25 +12,60 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { adminText, localizeAdminNotice } from "@/lib/admin-messages";
 import { type AiCompleteAction, getAiStatus, streamAiComplete } from "@/lib/ai-api";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 
-const ACTIONS: { action: AiCompleteAction; label: string }[] = [
-  { action: "polish", label: "润色" },
-  { action: "expand", label: "扩写" },
-  { action: "shorten", label: "缩写" },
-  { action: "title", label: "改标题" },
+const ACTIONS: {
+  action: AiCompleteAction;
+  label: string;
+}[] = [
+  {
+    action: "polish",
+    get label() {
+      return adminText("m0469");
+    },
+  },
+  {
+    action: "expand",
+    get label() {
+      return adminText("m0470");
+    },
+  },
+  {
+    action: "shorten",
+    get label() {
+      return adminText("m0471");
+    },
+  },
+  {
+    action: "title",
+    get label() {
+      return adminText("m0472");
+    },
+  },
 ];
-
 type Props = {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   content: string;
   title: string;
-  onApply: (next: string, range: { start: number; end: number }) => void;
+  onApply: (
+    next: string,
+    range: {
+      start: number;
+      end: number;
+    },
+  ) => void;
 };
-
 export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Props) {
+  const txt = useAdminMessages();
   const { data: status } = useSWR("ai-status", getAiStatus);
-  const [selection, setSelection] = useState<{ start: number; end: number; text: string } | null>(null);
+  const [selection, setSelection] = useState<{
+    start: number;
+    end: number;
+    text: string;
+  } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preview, setPreview] = useState("");
   const [previewThinking, setPreviewThinking] = useState("");
@@ -38,10 +73,11 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
   const [error, setError] = useState<string | null>(null);
   const [replaceFullDocument, setReplaceFullDocument] = useState(false);
   const activeAction = useRef<AiCompleteAction>("polish");
-  const activeRange = useRef<{ start: number; end: number } | null>(null);
-
+  const activeRange = useRef<{
+    start: number;
+    end: number;
+  } | null>(null);
   const aiReady = (status?.enabled_providers ?? 0) > 0;
-
   useEffect(() => {
     function syncSelection() {
       const el = textareaRef.current;
@@ -55,9 +91,12 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
         setSelection(null);
         return;
       }
-      setSelection({ start, end, text: el.value.slice(start, end) });
+      setSelection({
+        start,
+        end,
+        text: el.value.slice(start, end),
+      });
     }
-
     const el = textareaRef.current;
     el?.addEventListener("mouseup", syncSelection);
     el?.addEventListener("keyup", syncSelection);
@@ -66,10 +105,12 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
       el?.removeEventListener("keyup", syncSelection);
     };
   }, [textareaRef]);
-
   async function runStream(
     action: AiCompleteAction,
-    range: { start: number; end: number },
+    range: {
+      start: number;
+      end: number;
+    },
     text: string,
     fullDoc: boolean,
   ) {
@@ -86,50 +127,66 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
       await streamAiComplete(
         {
           action,
-          selection: { text },
-          document: { title, content_md: content },
+          selection: {
+            text,
+          },
+          document: {
+            title,
+            content_md: content,
+          },
         },
         {
           onDelta: (chunk) => setPreview((prev) => prev + chunk),
           onThinkingDelta: (chunk) => setPreviewThinking((prev) => prev + chunk),
-          onError: (message) => setError(message),
+          onError: (message) => setError(getAdminErrorMessage(message, "aiFailed")),
         },
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "AI 请求失败");
+      setError(getAdminErrorMessage(err));
     } finally {
       setStreaming(false);
     }
   }
-
   async function runAction(action: AiCompleteAction) {
     if (!selection) return;
-    await runStream(action, { start: selection.start, end: selection.end }, selection.text, false);
+    await runStream(
+      action,
+      {
+        start: selection.start,
+        end: selection.end,
+      },
+      selection.text,
+      false,
+    );
   }
-
   async function runPolishAll() {
     if (!content.trim()) return;
-    await runStream("polish", { start: 0, end: content.length }, content, true);
+    await runStream(
+      "polish",
+      {
+        start: 0,
+        end: content.length,
+      },
+      content,
+      true,
+    );
   }
-
   function applyPreview() {
     if (!activeRange.current) return;
     onApply(preview, activeRange.current);
     setPreviewOpen(false);
   }
-
   if (!aiReady) {
     return (
       <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-        AI 写作未就绪：请先在{" "}
+        {txt("m0474")}{" "}
         <Link href="/admin/ai/models" className="font-medium text-foreground underline">
-          设置 → AI 模型
+          {txt("m0396")}
         </Link>{" "}
-        添加并激活至少一个提供商。
+        {txt("m0475")}
       </div>
     );
   }
-
   return (
     <>
       <div className="admin-ai-actionbar mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-border bg-card px-4 py-3">
@@ -143,19 +200,21 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
           {streaming && replaceFullDocument && previewOpen ? (
             <span className="inline-flex items-center gap-2 whitespace-nowrap">
               <Loader2Icon aria-hidden className="size-4 animate-spin" />
-              <span>润色中…</span>
+              <span>{txt("m0476")}</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-2 whitespace-nowrap">
               <SparklesIcon aria-hidden className="size-4" />
-              <span>一键润色</span>
+              <span>{txt("m0477")}</span>
             </span>
           )}
         </Button>
         {selection ? (
           <>
             <span className="hidden h-4 w-px bg-border sm:block" aria-hidden />
-            <span className="text-xs text-muted-foreground">已选中 {selection.text.length} 字</span>
+            <span className="text-xs text-muted-foreground">
+              {txt("charactersSelected", { count: selection.text.length })}
+            </span>
             {ACTIONS.map(({ action, label }) => (
               <Button
                 key={action}
@@ -169,22 +228,16 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
             ))}
           </>
         ) : (
-          <span className="min-w-0 text-sm leading-relaxed text-muted-foreground">
-            或选中一段文字后进行局部润色、扩写等
-          </span>
+          <span className="min-w-0 text-sm leading-relaxed text-muted-foreground">{txt("m0480")}</span>
         )}
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>AI 预览</DialogTitle>
+            <DialogTitle>{txt("m0481")}</DialogTitle>
             <DialogDescription>
-              {streaming
-                ? "输出中…"
-                : replaceFullDocument
-                  ? "确认后将替换整篇 Markdown 正文。"
-                  : "确认后将替换原选区。"}
+              {streaming ? txt("m0407") : replaceFullDocument ? txt("m0482") : txt("m0483")}
             </DialogDescription>
           </DialogHeader>
           {previewThinking || (streaming && !preview) ? (
@@ -197,15 +250,15 @@ export function AiSelectionToolbar({ textareaRef, content, title, onApply }: Pro
                 ▍
               </span>
             ) : null}
-            {!preview && streaming ? "等待模型响应…" : null}
+            {!preview && streaming ? txt("m0409") : null}
           </pre>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p className="text-sm text-destructive">{localizeAdminNotice(error)}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewOpen(false)} disabled={streaming}>
-              取消
+              {txt("m0217")}
             </Button>
             <Button disabled={streaming || !preview.trim()} onClick={applyPreview}>
-              {replaceFullDocument ? "替换全文" : "替换选区"}
+              {replaceFullDocument ? txt("m0484") : txt("m0485")}
             </Button>
           </DialogFooter>
         </DialogContent>

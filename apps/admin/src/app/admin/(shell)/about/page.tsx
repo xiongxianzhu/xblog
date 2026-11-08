@@ -1,12 +1,8 @@
 import { StaticPageEditor } from "@/components/admin/static-page-editor";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export default function AdminAboutPage() {
+  const txt = useAdminMessages();
   return (
-    <StaticPageEditor
-      slug="about"
-      title="关于"
-      description="编辑前台 /about 页面内容。"
-      previewPath="/about"
-    />
+    <StaticPageEditor slug="about" title={txt("m0018")} description={txt("m0019")} previewPath="/about" />
   );
 }

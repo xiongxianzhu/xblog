@@ -3,6 +3,7 @@ import { Download, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/lib/feedback";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export function UserAvatar({
   username,
   avatarUrl,
@@ -16,6 +17,7 @@ export function UserAvatar({
   className?: string;
   preview?: boolean;
 }) {
+  const txt = useAdminMessages();
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -45,7 +47,9 @@ export function UserAvatar({
       link.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch {
-      toast.error("下载失败", { description: "可点击“打开原图”，在新页面中另存为图片。" });
+      toast.error(txt("m0731"), {
+        description: txt("m0732"),
+      });
     } finally {
       setDownloading(false);
     }
@@ -53,7 +57,14 @@ export function UserAvatar({
   const avatar = (
     <Avatar
       src={src}
-      size={{ sm: 32, md: 36, lg: 56, xl: 96 }[size]}
+      size={
+        {
+          sm: 32,
+          md: 36,
+          lg: 56,
+          xl: 96,
+        }[size]
+      }
       className={className}
       onError={() => {
         setFailedUrl(src);
@@ -68,8 +79,10 @@ export function UserAvatar({
     <>
       <button
         type="button"
-        aria-label={`预览 ${username} 的头像`}
-        title="放大预览头像"
+        aria-label={txt("m0733", {
+          p0: username,
+        })}
+        title={txt("m0734")}
         className="inline-flex shrink-0 cursor-zoom-in rounded-full border-0 bg-transparent p-0 align-middle"
         onClick={() => setOpen(true)}
       >
@@ -79,13 +92,15 @@ export function UserAvatar({
         <Modal
           open
           centered
-          title={`${username} 的头像`}
+          title={txt("m0735", {
+            p0: username,
+          })}
           onCancel={() => setOpen(false)}
           width={640}
           footer={
             <div className="flex flex-wrap justify-end gap-2">
               <Button href={src} target="_blank" rel="noopener noreferrer" icon={<ExternalLink size={16} />}>
-                打开原图
+                {txt("m0736")}
               </Button>
               <Button
                 type="primary"
@@ -93,14 +108,16 @@ export function UserAvatar({
                 icon={<Download size={16} />}
                 onClick={() => void download()}
               >
-                下载原图
+                {txt("m0737")}
               </Button>
             </div>
           }
         >
           <img
             src={src}
-            alt={`${username} 的头像原图`}
+            alt={txt("m0738", {
+              p0: username,
+            })}
             className="mx-auto block max-h-[65dvh] max-w-full object-contain"
           />
         </Modal>

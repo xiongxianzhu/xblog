@@ -7,6 +7,7 @@ export function ContentWidthSelect<ValueType = string>({
   options,
   ...props
 }: SelectProps<ValueType>) {
+  const currentOptions = options?.map((option) => ({ ...option }));
   const layoutClassName = className
     ?.split(/\s+/)
     .filter((name) => /(^|:)(w-|min-w-|max-w-|shrink|grow|basis-|flex-|self-|m[trblxy]?-)/.test(name))
@@ -19,14 +20,14 @@ export function ContentWidthSelect<ValueType = string>({
       <span aria-hidden className="admin-select-width-label">
         {props.placeholder}
       </span>
-      {options?.map((option, index) => (
+      {currentOptions?.map((option, index) => (
         <span aria-hidden className="admin-select-width-label" key={String(option.value ?? index)}>
           {option.label}
         </span>
       ))}
       <Select
         {...props}
-        options={options}
+        options={currentOptions}
         className={className}
         style={{ ...style, width: "100%", minWidth: 0 }}
       />

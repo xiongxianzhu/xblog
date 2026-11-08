@@ -2,7 +2,6 @@ import { Button } from "antd";
 import { Check } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useAdminTheme } from "@/components/admin/theme-provider";
-
 import {
   ADMIN_PALETTES,
   type AdminPaletteId,
@@ -12,6 +11,7 @@ import {
   SITE_PALETTES,
   type SitePaletteId,
 } from "@/lib/themes";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type ThemeSettingsPanelProps<P extends string> = {
@@ -25,7 +25,6 @@ type ThemeSettingsPanelProps<P extends string> = {
   disabled?: boolean;
   className?: string;
 };
-
 export function ThemeSettingsPanel<P extends string>({
   scope,
   mode,
@@ -37,23 +36,25 @@ export function ThemeSettingsPanel<P extends string>({
   disabled = false,
   className,
 }: ThemeSettingsPanelProps<P>) {
+  const txt = useAdminMessages();
   const { resolvedMode } = useAdminTheme();
   const previewDark = mode === "dark" || (mode === "system" && resolvedMode === "dark");
   const selectedPalette = palettes.find((item) => item.id === palette);
-  const scopeLabel = scope === "site" ? "公开站" : "管理后台";
+  const scopeLabel = scope === "site" ? txt("m0561") : txt("m0339");
   const modeOptions = allowSystem
     ? COLOR_MODE_OPTIONS
     : COLOR_MODE_OPTIONS.filter((item) => item.value !== "system");
-
   return (
     <div data-theme-settings={scope} className={cn("space-y-6", className)}>
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-medium">亮度</p>
+          <p className="text-sm font-medium">{txt("m0745")}</p>
           <p className="text-xs text-muted-foreground">
             {scope === "site"
-              ? "全站统一外观，所有访客看到相同主题。"
-              : `仅影响${scopeLabel}，与公开站主题互不影响。`}
+              ? txt("m0746")
+              : txt("m0747", {
+                  p0: scopeLabel,
+                })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -79,8 +80,8 @@ export function ThemeSettingsPanel<P extends string>({
 
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-medium">配色</p>
-          <p className="text-xs text-muted-foreground">选择一套预设配色方案。</p>
+          <p className="text-sm font-medium">{txt("m0748")}</p>
+          <p className="text-xs text-muted-foreground">{txt("m0749")}</p>
         </div>
         <div className="admin-palette-grid">
           {palettes.map((item) => (
@@ -95,13 +96,13 @@ export function ThemeSettingsPanel<P extends string>({
           ))}
         </div>
         <p className="admin-palette-current" aria-live="polite">
-          当前主题：<strong>{selectedPalette?.label ?? palette}</strong>
+          {txt("m0750")}
+          <strong>{selectedPalette?.label ?? palette}</strong>
         </p>
       </div>
     </div>
   );
 }
-
 type PaletteCardProps<P extends string> = {
   item: PaletteMeta<P>;
   active: boolean;
@@ -109,7 +110,6 @@ type PaletteCardProps<P extends string> = {
   disabled?: boolean;
   onSelect: () => void;
 };
-
 function PaletteCard<P extends string>({
   item,
   active,
@@ -117,6 +117,7 @@ function PaletteCard<P extends string>({
   disabled = false,
   onSelect,
 }: PaletteCardProps<P>) {
+  useAdminMessages();
   const previewStyle = {
     "--preview-paper": item.swatch[0],
     "--preview-accent": item.swatch[1],
@@ -154,15 +155,15 @@ function PaletteCard<P extends string>({
     </button>
   );
 }
-
 export function SiteThemeSettingsPanel(
   props: Omit<ThemeSettingsPanelProps<SitePaletteId>, "palettes" | "scope">,
 ) {
+  useAdminMessages();
   return <ThemeSettingsPanel {...props} scope="site" palettes={SITE_PALETTES} />;
 }
-
 export function AdminThemeSettingsPanel(
   props: Omit<ThemeSettingsPanelProps<AdminPaletteId>, "palettes" | "scope">,
 ) {
+  useAdminMessages();
   return <ThemeSettingsPanel {...props} scope="admin" palettes={ADMIN_PALETTES} />;
 }

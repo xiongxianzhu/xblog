@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { IntlProvider } from "use-intl";
+import { setAdminMessageLocale } from "@/lib/admin-messages";
 import en from "@/messages/en.json";
 import zhCN from "@/messages/zh-CN.json";
 import zhTW from "@/messages/zh-TW.json";
@@ -15,7 +16,9 @@ export function AdminLocaleProvider({ children }: { children: ReactNode }) {
       .split("; ")
       .find((row) => row.startsWith("ADMIN_LOCALE="))
       ?.split("=")[1];
-    return stored === "en" || stored === "zh-TW" ? stored : "zh-CN";
+    const initial = stored === "en" || stored === "zh-TW" ? stored : "zh-CN";
+    setAdminMessageLocale(initial);
+    return initial;
   });
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -25,6 +28,7 @@ export function AdminLocaleProvider({ children }: { children: ReactNode }) {
     // biome-ignore lint/suspicious/noDocumentCookie: A validated non-sensitive preference cookie supports browsers without Cookie Store.
     document.cookie = `ADMIN_LOCALE=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
     document.documentElement.lang = next;
+    setAdminMessageLocale(next);
     setState(next);
   }
   return (

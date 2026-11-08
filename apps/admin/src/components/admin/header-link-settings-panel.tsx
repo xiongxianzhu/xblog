@@ -2,8 +2,10 @@ import { Alert, Input, Switch } from "antd";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { getHeaderLink, saveHeaderLink } from "@/lib/api";
 import { toast } from "@/lib/feedback";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 
 function validUrl(value: string) {
   if (value === "/") return true;
@@ -20,11 +22,11 @@ function validUrl(value: string) {
     return false;
   }
 }
-
 export function HeaderLinkSettingsPanel() {
+  const txt = useAdminMessages();
   const { data, error, isLoading, mutate } = useSWR("admin-header-link", getHeaderLink);
   const [enabled, setEnabled] = useState(true);
-  const [name, setName] = useState("公开站");
+  const [name, setName] = useState(txt("m0561"));
   const [url, setUrl] = useState("/");
   const [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -40,24 +42,30 @@ export function HeaderLinkSettingsPanel() {
     if (saving || !valid) return;
     setSaving(true);
     try {
-      const saved = await saveHeaderLink({ enabled, name: name.trim(), url: url.trim() });
+      const saved = await saveHeaderLink({
+        enabled,
+        name: name.trim(),
+        url: url.trim(),
+      });
       await mutate(saved, false);
-      toast.success("顶栏快捷入口已保存");
+      toast.success(txt("m0562"));
     } catch (err) {
-      toast.error("保存失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0434"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setSaving(false);
     }
   }
-  if (isLoading) return <p className="text-sm text-muted-foreground">加载快捷入口…</p>;
+  if (isLoading) return <p className="text-sm text-muted-foreground">{txt("m0563")}</p>;
   if (error || !data)
     return (
       <Alert
         type="error"
-        title="快捷入口加载失败"
+        title={txt("m0564")}
         action={
           <Button variant="outline" onClick={() => void mutate()}>
-            重试
+            {txt("m0028")}
           </Button>
         }
       />
@@ -73,17 +81,15 @@ export function HeaderLinkSettingsPanel() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <label htmlFor="header-link-enabled" className="text-sm font-medium">
-            显示快捷入口
+            {txt("m0565")}
           </label>
-          <p className="mt-1 mb-0 text-xs text-muted-foreground">
-            显示在管理后台右上角，关闭时保留名称和地址。
-          </p>
+          <p className="mt-1 mb-0 text-xs text-muted-foreground">{txt("m0566")}</p>
         </div>
         <Switch id="header-link-enabled" checked={enabled} onChange={setEnabled} disabled={saving} />
       </div>
       <div className="space-y-2">
         <label htmlFor="header-link-name" className="text-sm font-medium">
-          入口名称
+          {txt("m0567")}
         </label>
         <Input
           id="header-link-name"
@@ -92,12 +98,12 @@ export function HeaderLinkSettingsPanel() {
           maxLength={40}
           disabled={saving}
           required
-          placeholder="例如：公开站"
+          placeholder={txt("m0568")}
         />
       </div>
       <div className="space-y-2">
         <label htmlFor="header-link-url" className="text-sm font-medium">
-          链接地址
+          {txt("m0569")}
         </label>
         <Input
           id="header-link-url"
@@ -111,7 +117,7 @@ export function HeaderLinkSettingsPanel() {
           status={url && !validUrl(url.trim()) ? "error" : undefined}
         />
         <p id="header-link-url-help" className="text-xs text-muted-foreground">
-          填写完整 HTTP/HTTPS 地址，或用 / 指向本站首页。入口在新标签页打开。
+          {txt("m0570")}
         </p>
       </div>
       <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
@@ -124,10 +130,10 @@ export function HeaderLinkSettingsPanel() {
             setUrl(data.url);
           }}
         >
-          重置修改
+          {txt("m0543")}
         </Button>
         <Button type="submit" disabled={saving || !changed || !valid}>
-          {saving ? "保存中…" : "保存入口"}
+          {saving ? txt("m0015") : txt("m0571")}
         </Button>
       </div>
     </form>

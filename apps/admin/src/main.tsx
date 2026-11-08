@@ -8,6 +8,7 @@ import { AdminThemeProvider } from "@/components/admin/theme-provider";
 import { AntProvider } from "@/components/ant-provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { AdminLocaleProvider } from "@/lib/locale";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import "antd/dist/reset.css";
 import "./styles.css";
 import "./admin-design.css";
@@ -36,6 +37,7 @@ const PostDetailPage = lazy(() => import("./app/admin/(shell)/posts/detail-page"
 const LinkEditorPage = lazy(() => import("./app/admin/(shell)/links/editor-page"));
 const MediaLibraryPage = lazy(() => import("./app/admin/(shell)/media/page"));
 function ProtectedLayout() {
+  useAdminMessages();
   return (
     <AdminAuthGate>
       <AdminShell>
@@ -53,6 +55,7 @@ function ProtectedLayout() {
   );
 }
 function PublicLayout() {
+  useAdminMessages();
   return (
     <AdminAuthGate>
       <div className="admin-auth-layout">
@@ -64,6 +67,17 @@ function PublicLayout() {
         </main>
       </div>
     </AdminAuthGate>
+  );
+}
+function NotFoundPage() {
+  const txt = useAdminMessages();
+  return (
+    <Result
+      status="404"
+      title="404"
+      subTitle={txt("m0789")}
+      extra={<a href="/admin/dashboard">{txt("m0790")}</a>}
+    />
   );
 }
 function Root() {
@@ -114,17 +128,7 @@ function Root() {
                 <Route path="logs" element={<Navigate to="/logs/operations" replace />} />
                 <Route path="settings/ai" element={<Navigate to="/ai/models" replace />} />
                 <Route path="settings/skills" element={<Navigate to="/ai/skills" replace />} />
-                <Route
-                  path="*"
-                  element={
-                    <Result
-                      status="404"
-                      title="404"
-                      subTitle="页面不存在"
-                      extra={<a href="/admin/dashboard">返回后台</a>}
-                    />
-                  }
-                />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
           </AntProvider>

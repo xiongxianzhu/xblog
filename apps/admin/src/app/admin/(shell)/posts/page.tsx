@@ -1,14 +1,13 @@
-import { EyeIcon, PenLineIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import { EyeIcon, PenLineIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { useRef, useState } from "react";
 import useSWR from "swr";
-import { useTranslations } from "use-intl";
 import { AdminListFilter, BOOLEAN_FILTER_OPTIONS } from "@/components/admin/admin-list-filter";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
+import { PostTransferActions } from "@/components/admin/post-transfer-actions";
 import { EmptyState } from "@/components/empty-state";
 import Link from "@/components/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -22,13 +21,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { deletePost, listAdminPosts, updatePost } from "@/lib/api";
 import { toast } from "@/lib/feedback";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
-
 export default function AdminPostsPage() {
-  const tFeedback = useTranslations("admin.feedback");
-  const [filters, setFilters] = useState({ status: "", is_pinned: "" });
+  const txt = useAdminMessages();
+  const [filters, setFilters] = useState({
+    status: "",
+    is_pinned: "",
+  });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
@@ -37,17 +40,15 @@ export default function AdminPostsPage() {
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
   const [pinningId, setPinningId] = useState<number | null>(null);
-
+  const updatingRef = useRef(false);
   const posts = data?.items ?? [];
   const total = data?.total ?? 0;
-
   function handleSearchChange(value: string) {
     setSearch(value);
     setPage(1);
   }
-
   async function confirmDelete() {
     if (deleteId === null) return;
     setDeleting(true);
@@ -59,64 +60,103 @@ export default function AdminPostsPage() {
       setDeleting(false);
     }
   }
-
-  async function handlePublish(id: number, title: string) {
-    setPublishingId(id);
+  async function handleStatusChange(id: number, title: string, published: boolean) {
+    if (updatingRef.current) return;
+    updatingRef.current = true;
+    setStatusUpdatingId(id);
     try {
-      await updatePost(id, { status: "published" });
-      await mutate();
-      toast.success(tFeedback("published"), {
-        description: `文章「${title}」已发布。`,
+      const saved = await updatePost(id, {
+        status: published ? "published" : "draft",
       });
+      toast.success(published ? txt("m0030") : txt("m0187"), {
+        description: published
+          ? txt("m0188", {
+              p0: title,
+            })
+          : txt("m0189", {
+              p0: title,
+            }),
+      });
+      try {
+        await mutate(
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  items: current.items.map((post) => (post.id === id ? saved : post)),
+                }
+              : current,
+          false,
+        );
+        const refreshed = await mutate();
+        if (refreshed && page > 1 && refreshed.items.length === 0) {
+          setPage(Math.max(1, Math.ceil(refreshed.total / pageSize)));
+        }
+      } catch {
+        toast.warning(txt("m0190"));
+      }
     } catch (err) {
-      toast.error(tFeedback("publishFailed"), {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(txt("m0191"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
-      setPublishingId(null);
+      updatingRef.current = false;
+      setStatusUpdatingId(null);
     }
   }
-
   async function handleTogglePin(id: number, title: string, isPinned: boolean) {
+    if (updatingRef.current) return;
+    updatingRef.current = true;
     setPinningId(id);
     try {
-      await updatePost(id, { is_pinned: !isPinned });
+      await updatePost(id, {
+        is_pinned: !isPinned,
+      });
       await mutate();
-      toast.success(!isPinned ? "已置顶" : "已取消置顶", {
-        description: `文章「${title}」${!isPinned ? "将在列表优先展示" : "已恢复普通排序"}。`,
+      toast.success(!isPinned ? txt("m0171") : txt("m0192"), {
+        description: txt("m0193", {
+          p0: title,
+          p1: !isPinned ? txt("m0194") : txt("m0195"),
+        }),
       });
     } catch (err) {
-      toast.error("操作失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(txt("m0196"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
+      updatingRef.current = false;
       setPinningId(null);
     }
   }
-
   if (error) {
     return (
       <div className="flex flex-col items-center gap-4 py-12 text-center">
-        <p className="text-muted-foreground">加载失败，请刷新页面重试。</p>
+        <p className="text-muted-foreground">{txt("m0197")}</p>
         <Button variant="outline" onClick={() => void mutate()}>
-          重试
+          {txt("m0028")}
         </Button>
       </div>
     );
   }
-
   return (
     <div>
       <AdminPageHeader
-        title="文章"
-        description="创建、编辑与发布 Markdown 文章"
+        title={txt("m0198")}
+        description={txt("m0199")}
         actions={
-          <Button asChild>
-            <Link href="/admin/posts/new">
-              <PlusIcon data-icon="inline-start" />
-              新建文章
-            </Link>
-          </Button>
+          <>
+            <PostTransferActions
+              onImported={async () => {
+                await mutate();
+              }}
+            />
+            <Button asChild>
+              <Link href="/admin/posts/new">
+                <PlusIcon data-icon="inline-start" />
+                {txt("m0025")}
+              </Link>
+            </Button>
+          </>
         }
       />
 
@@ -125,27 +165,39 @@ export default function AdminPostsPage() {
           className="w-72 max-w-full shrink-0"
           value={search}
           onChange={handleSearchChange}
-          placeholder="搜索标题、slug、摘要…"
+          placeholder={txt("m0200")}
         />
 
         <AdminListFilter
-          label="发布状态"
+          label={txt("m0201")}
           value={filters.status}
           options={[
-            { value: "draft", label: "草稿" },
-            { value: "published", label: "已发布" },
+            {
+              value: "draft",
+              label: txt("m0170"),
+            },
+            {
+              value: "published",
+              label: txt("m0030"),
+            },
           ]}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, status: value }));
+            setFilters((current) => ({
+              ...current,
+              status: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="置顶"
+          label={txt("m0202")}
           value={filters.is_pinned}
           options={BOOLEAN_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, is_pinned: value }));
+            setFilters((current) => ({
+              ...current,
+              is_pinned: value,
+            }));
             setPage(1);
           }}
         />
@@ -161,31 +213,27 @@ export default function AdminPostsPage() {
 
       {!isLoading && total === 0 ? (
         <EmptyState
-          title={search.trim() || filters.status || filters.is_pinned ? "无匹配结果" : "暂无文章"}
-          description={
-            search.trim() || filters.status || filters.is_pinned
-              ? "请调整关键词或筛选条件。"
-              : "点击「新建文章」开始写作。"
-          }
+          title={search.trim() || filters.status || filters.is_pinned ? txt("m0056") : txt("m0203")}
+          description={search.trim() || filters.status || filters.is_pinned ? txt("m0204") : txt("m0205")}
         />
       ) : null}
 
       {!isLoading && posts.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>文章列表</CardTitle>
-            <CardDescription>管理文章的发布状态与置顶展示，支持编辑和删除。</CardDescription>
+            <CardTitle>{txt("m0206")}</CardTitle>
+            <CardDescription>{txt("m0207")}</CardDescription>
           </CardHeader>
           <CardContent className="min-w-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>标题</TableHead>
-                  <TableHead>置顶</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead>更新时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{txt("m0208")}</TableHead>
+                  <TableHead>{txt("m0202")}</TableHead>
+                  <TableHead>{txt("m0209")}</TableHead>
+                  <TableHead>{txt("m0180")}</TableHead>
+                  <TableHead>{txt("m0181")}</TableHead>
+                  <TableHead className="text-right">{txt("m0063")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -206,16 +254,27 @@ export default function AdminPostsPage() {
                     <TableCell>
                       <Switch
                         checked={post.is_pinned}
-                        aria-label={`置顶 ${post.title}`}
+                        aria-label={txt("m0210", {
+                          p0: post.title,
+                        })}
                         loading={pinningId === post.id}
-                        disabled={pinningId !== null}
+                        disabled={pinningId !== null || statusUpdatingId !== null}
                         onCheckedChange={() => void handleTogglePin(post.id, post.title, post.is_pinned)}
                       />
                     </TableCell>
                     <TableCell>
-                      <Badge variant={post.status === "published" ? "default" : "muted"}>
-                        {post.status === "published" ? "已发布" : "草稿"}
-                      </Badge>
+                      <Switch
+                        checked={post.status === "published"}
+                        checkedChildren={txt("m0030")}
+                        unCheckedChildren={txt("m0170")}
+                        aria-label={txt("m0211", {
+                          p0: post.title,
+                        })}
+                        title={post.status === "published" ? txt("m0212") : txt("m0213")}
+                        loading={statusUpdatingId === post.id}
+                        disabled={statusUpdatingId !== null || pinningId !== null}
+                        onCheckedChange={(checked) => void handleStatusChange(post.id, post.title, checked)}
+                      />
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">
                       {formatDateTime(post.created_at)}
@@ -225,35 +284,40 @@ export default function AdminPostsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button title="查看详情" asChild variant="ghost" size="icon">
-                          <Link href={`/admin/posts/${post.id}`} aria-label={`查看 ${post.title} 的详情`}>
+                        <Button title={txt("m0094")} asChild variant="ghost" size="icon">
+                          <Link
+                            href={`/admin/posts/${post.id}`}
+                            aria-label={txt("m0214", {
+                              p0: post.title,
+                            })}
+                          >
                             <EyeIcon className="size-4" />
                           </Link>
                         </Button>
-                        {post.status !== "published" ? (
-                          <Button
-                            title="发布"
-                            variant="ghost"
-                            size="icon"
-                            className="px-2 sm:px-3"
-                            aria-label={`发布 ${post.title}`}
-                            disabled={publishingId === post.id}
-                            onClick={() => void handlePublish(post.id, post.title)}
+                        <Button
+                          title={txt("m0039")}
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          className="px-2 sm:px-3"
+                        >
+                          <Link
+                            href={`/admin/posts/${post.id}/edit`}
+                            aria-label={txt("m0065", {
+                              p0: post.title,
+                            })}
                           >
-                            <SendIcon className="size-4" />
-                          </Button>
-                        ) : null}
-                        <Button title="编辑" asChild variant="ghost" size="icon" className="px-2 sm:px-3">
-                          <Link href={`/admin/posts/${post.id}/edit`} aria-label={`编辑 ${post.title}`}>
                             <PenLineIcon className="size-4" />
                           </Link>
                         </Button>
                         <Button
-                          title="删除"
+                          title={txt("m0067")}
                           variant="ghost"
                           size="icon"
                           className="px-2 text-destructive sm:px-3"
-                          aria-label={`删除 ${post.title}`}
+                          aria-label={txt("m0066", {
+                            p0: post.title,
+                          })}
                           onClick={() => setDeleteId(post.id)}
                         >
                           <Trash2Icon className="size-4" />
@@ -282,15 +346,15 @@ export default function AdminPostsPage() {
       <Dialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>删除文章</DialogTitle>
-            <DialogDescription>此操作不可撤销，确定要删除这篇文章吗？</DialogDescription>
+            <DialogTitle>{txt("m0215")}</DialogTitle>
+            <DialogDescription>{txt("m0216")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)} disabled={deleting}>
-              取消
+              {txt("m0217")}
             </Button>
             <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deleting}>
-              {deleting ? "删除中…" : "确认删除"}
+              {deleting ? txt("m0218") : txt("m0070")}
             </Button>
           </DialogFooter>
         </DialogContent>

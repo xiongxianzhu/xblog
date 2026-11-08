@@ -17,23 +17,28 @@ import {
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { useTranslations } from "use-intl";
+import { AdminBackToTopButton } from "@/components/admin/admin-back-to-top-button";
 import { AdminLoginSuccessToast } from "@/components/admin/admin-login-success-toast";
 import { AdminSidebarProvider, useAdminSidebar } from "@/components/admin/admin-sidebar-provider";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import { UserAvatar } from "@/components/admin/user-avatar";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { SiteBrand } from "@/components/site-brand";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { adminNavEntries, adminNavItems, isNavItemActive } from "@/lib/admin-nav";
 import { getHeaderLink, getMe, getPublicSiteThemeClient, logout } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { usePathname, useRouter } from "@/lib/navigation";
 import { ADMIN_PALETTES, isAdminPaletteId } from "@/lib/themes";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 
 function Shell({ children }: { children: React.ReactNode }) {
+  const txt = useAdminMessages();
   const router = useRouter();
   const { mode, palette, setMode, setPalette } = useAdminTheme();
   const path = usePathname();
   const t = useTranslations("admin.nav");
+  const tProfile = useTranslations("admin.profile");
   const { collapsed, toggleCollapsed } = useAdminSidebar();
   const [mobile, setMobile] = useState(false);
   const { data: me } = useSWR("admin-me", getMe);
@@ -43,9 +48,9 @@ function Shell({ children }: { children: React.ReactNode }) {
   const currentTitle = activeMenu
     ? t(activeMenu.labelKey)
     : path === "/admin/profile"
-      ? "个人资料"
+      ? tProfile("title")
       : path === "/admin/password"
-        ? "修改密码"
+        ? tProfile("password")
         : "";
   const items = adminNavEntries.map((entry) => ({
     key: entry.type === "group" ? entry.id : entry.href,
@@ -69,12 +74,22 @@ function Shell({ children }: { children: React.ReactNode }) {
       tooltip={{
         arrow: false,
         placement: "right",
-        align: { offset: [8, 0] },
+        align: {
+          offset: [8, 0],
+        },
         trigger: ["hover", "focus"],
-        classNames: { root: "admin-nav-tooltip", container: "admin-nav-hint" },
+        classNames: {
+          root: "admin-nav-tooltip",
+          container: "admin-nav-hint",
+        },
       }}
       expandIcon={({ isOpen }) => (
-        <ChevronDown size={14} style={{ transform: isOpen ? "rotate(180deg)" : undefined }} />
+        <ChevronDown
+          size={14}
+          style={{
+            transform: isOpen ? "rotate(180deg)" : undefined,
+          }}
+        />
       )}
       selectedKeys={adminNavItems.filter((item) => isNavItemActive(path, item)).map((item) => item.href)}
       defaultOpenKeys={["ai", "extended-pages", "logs"]}
@@ -88,11 +103,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <Layout className="admin-app-layout">
       <AdminLoginSuccessToast />
+      <AdminBackToTopButton />
       <Layout.Header className="admin-app-header">
         <div className="admin-header-brand">
           <Button
             className="lg:hidden"
-            aria-label="打开菜单"
+            aria-label={txt("m0351")}
             icon={<MenuIcon size={18} />}
             onClick={() => setMobile(true)}
           />
@@ -121,14 +137,31 @@ function Shell({ children }: { children: React.ReactNode }) {
               selectable: true,
               selectedKeys: [mode, palette],
               items: [
-                { key: "light", label: "浅色", icon: <Sun size={16} /> },
-                { key: "dark", label: "深色", icon: <Moon size={16} /> },
-                { key: "system", label: "跟随系统", icon: <Monitor size={16} /> },
-                { type: "divider" },
+                {
+                  key: "light",
+                  label: txt("m0352"),
+                  icon: <Sun size={16} />,
+                },
+                {
+                  key: "dark",
+                  label: txt("m0353"),
+                  icon: <Moon size={16} />,
+                },
+                {
+                  key: "system",
+                  label: txt("m0354"),
+                  icon: <Monitor size={16} />,
+                },
+                {
+                  type: "divider",
+                },
                 {
                   key: "palettes",
-                  label: "主题配色",
-                  children: ADMIN_PALETTES.map((item) => ({ key: item.id, label: item.label })),
+                  label: txt("m0355"),
+                  children: ADMIN_PALETTES.map((item) => ({
+                    key: item.id,
+                    label: item.label,
+                  })),
                 },
               ],
               onClick: ({ key }) => {
@@ -140,8 +173,8 @@ function Shell({ children }: { children: React.ReactNode }) {
             <Button
               type="text"
               className="admin-header-icon"
-              aria-label="后台主题"
-              title="后台主题"
+              aria-label={txt("m0356")}
+              title={txt("m0356")}
               icon={<Palette size={18} />}
             />
           </Dropdown>
@@ -160,36 +193,56 @@ function Shell({ children }: { children: React.ReactNode }) {
             </a>
           ) : null}
           <Dropdown
-            classNames={{ root: "admin-account-menu" }}
+            classNames={{
+              root: "admin-account-menu",
+            }}
             placement="bottomRight"
             trigger={["click"]}
-            align={{ offset: [0, 1] }}
+            align={{
+              offset: [0, 1],
+            }}
             menu={{
               items: [
-                { key: "profile", label: "个人资料", icon: <UserRound size={16} /> },
-                { key: "password", label: "修改密码", icon: <KeyRound size={16} /> },
-                { type: "divider" },
-                { key: "logout", label: "退出登录", icon: <LogOut size={16} /> },
+                {
+                  key: "profile",
+                  label: tProfile("title"),
+                  icon: <UserRound size={16} />,
+                },
+                {
+                  key: "password",
+                  label: tProfile("password"),
+                  icon: <KeyRound size={16} />,
+                },
+                {
+                  type: "divider",
+                },
+                {
+                  key: "logout",
+                  label: txt("m0163"),
+                  icon: <LogOut size={16} />,
+                },
               ],
               onClick: async ({ key }) => {
                 if (key === "logout") {
                   try {
                     await logout();
-                    await mutate(() => true, undefined, { revalidate: false });
+                    await mutate(() => true, undefined, {
+                      revalidate: false,
+                    });
                     router.replace("/admin");
                   } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "退出失败，请重试");
+                    toast.error(getAdminErrorMessage(error));
                   }
                 } else router.push(`/admin/${key}`);
               },
             }}
           >
             <div className="admin-account-trigger">
-              <Button type="text" className="admin-account-button" aria-label="账户菜单">
-                <UserAvatar username={me?.username || "账户"} avatarUrl={me?.avatar_url} size="sm" />
+              <Button type="text" className="admin-account-button" aria-label={txt("m0357")}>
+                <UserAvatar username={me?.username || txt("m0358")} avatarUrl={me?.avatar_url} size="sm" />
                 <span className="admin-account-copy">
-                  <strong>{me?.nickname || me?.username || "账户"}</strong>
-                  <small>管理员</small>
+                  <strong>{me?.nickname || me?.username || txt("m0358")}</strong>
+                  <small>{tProfile("administrator")}</small>
                 </span>
                 <ChevronDown size={14} />
               </Button>
@@ -206,10 +259,14 @@ function Shell({ children }: { children: React.ReactNode }) {
           theme="light"
         >
           <div className="admin-sidebar-navigation">{navigation}</div>
-          <ConfigProvider wave={{ disabled: true }}>
+          <ConfigProvider
+            wave={{
+              disabled: true,
+            }}
+          >
             <Button
               className="admin-sidebar-toggle"
-              aria-label={collapsed ? "展开导航" : "收起导航"}
+              aria-label={collapsed ? txt("m0359") : txt("m0360")}
               icon={collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               onClick={toggleCollapsed}
             />
@@ -233,7 +290,11 @@ function Shell({ children }: { children: React.ReactNode }) {
         closeIcon={<X size={18} />}
         open={mobile}
         onClose={() => setMobile(false)}
-        styles={{ body: { padding: 0 } }}
+        styles={{
+          body: {
+            padding: 0,
+          },
+        }}
       >
         {navigation}
       </Drawer>
@@ -241,6 +302,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  useAdminMessages();
   return (
     <AdminSidebarProvider>
       <Shell>{children}</Shell>

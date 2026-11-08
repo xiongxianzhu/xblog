@@ -1,12 +1,12 @@
 import { Modal, Upload } from "antd";
-
 import { CameraIcon, DownloadIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSWRConfig } from "swr";
-
+import { useTranslations } from "use-intl";
 import { UserAvatar } from "@/components/admin/user-avatar";
 import { Button } from "@/components/ui/button";
 import { deleteAvatar, uploadAvatar } from "@/lib/api";
+import { profileErrorKey } from "@/lib/profile-errors";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
@@ -18,6 +18,7 @@ type AvatarEditorProps = {
 };
 
 export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horizontal" }: AvatarEditorProps) {
+  const t = useTranslations("admin.profile");
   const { mutate } = useSWRConfig();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentUrl, setCurrentUrl] = useState(avatarUrl ?? null);
@@ -36,11 +37,11 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
 
   async function handleFileChange(file: File) {
     if (!file.type.startsWith("image/")) {
-      setError("请选择图片文件");
+      setError("avatarSelect");
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setError("图片不能超过 5MB");
+      setError("avatarSize");
       return;
     }
 
@@ -57,7 +58,7 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
     } catch (err) {
       setPreviewUrl(null);
       URL.revokeObjectURL(localPreview);
-      setError(err instanceof Error ? err.message : "上传失败");
+      setError(profileErrorKey(err, "avatarUploadFailed"));
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
       await refreshUserCaches(null);
       setPreviewUrl(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      setError(profileErrorKey(err, "avatarDeleteFailed"));
     } finally {
       setLoading(false);
     }
@@ -93,8 +94,8 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
           type="button"
           disabled={!displayUrl || loading}
           onClick={() => setPreviewOpen(true)}
-          aria-label="放大预览头像"
-          title={displayUrl ? "放大预览头像" : undefined}
+          aria-label={t("avatarZoom")}
+          title={displayUrl ? t("avatarZoom") : undefined}
           className="rounded-full enabled:cursor-zoom-in"
         >
           <UserAvatar username={username} avatarUrl={displayUrl} size={size} />
@@ -112,8 +113,8 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
             <button
               type="button"
               disabled={loading}
-              aria-label="更换头像"
-              title="更换头像"
+              aria-label={t("avatarChange")}
+              title={t("avatarChange")}
               className="inline-flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm enabled:cursor-pointer"
             >
               {loading ? <Loader2Icon className="size-4 animate-spin" /> : <CameraIcon className="size-4" />}
@@ -123,20 +124,20 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
       </div>
       {displayUrl && (
         <Modal
-          title="头像预览"
+          title={t("avatarPreview")}
           centered
           open={previewOpen}
           onCancel={() => setPreviewOpen(false)}
           footer={
             <a className="inline-flex items-center gap-2" href={displayUrl} download>
               <DownloadIcon size={16} />
-              下载原图
+              {t("avatarDownload")}
             </a>
           }
         >
           <img
             src={displayUrl}
-            alt={`${username} 的头像`}
+            alt={t("avatarAlt", { username })}
             className="mx-auto max-h-[65vh] max-w-full object-contain"
           />
         </Modal>
@@ -152,12 +153,12 @@ export function AvatarEditor({ username, avatarUrl, size = "lg", layout = "horiz
               onClick={() => void handleRemove()}
             >
               <Trash2Icon data-icon="inline-start" />
-              移除
+              {t("avatarRemove")}
             </Button>
           ) : null}
         </div>
-        <p className="text-xs text-muted-foreground">支持 JPG、PNG、WebP、GIF，最大 5MB。</p>
-        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        <p className="text-xs text-muted-foreground">{t("avatarHint")}</p>
+        {error ? <p className="text-xs text-destructive">{t(error)}</p> : null}
       </div>
     </div>
   );

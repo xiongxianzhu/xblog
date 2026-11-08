@@ -5,9 +5,12 @@ import Link from "@/components/link";
 import { Button } from "@/components/ui/button";
 import { getAdminPost, updatePost } from "@/lib/api";
 import { useParams, useRouter } from "@/lib/navigation";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export default function EditPostPage() {
-  const params = useParams<{ id: string }>();
+  const txt = useAdminMessages();
+  const params = useParams<{
+    id: string;
+  }>();
   const router = useRouter();
   const postId = Number(params.id);
   const {
@@ -16,40 +19,34 @@ export default function EditPostPage() {
     isLoading,
     mutate,
   } = useSWR(postId ? `admin-post-${postId}` : null, () => getAdminPost(postId));
-
   async function handleSubmit(values: Record<string, unknown>) {
     await updatePost(postId, values);
   }
-
   async function handleSuccess() {
     await mutate();
     router.refresh();
   }
-
-  if (!Number.isInteger(postId) || postId <= 0) return <p className="text-destructive">文章编号无效。</p>;
-
+  if (!Number.isInteger(postId) || postId <= 0) return <p className="text-destructive">{txt("m0219")}</p>;
   if (error) {
     return (
       <div className="space-y-4">
-        <p className="text-destructive">无法加载文章，请确认已登录。</p>
+        <p className="text-destructive">{txt("m0220")}</p>
         <Button asChild>
-          <Link href="/admin">去登录</Link>
+          <Link href="/admin">{txt("m0221")}</Link>
         </Button>
       </div>
     );
   }
-
   if (isLoading || !post) {
-    return <p className="text-muted-foreground">加载中…</p>;
+    return <p className="text-muted-foreground">{txt("m0222")}</p>;
   }
-
   return (
     <div>
       <AdminPageHeader
-        title="编辑文章"
+        title={txt("m0167")}
         actions={
           <Button asChild variant="outline">
-            <Link href="/admin/posts">返回列表</Link>
+            <Link href="/admin/posts">{txt("m0186")}</Link>
           </Button>
         }
       />

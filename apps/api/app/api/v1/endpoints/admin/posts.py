@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+from tempfile import SpooledTemporaryFile
 from typing import Literal
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_
 from sqlmodel import col, select
+from starlette.background import BackgroundTask
+from starlette.responses import Response, StreamingResponse
 
 from app.api.deps import CurrentUserDep, SessionDep
+from app.core.timezone import now
 from app.models.post import Post
 from app.schemas.common import MessageResponse
 from app.schemas.post import PaginatedPostAdmins, PostAdmin, PostCoverUploadResponse, PostCreate, PostStats, PostUpdate
+from app.schemas.post_transfer import PostImportReport
+from app.services.post_transfer import export_markdown, import_posts, read_import_files, write_archive
 from app.services.posts import (
     apply_markdown,
     apply_pin_state,
@@ -115,6 +121,57 @@ async def create_post(
     if payload.status == "published":
         await trigger_revalidate(["/"], layout=True)
     return await to_post_admin(session, post)
+
+
+@router.post("/posts/import-markdown", response_model=PostImportReport)
+async def import_markdown_files(
+    session: SessionDep,
+    _: CurrentUserDep,
+    files: list[UploadFile] = File(...),  # noqa: B008
+) -> PostImportReport:
+    documents = await read_import_files(files)
+    report, published = await import_posts(session, documents)
+    if published:
+        await trigger_revalidate(["/"], layout=True)
+    return report
+
+
+@router.get("/posts/export-markdown")
+async def export_all_markdown(session: SessionDep, _: CurrentUserDep) -> StreamingResponse:
+    archive = SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+    try:
+        await write_archive(session, archive)
+        archive.seek(0)
+    except BaseException:
+        archive.close()
+        raise
+
+    def chunks():
+        try:
+            while chunk := archive.read(64 * 1024):
+                yield chunk
+        finally:
+            archive.close()
+
+    filename = f"xblog-posts-{now():%Y%m%d-%H%M%S}.zip"
+    return StreamingResponse(
+        chunks(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"},
+        background=BackgroundTask(archive.close),
+    )
+
+
+@router.get("/posts/{post_id}/export-markdown")
+async def export_one_markdown(post_id: int, session: SessionDep, _: CurrentUserDep) -> Response:
+    post = await session.get(Post, post_id)
+    if post is None:
+        raise HTTPException(404, "Post not found")
+    return Response(
+        await export_markdown(session, post),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="post-{post_id}.md"', "Cache-Control": "no-store"},
+    )
 
 
 @router.get("/posts/{post_id}", response_model=PostAdmin)

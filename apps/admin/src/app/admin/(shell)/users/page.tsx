@@ -18,33 +18,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { adminText } from "@/lib/admin-messages";
 import { deleteAdminUser, getMe, listAdminUsers, type ProfileGender, updateAdminUserActive } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { useRouter } from "@/lib/navigation";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
 
 function displayField(value: string | null | undefined) {
   return value?.trim() ? value : "-";
 }
-
 const GENDER_LABELS: Record<ProfileGender, string> = {
-  male: "男",
-  female: "女",
-  other: "其他",
+  get male() {
+    return adminText("m0250");
+  },
+  get female() {
+    return adminText("m0251");
+  },
+  get other() {
+    return adminText("m0252");
+  },
 };
-
 function displayGender(value: ProfileGender | null | undefined) {
   if (!value) return "-";
   return GENDER_LABELS[value] ?? value;
 }
-
 export default function AdminUsersPage() {
+  const txt = useAdminMessages();
   const router = useRouter();
   const [dialog, setDialog] = useState<{
     mode: "password";
     user: import("@/lib/api").AdminUser;
   } | null>(null);
-  const [filters, setFilters] = useState({ is_active: "", gender: "", must_change_password: "" });
+  const [filters, setFilters] = useState({
+    is_active: "",
+    gender: "",
+    must_change_password: "",
+  });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
@@ -52,37 +63,39 @@ export default function AdminUsersPage() {
     listAdminUsers(page, pageSize, search, filters),
   );
   const { data: me } = useSWR("auth-me", getMe);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; username: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: number;
+    username: string;
+  } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-
   const users = data?.items ?? [];
   const total = data?.total ?? 0;
   const activeCount = data?.active_count ?? 0;
-
   function handleSearchChange(value: string) {
     setSearch(value);
     setPage(1);
   }
-
   async function handleToggleActive(user: (typeof users)[number]) {
     const nextActive = !user.is_active;
     setTogglingId(user.id);
     try {
       await updateAdminUserActive(user.id, nextActive);
       await mutate();
-      toast.success(nextActive ? "已启用" : "已禁用", {
-        description: `用户「${user.username}」${nextActive ? "可正常登录" : "已被禁用"}。`,
+      toast.success(nextActive ? txt("m0283") : txt("m0284"), {
+        description: txt("m0285", {
+          p0: user.username,
+          p1: nextActive ? txt("m0286") : txt("m0287"),
+        }),
       });
     } catch (err) {
-      toast.error(nextActive ? "启用失败" : "禁用失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(nextActive ? txt("m0288") : txt("m0289"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setTogglingId(null);
     }
   }
-
   async function confirmDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -90,25 +103,28 @@ export default function AdminUsersPage() {
       await deleteAdminUser(deleteTarget.id);
       await mutate();
       setDeleteTarget(null);
-      toast.success("已删除", { description: `用户「${deleteTarget.username}」已移除。` });
+      toast.success(txt("m0047"), {
+        description: txt("m0290", {
+          p0: deleteTarget.username,
+        }),
+      });
     } catch (err) {
-      toast.error("删除失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(txt("m0049"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setDeleting(false);
     }
   }
-
   return (
     <div>
       <AdminPageHeader
-        title="用户"
-        description="创建和维护管理员账号，管理账号状态与登录密码。"
+        title={txt("m0101")}
+        description={txt("m0291")}
         actions={
           <Button onClick={() => router.push("/admin/users/new")}>
             <PlusIcon className="size-4" />
-            创建用户
+            {txt("m0280")}
           </Button>
         }
       />
@@ -118,38 +134,59 @@ export default function AdminUsersPage() {
           className="w-72 max-w-full shrink-0"
           value={search}
           onChange={handleSearchChange}
-          placeholder="搜索用户名、昵称、手机号、邮箱…"
+          placeholder={txt("m0292")}
         />
 
         <AdminListFilter
-          label="启用状态"
+          label={txt("m0293")}
           value={filters.is_active}
           options={ACTIVE_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, is_active: value }));
+            setFilters((current) => ({
+              ...current,
+              is_active: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="性别"
+          label={txt("m0265")}
           value={filters.gender}
           options={[
-            { value: "male", label: "男" },
-            { value: "female", label: "女" },
-            { value: "other", label: "其他" },
-            { value: "unset", label: "未设置" },
+            {
+              value: "male",
+              label: txt("m0250"),
+            },
+            {
+              value: "female",
+              label: txt("m0251"),
+            },
+            {
+              value: "other",
+              label: txt("m0252"),
+            },
+            {
+              value: "unset",
+              label: txt("m0294"),
+            },
           ]}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, gender: value }));
+            setFilters((current) => ({
+              ...current,
+              gender: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="改密状态"
+          label={txt("m0295")}
           value={filters.must_change_password}
           options={BOOLEAN_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, must_change_password: value }));
+            setFilters((current) => ({
+              ...current,
+              must_change_password: value,
+            }));
             setPage(1);
           }}
         />
@@ -158,34 +195,34 @@ export default function AdminUsersPage() {
       {isLoading ? (
         <Skeleton className="h-40 w-full" />
       ) : error ? (
-        <p className="text-sm text-destructive">加载失败，请刷新页面。</p>
+        <p className="text-sm text-destructive">{txt("m0053")}</p>
       ) : total === 0 ? (
         <EmptyState
-          title={search.trim() || Object.values(filters).some(Boolean) ? "无匹配结果" : "暂无用户"}
-          description="请调整关键词或筛选条件。"
+          title={search.trim() || Object.values(filters).some(Boolean) ? txt("m0056") : txt("m0296")}
+          description={txt("m0204")}
         />
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">管理员账号</CardTitle>
-            <CardDescription>所有账号均拥有管理员权限；至少保留一名启用的管理员。</CardDescription>
+            <CardTitle className="text-base">{txt("m0297")}</CardTitle>
+            <CardDescription>{txt("m0298")}</CardDescription>
           </CardHeader>
           <CardContent className="min-w-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-14">头像</TableHead>
-                  <TableHead>昵称</TableHead>
-                  <TableHead>用户名</TableHead>
-                  <TableHead>性别</TableHead>
-                  <TableHead>出生日期</TableHead>
-                  <TableHead>手机号</TableHead>
-                  <TableHead>邮箱</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead>最近登录</TableHead>
-                  <TableHead className="w-40 text-right">操作</TableHead>
+                  <TableHead className="w-14">{txt("m0299")}</TableHead>
+                  <TableHead>{txt("m0264")}</TableHead>
+                  <TableHead>{txt("m0091")}</TableHead>
+                  <TableHead>{txt("m0265")}</TableHead>
+                  <TableHead>{txt("m0266")}</TableHead>
+                  <TableHead>{txt("m0270")}</TableHead>
+                  <TableHead>{txt("m0269")}</TableHead>
+                  <TableHead>{txt("m0300")}</TableHead>
+                  <TableHead>{txt("m0209")}</TableHead>
+                  <TableHead>{txt("m0180")}</TableHead>
+                  <TableHead>{txt("m0278")}</TableHead>
+                  <TableHead className="w-40 text-right">{txt("m0063")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -193,7 +230,6 @@ export default function AdminUsersPage() {
                   const isSelf = me?.username === user.username;
                   const canDisable = user.is_active && activeCount > 1;
                   const canDelete = !user.is_active || activeCount > 1;
-
                   return (
                     <TableRow key={user.id}>
                       <TableCell>
@@ -203,7 +239,9 @@ export default function AdminUsersPage() {
                       <TableCell className="font-medium">
                         {user.username}
                         {isSelf ? (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">（当前账号）</span>
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            {txt("m0301")}
+                          </span>
                         ) : null}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
@@ -218,14 +256,16 @@ export default function AdminUsersPage() {
                       <TableCell className="max-w-[12rem] truncate text-muted-foreground">
                         {displayField(user.email)}
                       </TableCell>
-                      <TableCell>管理员</TableCell>
+                      <TableCell>{txt("m0260")}</TableCell>
                       <TableCell>
                         <Switch
                           checked={user.is_active}
                           loading={togglingId === user.id}
                           disabled={togglingId !== null || (user.is_active && !canDisable)}
-                          title={user.is_active && !canDisable ? "无法禁用唯一的管理员" : undefined}
-                          aria-label={`启用用户 ${user.username}`}
+                          title={user.is_active && !canDisable ? txt("m0302") : undefined}
+                          aria-label={txt("m0303", {
+                            p0: user.username,
+                          })}
                           onCheckedChange={() => void handleToggleActive(user)}
                         />
                       </TableCell>
@@ -240,8 +280,10 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="查看详情"
-                            aria-label={`查看 ${user.username} 的详情`}
+                            title={txt("m0094")}
+                            aria-label={txt("m0214", {
+                              p0: user.username,
+                            })}
                             onClick={() => router.push(`/admin/users/${user.id}`)}
                           >
                             <EyeIcon className="size-4" />
@@ -249,8 +291,10 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="编辑"
-                            aria-label={`编辑 ${user.username}`}
+                            title={txt("m0039")}
+                            aria-label={txt("m0065", {
+                              p0: user.username,
+                            })}
                             onClick={() => router.push(`/admin/users/${user.id}/edit`)}
                           >
                             <PencilIcon className="size-4" />
@@ -258,20 +302,34 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="重置密码"
-                            aria-label={`重置 ${user.username} 的密码`}
-                            onClick={() => setDialog({ mode: "password", user })}
+                            title={txt("m0010")}
+                            aria-label={txt("m0304", {
+                              p0: user.username,
+                            })}
+                            onClick={() =>
+                              setDialog({
+                                mode: "password",
+                                user,
+                              })
+                            }
                           >
                             <KeyRoundIcon className="size-4" />
                           </Button>
                           <Button
-                            aria-label={`删除 ${user.username}`}
+                            aria-label={txt("m0066", {
+                              p0: user.username,
+                            })}
                             variant="ghost"
                             size="icon"
                             className="px-2 text-destructive sm:px-3"
                             disabled={!canDelete}
-                            title={canDelete ? "删除" : "无法删除唯一的管理员"}
-                            onClick={() => setDeleteTarget({ id: user.id, username: user.username })}
+                            title={canDelete ? txt("m0067") : txt("m0305")}
+                            onClick={() =>
+                              setDeleteTarget({
+                                id: user.id,
+                                username: user.username,
+                              })
+                            }
                           >
                             <Trash2Icon className="size-4" />
                           </Button>
@@ -302,13 +360,15 @@ export default function AdminUsersPage() {
       <AdminConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="删除用户"
+        title={txt("m0306")}
         description={
           deleteTarget
-            ? `确定删除用户「${deleteTarget.username}」吗？此操作不可撤销，该账号将无法再登录。`
+            ? txt("m0307", {
+                p0: deleteTarget.username,
+              })
             : ""
         }
-        confirmLabel="确认删除"
+        confirmLabel={txt("m0070")}
         variant="destructive"
         loading={deleting}
         onConfirm={confirmDelete}

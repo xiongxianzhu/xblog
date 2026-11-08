@@ -1,6 +1,7 @@
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, HttpUrl, field_validator
+from pydantic_core import PydanticCustomError
 from sqlmodel import SQLModel
 
 SiteThemeMode = Literal["light", "dark"]
@@ -27,6 +28,9 @@ class SiteThemePublic(SQLModel):
     site_icp_number: str | None = None
     nav_order: list[str] = Field(default_factory=lambda: list(NAV_ITEMS))
     posts_per_page: int = DEFAULT_POSTS_PER_PAGE
+    site_base_url: str = ""
+    github_link_enabled: bool = False
+    github_link_url: str = ""
     article_share_enabled: bool = False
     copyright_enabled: bool = False
     copyright_content: str = DEFAULT_COPYRIGHT_CONTENT
@@ -41,6 +45,33 @@ class SiteThemeUpdate(SQLModel):
     site_icp_number: str | None = Field(default=None, max_length=50)
     nav_order: list[str] | None = None
     posts_per_page: int | None = Field(default=None, ge=MIN_POSTS_PER_PAGE, le=MAX_POSTS_PER_PAGE)
+    site_base_url: str | None = Field(default=None, max_length=500)
+    github_link_enabled: bool | None = None
+    github_link_url: str | None = Field(default=None, max_length=500)
     article_share_enabled: bool | None = None
     copyright_enabled: bool | None = None
     copyright_content: str | None = Field(default=None, max_length=500)
+
+    @field_validator("github_link_url", "site_base_url")
+    @classmethod
+    def validate_http_link(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            return ""
+        if not value.lower().startswith(("https://", "http://")) or "\\" in value:
+            raise PydanticCustomError("github_link_url", "请输入完整的 HTTP/HTTPS 链接。")
+        if any(ord(char) < 32 for char in value):
+            raise PydanticCustomError("github_link_url", "链接不能包含控制字符。")
+        parsed = HttpUrl(value)
+        if parsed.username or parsed.password:
+            raise PydanticCustomError("github_link_url", "链接不能包含账号或密码。")
+        return str(parsed)
+
+    @field_validator("site_base_url")
+    @classmethod
+    def validate_site_base_url(cls, value: str | None) -> str | None:
+        if value and (HttpUrl(value).query is not None or HttpUrl(value).fragment is not None):
+            raise PydanticCustomError("site_base_url", "公开站基础地址不能包含查询参数或锚点。")
+        return value.rstrip("/") if value else value

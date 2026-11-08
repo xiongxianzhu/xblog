@@ -1,6 +1,7 @@
 import { Input } from "antd";
 import { SearchIcon } from "lucide-react";
-
+import { adminText } from "@/lib/admin-messages";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type AdminListSearchProps = {
@@ -9,8 +10,13 @@ type AdminListSearchProps = {
   placeholder?: string;
   className?: string;
 };
-
-export function AdminListSearch({ value, onChange, placeholder = "搜索…", className }: AdminListSearchProps) {
+export function AdminListSearch({
+  value,
+  onChange,
+  placeholder = adminText("m0316"),
+  className,
+}: AdminListSearchProps) {
+  useAdminMessages();
   return (
     <div className={cn("w-full max-w-sm", className)}>
       <Input

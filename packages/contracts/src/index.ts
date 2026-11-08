@@ -74,9 +74,24 @@ export type SitePublicTheme = {
   site_icp_number: string | null;
   nav_order?: string[];
   posts_per_page: number;
+  site_base_url: string;
+  github_link_enabled: boolean;
+  github_link_url: string;
   article_share_enabled: boolean;
   copyright_enabled: boolean;
   copyright_content: string;
 };
 
 export type HeaderLinkSettings = { enabled: boolean; name: string; url: string };
+
+export type PostImportReport = {
+  imported: number;
+  skipped: number;
+  failed: number;
+  results: {
+    filename: string;
+    status: "imported" | "skipped" | "failed";
+    message: string;
+    post_id: number | null;
+  }[];
+};

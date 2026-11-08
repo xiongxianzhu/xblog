@@ -8,19 +8,14 @@ import {
   Venus,
   VenusAndMars,
 } from "lucide-react";
+import { useTranslations } from "use-intl";
 import { AvatarEditor } from "@/components/admin/avatar-editor";
 import { CopyFieldButton } from "@/components/admin/copy-field-button";
 import Link from "@/components/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { AdminUserMe, ProfileGender } from "@/lib/api";
+import type { AdminUserMe } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const GENDER_LABELS: Record<ProfileGender, string> = {
-  male: "男",
-  female: "女",
-  other: "其他",
-};
 
 type ProfileHeroProps = {
   user: AdminUserMe;
@@ -45,6 +40,8 @@ function StatusBadge({
 }
 
 export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) {
+  const t = useTranslations("admin.profile");
+  const tGender = useTranslations("admin.gender");
   const GenderIcon = user.gender === "male" ? Mars : user.gender === "female" ? Venus : VenusAndMars;
   const displayName = user.nickname?.trim() || user.username;
   const hasNickname = Boolean(user.nickname?.trim());
@@ -66,13 +63,13 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
         <p className="mt-1 text-sm text-muted-foreground">
           {hasNickname ? `@${user.username}` : user.username}
           <span className="mx-1.5 text-border">·</span>
-          管理员
+          {t("administrator")}
         </p>
       </div>
 
       <div className="space-y-3 border-y border-border/60 py-4">
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="text-muted-foreground">资料完整度</span>
+          <span className="text-muted-foreground">{t("completion")}</span>
           <span className="font-medium tabular-nums">{completion}%</span>
         </div>
         <div className="h-1 overflow-hidden rounded-full bg-muted">
@@ -84,16 +81,24 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
       </div>
 
       <div className="flex flex-wrap justify-center gap-2">
-        <StatusBadge active={Boolean(user.email)} activeLabel="邮箱已绑" inactiveLabel="邮箱未绑" />
-        <StatusBadge active={Boolean(user.phone)} activeLabel="手机已绑" inactiveLabel="手机未绑" />
+        <StatusBadge
+          active={Boolean(user.email)}
+          activeLabel={t("emailLinked")}
+          inactiveLabel={t("emailUnlinked")}
+        />
+        <StatusBadge
+          active={Boolean(user.phone)}
+          activeLabel={t("phoneLinked")}
+          inactiveLabel={t("phoneUnlinked")}
+        />
         {oauthLinked?.github ? (
           <Badge variant="default" className="rounded-[2px] font-normal">
-            GitHub 已绑
+            {t("githubLinked")}
           </Badge>
         ) : null}
         {oauthLinked?.wechat ? (
           <Badge variant="default" className="rounded-[2px] font-normal">
-            微信已绑
+            {t("wechatLinked")}
           </Badge>
         ) : null}
       </div>
@@ -102,10 +107,13 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
         <dl className="grid grid-cols-2 gap-3 text-xs">
           {user.gender ? (
             <div className="flex flex-col items-center justify-center rounded-[2px] border border-border/50 bg-muted/30 px-3 py-2.5 text-center">
-              <dt className="flex items-center gap-1 text-muted-foreground">性别</dt>
-              <dd className="m-0 mt-1 text-primary" title={GENDER_LABELS[user.gender]}>
-                <GenderIcon size={19} aria-hidden />
-                <span className="sr-only">{GENDER_LABELS[user.gender]}</span>
+              <dt className="flex items-center gap-1 text-muted-foreground">{tGender("label")}</dt>
+              <dd
+                className="m-0 mt-1 flex items-center justify-center gap-1.5 text-primary"
+                title={tGender(user.gender)}
+              >
+                <span>{tGender(user.gender)}</span>
+                <GenderIcon size={19} className="shrink-0" aria-hidden />
               </dd>
             </div>
           ) : null}
@@ -113,7 +121,7 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
             <div className="flex flex-col items-center justify-center rounded-[2px] border border-border/50 bg-muted/30 px-3 py-2.5 text-center">
               <dt className="flex items-center gap-1 text-muted-foreground">
                 <CalendarIcon className="size-3" />
-                出生
+                {t("birth")}
               </dt>
               <dd className="m-0 mt-1 font-medium tabular-nums">{user.birth_date}</dd>
             </div>
@@ -127,14 +135,14 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
             <p className="flex items-center gap-2 truncate text-muted-foreground">
               <MailIcon className="size-3.5 shrink-0" />
               <span className="min-w-0 truncate">{user.email}</span>
-              <CopyFieldButton value={user.email} label="邮箱" />
+              <CopyFieldButton value={user.email} label={t("email")} />
             </p>
           ) : null}
           {user.phone ? (
             <p className="flex items-center gap-2 text-muted-foreground">
               <PhoneIcon className="size-3.5 shrink-0" />
               {user.phone}
-              <CopyFieldButton value={user.phone} label="手机号" />
+              <CopyFieldButton value={user.phone} label={t("phone")} />
             </p>
           ) : null}
         </div>
@@ -144,7 +152,7 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
         <Button asChild variant="outline" className="h-9 w-full justify-start rounded-[2px]">
           <Link href="/admin/password">
             <KeyRoundIcon className="size-4" />
-            修改密码
+            {t("password")}
           </Link>
         </Button>
         <Button
@@ -154,7 +162,7 @@ export function ProfileHero({ user, oauthLinked, className }: ProfileHeroProps) 
         >
           <Link href="/admin/settings">
             <SettingsIcon className="size-4" />
-            站点设置
+            {t("settings")}
           </Link>
         </Button>
       </div>

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import useSWR from "swr";
-
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
+import { localizeAdminNotice } from "@/lib/admin-messages";
 import { getAdminAuthSettings, updateAdminAuthSettings } from "@/lib/api";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export function AuthSettingsPanel() {
+  const txt = useAdminMessages();
   const { data, error, isLoading, mutate } = useSWR("admin-auth-settings", getAdminAuthSettings);
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
   async function toggle(
     key: "sms_enabled" | "github_enabled" | "wechat_enabled" | "turnstile_enabled",
     value: boolean,
@@ -18,35 +18,30 @@ export function AuthSettingsPanel() {
     setSaving(key);
     setMessage(null);
     try {
-      const saved = await updateAdminAuthSettings({ [key]: value });
+      const saved = await updateAdminAuthSettings({
+        [key]: value,
+      });
       await mutate(saved, false);
-      setMessage("登录方式已更新。");
+      setMessage(txt("m0520"));
     } catch {
-      setMessage("保存失败，请稍后重试。");
+      setMessage(txt("m0521"));
     } finally {
       setSaving(null);
     }
   }
-
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">加载登录配置…</p>;
+    return <p className="text-sm text-muted-foreground">{txt("m0522")}</p>;
   }
-
   if (error || !data) {
-    return <p className="text-sm text-destructive">加载失败，请刷新页面。</p>;
+    return <p className="text-sm text-destructive">{txt("m0053")}</p>;
   }
-
   return (
     <div className="space-y-5">
       <FieldGroup className="gap-5">
         <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
           <div className="space-y-1">
-            <FieldLabel htmlFor="sms-enabled">手机验证码登录</FieldLabel>
-            <FieldDescription>
-              {data.sms_configured
-                ? "开启后登录页显示手机号 + 验证码；需先在个人资料绑定手机号。"
-                : "请先在 apps/api/.env 配置 SMS_PROVIDER（开发环境默认 dev，验证码输出到后端日志）。"}
-            </FieldDescription>
+            <FieldLabel htmlFor="sms-enabled">{txt("m0523")}</FieldLabel>
+            <FieldDescription>{data.sms_configured ? txt("m0524") : txt("m0525")}</FieldDescription>
           </div>
           <Switch
             id="sms-enabled"
@@ -58,12 +53,8 @@ export function AuthSettingsPanel() {
 
         <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
           <div className="space-y-1">
-            <FieldLabel htmlFor="github-enabled">GitHub 登录</FieldLabel>
-            <FieldDescription>
-              {data.github_configured
-                ? "开启后登录页与个人资料页显示 GitHub 登录/绑定入口。"
-                : "请先在 apps/api/.env 配置 GITHUB_CLIENT_ID 与 GITHUB_CLIENT_SECRET。"}
-            </FieldDescription>
+            <FieldLabel htmlFor="github-enabled">{txt("m0526")}</FieldLabel>
+            <FieldDescription>{data.github_configured ? txt("m0527") : txt("m0528")}</FieldDescription>
           </div>
           <Switch
             id="github-enabled"
@@ -75,12 +66,8 @@ export function AuthSettingsPanel() {
 
         <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
           <div className="space-y-1">
-            <FieldLabel htmlFor="wechat-enabled">微信登录</FieldLabel>
-            <FieldDescription>
-              {data.wechat_configured
-                ? "开启后登录页与个人资料页显示微信登录/绑定入口。"
-                : "请先在 apps/api/.env 配置 WECHAT_APP_ID 与 WECHAT_APP_SECRET。"}
-            </FieldDescription>
+            <FieldLabel htmlFor="wechat-enabled">{txt("m0529")}</FieldLabel>
+            <FieldDescription>{data.wechat_configured ? txt("m0530") : txt("m0531")}</FieldDescription>
           </div>
           <Switch
             id="wechat-enabled"
@@ -92,12 +79,8 @@ export function AuthSettingsPanel() {
 
         <Field className="flex flex-row items-center justify-between gap-4 rounded-sm border border-border/70 px-4 py-3">
           <div className="space-y-1">
-            <FieldLabel htmlFor="turnstile-enabled">Turnstile 人机验证</FieldLabel>
-            <FieldDescription>
-              {data.turnstile_configured
-                ? "开启后，密码登录连续失败时将要求验证；找回密码始终要求验证。"
-                : "请先在 apps/api/.env 配置 TURNSTILE_SITE_KEY 与 TURNSTILE_SECRET_KEY；apps/admin/.env 的 VITE_TURNSTILE_SITE_KEY 为可选回退。"}
-            </FieldDescription>
+            <FieldLabel htmlFor="turnstile-enabled">{txt("m0532")}</FieldLabel>
+            <FieldDescription>{data.turnstile_configured ? txt("m0533") : txt("m0534")}</FieldDescription>
           </div>
           <Switch
             id="turnstile-enabled"
@@ -108,12 +91,9 @@ export function AuthSettingsPanel() {
         </Field>
       </FieldGroup>
 
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      {message ? <p className="text-sm text-muted-foreground">{localizeAdminNotice(message)}</p> : null}
 
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        默认仅开放账号密码登录。Turnstile
-        需在环境变量中配置密钥后，再在此开启；关闭后仅保留登录限流，不显示验证码。
-      </p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{txt("m0535")}</p>
     </div>
   );
 }

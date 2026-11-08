@@ -25,11 +25,14 @@ from app.services.uploads import delete_site_logo_file, is_managed_site_logo_url
 
 THEME_MODE_KEY = "site.theme.mode"
 THEME_PALETTE_KEY = "site.theme.palette"
+SITE_BASE_URL_KEY = "site.base_url"
 SITE_NAME_KEY = "site.brand.name"
 SITE_TAGLINE_KEY = "site.brand.tagline"
 SITE_LOGO_URL_KEY = "site.brand.logo_url"
 SITE_ICP_NUMBER_KEY = "site.brand.icp_number"
 POSTS_PER_PAGE_KEY = "site.content.posts_per_page"
+GITHUB_LINK_ENABLED_KEY = "site.nav.github_enabled"
+GITHUB_LINK_URL_KEY = "site.nav.github_url"
 ARTICLE_SHARE_ENABLED_KEY = "site.content.article_share_enabled"
 COPYRIGHT_ENABLED_KEY = "site.content.copyright_enabled"
 COPYRIGHT_CONTENT_KEY = "site.content.copyright_content"
@@ -108,6 +111,9 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
         site_logo_url=site_logo_url,
         site_icp_number=site_icp_number,
         posts_per_page=posts_per_page,
+        site_base_url=await _get_value(session, SITE_BASE_URL_KEY) or "",
+        github_link_enabled=await _get_value(session, GITHUB_LINK_ENABLED_KEY) == "true",
+        github_link_url=await _get_value(session, GITHUB_LINK_URL_KEY) or "",
         article_share_enabled=await _get_value(session, ARTICLE_SHARE_ENABLED_KEY) == "true",
         copyright_enabled=copyright_enabled,
         copyright_content=copyright_content if copyright_content is not None else DEFAULT_COPYRIGHT_CONTENT,
@@ -115,6 +121,18 @@ async def get_site_theme(session: AsyncSession) -> SiteThemePublic:
 
 
 async def update_site_theme(session: AsyncSession, payload: SiteThemeUpdate) -> SiteThemePublic:
+    if payload.site_base_url is not None:
+        await _set_value(session, SITE_BASE_URL_KEY, payload.site_base_url)
+    if payload.github_link_enabled is not None or payload.github_link_url is not None:
+        current = await get_site_theme(session)
+        enabled = (
+            payload.github_link_enabled if payload.github_link_enabled is not None else current.github_link_enabled
+        )
+        url = payload.github_link_url if payload.github_link_url is not None else current.github_link_url
+        if enabled and not url:
+            raise HTTPException(status_code=422, detail="开启 GitHub 入口时，链接不能为空。")
+        await _set_value(session, GITHUB_LINK_ENABLED_KEY, "true" if enabled else "false")
+        await _set_value(session, GITHUB_LINK_URL_KEY, url)
     if payload.article_share_enabled is not None:
         await _set_value(session, ARTICLE_SHARE_ENABLED_KEY, "true" if payload.article_share_enabled else "false")
     if payload.nav_order is not None:

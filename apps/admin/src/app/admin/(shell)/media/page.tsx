@@ -11,6 +11,7 @@ import { MediaEditor } from "@/components/admin/media-editor";
 import { MediaGroupManager } from "@/components/admin/media-group-manager";
 import { MediaPreview } from "@/components/admin/media-preview";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { toast } from "@/lib/feedback";
 import {
   deleteMedia,
@@ -24,11 +25,20 @@ import {
   type MediaKind,
   uploadMedia,
 } from "@/lib/media-api";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
 
-type DeleteTarget = { type: "asset"; value: MediaAsset } | { type: "group"; value: MediaGroup };
-
+type DeleteTarget =
+  | {
+      type: "asset";
+      value: MediaAsset;
+    }
+  | {
+      type: "group";
+      value: MediaGroup;
+    };
 export default function MediaLibraryPage() {
+  const txt = useAdminMessages();
   const [kind, setKind] = useState<MediaKind>("image");
   const [groupId, setGroupId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -40,8 +50,14 @@ export default function MediaLibraryPage() {
   const [manageGroups, setManageGroups] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [uploadState, setUploadState] = useState<{ done: number; total: number } | null>(null);
-  const [report, setReport] = useState<{ success: number; errors: string[] } | null>(null);
+  const [uploadState, setUploadState] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [report, setReport] = useState<{
+    success: number;
+    errors: string[];
+  } | null>(null);
   const uploadLock = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const { mutate } = useSWRConfig();
@@ -60,7 +76,6 @@ export default function MediaLibraryPage() {
     if (data && !isLoading && page > Math.max(1, Math.ceil(data.total / pageSize)))
       setPage(Math.max(1, Math.ceil(data.total / pageSize)));
   }, [data, isLoading, page, pageSize]);
-
   async function refresh() {
     try {
       await mutate(
@@ -78,26 +93,45 @@ export default function MediaLibraryPage() {
     if (!files.length || uploadLock.current) return;
     uploadLock.current = true;
     setReport(null);
-    setUploadState({ done: 0, total: files.length });
+    setUploadState({
+      done: 0,
+      total: files.length,
+    });
     let success = 0;
     const errors: string[] = [];
     try {
       for (const [index, file] of files.entries()) {
         const extension = `.${file.name.split(".").pop()?.toLowerCase()}`;
-        if (!config.accept.split(",").includes(extension)) errors.push(`${file.name}：不支持的文件格式`);
+        if (!config.accept.split(",").includes(extension))
+          errors.push(
+            txt("m0108", {
+              p0: file.name,
+            }),
+          );
         else if (!file.size || file.size > config.limit * 1024 * 1024)
-          errors.push(`${file.name}：文件不能为空且不能超过 ${config.limit} MB`);
+          errors.push(
+            txt("m0109", {
+              p0: file.name,
+              p1: config.limit,
+            }),
+          );
         else {
           try {
             await uploadMedia(file, kind, groupId);
             success += 1;
           } catch (err) {
-            errors.push(`${file.name}：${err instanceof Error ? err.message : "上传失败"}`);
+            errors.push(`${file.name}：${getAdminErrorMessage(err)}`);
           }
         }
-        setUploadState({ done: index + 1, total: files.length });
+        setUploadState({
+          done: index + 1,
+          total: files.length,
+        });
       }
-      setReport({ success, errors });
+      setReport({
+        success,
+        errors,
+      });
       setPage(1);
       await refresh();
     } finally {
@@ -116,19 +150,18 @@ export default function MediaLibraryPage() {
       }
       setDeleteTarget(null);
       await refresh();
-      toast.success("已删除");
+      toast.success(txt("m0047"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "删除失败");
+      toast.error(getAdminErrorMessage(err));
     } finally {
       setDeleting(false);
     }
   }
-
   return (
     <div>
       <AdminPageHeader
-        title="素材库"
-        description="集中管理图片、音频与视频，按分组整理并复制链接使用。"
+        title={txt("m0111")}
+        description={txt("m0112")}
         actions={
           <Button
             type="primary"
@@ -136,14 +169,15 @@ export default function MediaLibraryPage() {
             loading={!!uploadState}
             onClick={() => fileInput.current?.click()}
           >
-            上传{config.label}
+            {txt("m0113")}
+            {config.label}
           </Button>
         }
       />
       <input
         ref={fileInput}
         type="file"
-        aria-label="选择素材文件"
+        aria-label={txt("m0114")}
         accept={config.accept}
         multiple
         hidden
@@ -165,38 +199,66 @@ export default function MediaLibraryPage() {
           setReport(null);
         }}
         items={[
-          { key: "image", label: "图片", icon: <ImageIcon size={16} />, disabled: !!uploadState },
-          { key: "audio", label: "音频", icon: <AudioLines size={16} />, disabled: !!uploadState },
-          { key: "video", label: "视频", icon: <Play size={16} />, disabled: !!uploadState },
+          {
+            key: "image",
+            label: txt("m0115"),
+            icon: <ImageIcon size={16} />,
+            disabled: !!uploadState,
+          },
+          {
+            key: "audio",
+            label: txt("m0116"),
+            icon: <AudioLines size={16} />,
+            disabled: !!uploadState,
+          },
+          {
+            key: "video",
+            label: txt("m0117"),
+            icon: <Play size={16} />,
+            disabled: !!uploadState,
+          },
         ]}
       />
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle>
-              {config.label}素材（共 {groups?.total_count ?? 0} 个）
+              {txt("mediaCount", { kind: config.label, count: groups?.total_count ?? 0 })}
             </CardTitle>
             <Button
               icon={<FolderCog size={16} />}
               disabled={!!uploadState || !!groupError}
               onClick={() => setManageGroups(true)}
             >
-              管理分组
+              {txt("m0120")}
             </Button>
           </div>
           <CardDescription>
-            支持 {config.formats}，单个文件最大 {config.limit} MB。上传至：
-            {groupId ? (groups?.items.find((group) => group.id === groupId)?.name ?? "当前分组") : "未分组"}。
+            {txt("mediaUploadHint", {
+              formats: config.formats.replaceAll("、", ", "),
+              limit: config.limit,
+              group: groupId
+                ? (groups?.items.find((group) => group.id === groupId)?.name ?? txt("m0124"))
+                : txt("m0125"),
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent className="min-w-0">
           <fieldset
             className="m-0 mb-5 flex min-w-0 flex-wrap items-center gap-2 border-0 p-0"
-            aria-label="素材分组"
+            aria-label={txt("m0126")}
           >
             {[
-              { id: null, name: "全部", count: groups?.total_count ?? 0 },
-              { id: 0, name: "未分组", count: groups?.ungrouped_count ?? 0 },
+              {
+                id: null,
+                name: txt("m0127"),
+                count: groups?.total_count ?? 0,
+              },
+              {
+                id: 0,
+                name: txt("m0125"),
+                count: groups?.ungrouped_count ?? 0,
+              },
               ...(groups?.items ?? []),
             ].map((group) => (
               <Button
@@ -217,13 +279,15 @@ export default function MediaLibraryPage() {
                 setSearch(value);
                 setPage(1);
               }}
-              placeholder="搜索素材名称或原文件名…"
+              placeholder={txt("m0128")}
             />
           </div>
           {uploadState ? (
             <div className="mb-5" role="status">
               <p className="mb-1 text-sm">
-                正在上传 {uploadState.done} / {uploadState.total}，请保留此页面。
+                {txt("m0129")}
+                {uploadState.done} / {uploadState.total}
+                {txt("m0130")}
               </p>
               <Progress percent={Math.round((uploadState.done / uploadState.total) * 100)} />
             </div>
@@ -234,7 +298,14 @@ export default function MediaLibraryPage() {
               closable
               onClose={() => setReport(null)}
               type={report.errors.length ? "warning" : "success"}
-              title={`已上传 ${report.success} 个素材${report.errors.length ? `，${report.errors.length} 个失败` : ""}`}
+              title={txt("m0131", {
+                p0: report.success,
+                p1: report.errors.length
+                  ? txt("m0132", {
+                      p0: report.errors.length,
+                    })
+                  : "",
+              })}
               description={
                 report.errors.length ? (
                   <ul className="m-0 max-h-32 overflow-y-auto pl-4">
@@ -252,26 +323,29 @@ export default function MediaLibraryPage() {
             <Alert
               className="mb-4"
               type="error"
-              title="分组加载失败"
-              action={<Button onClick={() => void refresh()}>重试</Button>}
+              title={txt("m0133")}
+              action={<Button onClick={() => void refresh()}>{txt("m0028")}</Button>}
             />
           ) : null}
           {isLoading ? (
-            <Skeleton active paragraph={{ rows: 6 }} />
+            <Skeleton
+              active
+              paragraph={{
+                rows: 6,
+              }}
+            />
           ) : error ? (
             <Alert
               type="error"
-              title="素材加载失败"
-              description={error instanceof Error ? error.message : "请稍后重试"}
-              action={<Button onClick={() => void refresh()}>重试</Button>}
+              title={txt("m0134")}
+              description={getAdminErrorMessage(error)}
+              action={<Button onClick={() => void refresh()}>{txt("m0028")}</Button>}
             />
           ) : !data?.items.length ? (
-            <Empty
-              className="py-10"
-              description={query ? "没有匹配的素材，请调整关键词。" : "当前分组暂无素材"}
-            >
+            <Empty className="py-10" description={query ? txt("m0135") : txt("m0136")}>
               <Button disabled={!!uploadState} onClick={() => fileInput.current?.click()}>
-                上传{config.label}
+                {txt("m0113")}
+                {config.label}
               </Button>
             </Empty>
           ) : (
@@ -284,7 +358,9 @@ export default function MediaLibraryPage() {
                   <button
                     type="button"
                     className="flex aspect-[4/3] w-full cursor-zoom-in items-center justify-center border-0 bg-muted/30 p-3"
-                    aria-label={`预览 ${asset.name}`}
+                    aria-label={txt("m0137", {
+                      p0: asset.name,
+                    })}
                     onClick={() => setPreview(asset)}
                   >
                     {asset.kind === "image" ? (
@@ -311,36 +387,49 @@ export default function MediaLibraryPage() {
                     <div className="mt-3 flex items-center justify-between gap-1 border-t pt-2">
                       <Button
                         type="text"
-                        title="预览"
-                        aria-label={`查看素材 ${asset.name}`}
+                        title={txt("m0138")}
+                        aria-label={txt("m0139", {
+                          p0: asset.name,
+                        })}
                         icon={<Eye size={16} />}
                         onClick={() => setPreview(asset)}
                       />
                       <CopyFieldButton
-                        label="素材链接"
+                        label={txt("m0140")}
                         value={new URL(asset.url, window.location.origin).href}
                       />
                       <Button
                         type="text"
-                        title="下载原文件"
-                        aria-label={`下载 ${asset.name}`}
+                        title={txt("m0141")}
+                        aria-label={txt("m0142", {
+                          p0: asset.name,
+                        })}
                         href={`/api/v1/admin/media/${asset.id}/download`}
                         icon={<Download size={16} />}
                       />
                       <Button
                         type="text"
-                        title="重命名或移动分组"
-                        aria-label={`编辑素材 ${asset.name}`}
+                        title={txt("m0143")}
+                        aria-label={txt("m0144", {
+                          p0: asset.name,
+                        })}
                         icon={<Pencil size={16} />}
                         onClick={() => setEditing(asset)}
                       />
                       <Button
                         type="text"
                         danger
-                        title="删除"
-                        aria-label={`删除素材 ${asset.name}`}
+                        title={txt("m0067")}
+                        aria-label={txt("m0145", {
+                          p0: asset.name,
+                        })}
                         icon={<Trash2 size={16} />}
-                        onClick={() => setDeleteTarget({ type: "asset", value: asset })}
+                        onClick={() =>
+                          setDeleteTarget({
+                            type: "asset",
+                            value: asset,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -379,21 +468,30 @@ export default function MediaLibraryPage() {
           groups={groups?.items ?? []}
           onClose={() => setManageGroups(false)}
           onChanged={refresh}
-          onDelete={(group) => setDeleteTarget({ type: "group", value: group })}
+          onDelete={(group) =>
+            setDeleteTarget({
+              type: "group",
+              value: group,
+            })
+          }
         />
       ) : null}
       <AdminConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title={deleteTarget?.type === "group" ? "删除分组" : "删除素材"}
+        title={deleteTarget?.type === "group" ? txt("m0146") : txt("m0147")}
         description={
           deleteTarget
             ? deleteTarget.type === "group"
-              ? `删除分组「${deleteTarget.value.name}」？其中的素材将移入未分组，不会删除文件。`
-              : `确定删除「${deleteTarget.value.name}」及其文件吗？此操作不可撤销；正在被内容引用的素材不可删除。`
+              ? txt("m0148", {
+                  p0: deleteTarget.value.name,
+                })
+              : txt("m0149", {
+                  p0: deleteTarget.value.name,
+                })
             : ""
         }
-        confirmLabel="确认删除"
+        confirmLabel={txt("m0070")}
         variant="destructive"
         loading={deleting}
         onConfirm={confirmDelete}

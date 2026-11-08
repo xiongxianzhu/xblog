@@ -2,6 +2,7 @@ import { Upload } from "antd";
 import { Eye, Loader2Icon, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
+import { useTranslations } from "use-intl";
 import { ACTIVE_FILTER_OPTIONS, AdminListFilter } from "@/components/admin/admin-list-filter";
 import { AdminListSearch } from "@/components/admin/admin-list-search";
 import { ADMIN_DEFAULT_PAGE_SIZE, AdminPagination } from "@/components/admin/admin-pagination";
@@ -22,12 +23,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import {
   type AiSkill,
   createAiSkill,
   deleteAiSkill,
   getAiSkillContent,
   getAiSkillDefaults,
+  getSkillDescription,
   listAiSkills,
   updateAiSkill,
   updateAiSkillContent,
@@ -36,11 +39,11 @@ import {
 } from "@/lib/ai-api";
 import { toast } from "@/lib/feedback";
 import { matchQuery } from "@/lib/match-query";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 
 function sortSkills(skills: AiSkill[]) {
   return [...skills].sort((a, b) => a.name.localeCompare(b.name));
 }
-
 function upsertSkillInList(list: AiSkill[] | undefined, skill: AiSkill) {
   const current = list ?? [];
   const index = current.findIndex((item) => item.id === skill.id || item.name === skill.name);
@@ -51,11 +54,15 @@ function upsertSkillInList(list: AiSkill[] | undefined, skill: AiSkill) {
   }
   return sortSkills([...current, skill]);
 }
-
 export function AiSkillSettings() {
+  const txt = useAdminMessages();
+  const t = useTranslations("admin.skillScenes");
   const { data, error, isLoading, mutate } = useSWR("ai-skills", listAiSkills);
   const { data: defaults, mutate: mutateDefaults } = useSWR("ai-skill-defaults", getAiSkillDefaults);
-  const [filters, setFilters] = useState({ enabled: "", is_builtin: "" });
+  const [filters, setFilters] = useState({
+    enabled: "",
+    is_builtin: "",
+  });
   const [search, setSearch] = useState("");
   const [requestedPage, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ADMIN_DEFAULT_PAGE_SIZE);
@@ -63,7 +70,6 @@ export function AiSkillSettings() {
     setSearch(value);
     setPage(1);
   }
-
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -73,58 +79,71 @@ export function AiSkillSettings() {
   const [skillContent, setSkillContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
   async function refreshSkills() {
-    return mutate(async () => listAiSkills(), { revalidate: false, populateCache: true });
+    return mutate(async () => listAiSkills(), {
+      revalidate: false,
+      populateCache: true,
+    });
   }
-
   async function patchSkillsCache(updater: (current: AiSkill[] | undefined) => AiSkill[]) {
-    await mutate(updater, { revalidate: false });
+    await mutate(updater, {
+      revalidate: false,
+    });
   }
-
   async function handleUpload(file: File) {
     try {
       const uploaded = await uploadAiSkill(file);
       await patchSkillsCache((current) => upsertSkillInList(current, uploaded));
-      toast.success("上传成功", { description: `Skill 包「${file.name}」已导入。` });
+      toast.success(txt("m0486"), {
+        description: txt("m0487", {
+          p0: file.name,
+        }),
+      });
     } catch (err) {
-      toast.error("上传失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0110"), {
+        description: getAdminErrorMessage(err),
+      });
     }
   }
-
   async function handleCreate() {
     setSaving(true);
     const name = newName.trim();
     const description = newDescription.trim();
     try {
-      const created = await createAiSkill({ name, description });
+      const created = await createAiSkill({
+        name,
+        description,
+      });
       setCreateOpen(false);
       setNewName("");
       setNewDescription("");
       changeSearch("");
       await patchSkillsCache((current) => upsertSkillInList(current, created));
-      toast.success("创建成功", { description: `Skill「${name}」已添加。` });
+      toast.success(txt("m0430"), {
+        description: txt("m0488", {
+          p0: name,
+        }),
+      });
     } catch (err) {
-      toast.error("创建失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0489"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setSaving(false);
     }
   }
-
   async function openEditor(skill: AiSkill) {
     setEditing(skill);
     const { content } = await getAiSkillContent(skill.id);
     setSkillContent(content);
     setEditOpen(true);
   }
-
   async function openViewer(skill: AiSkill) {
     setEditing(skill);
     const { content } = await getAiSkillContent(skill.id);
     setSkillContent(content);
     setViewOpen(true);
   }
-
   async function handleSaveContent() {
     if (!editing) return;
     setSaving(true);
@@ -132,20 +151,26 @@ export function AiSkillSettings() {
       await updateAiSkillContent(editing.id, skillContent);
       setEditOpen(false);
       await refreshSkills();
-      toast.success("保存成功", { description: `Skill「${editing.name}」内容已更新。` });
+      toast.success(txt("m0429"), {
+        description: txt("m0490", {
+          p0: editing.name,
+        }),
+      });
     } catch (err) {
-      toast.error("保存失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0434"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setSaving(false);
     }
   }
-
   async function handleToggle(skill: AiSkill, enabled: boolean) {
     if (skill.is_builtin) return;
-    const updated = await updateAiSkill(skill.id, { enabled });
+    const updated = await updateAiSkill(skill.id, {
+      enabled,
+    });
     await patchSkillsCache((current) => upsertSkillInList(current, updated));
   }
-
   async function handleDelete(skill: AiSkill) {
     if (skill.is_builtin || deletingId) return;
     setDeletingId(skill.id);
@@ -155,19 +180,25 @@ export function AiSkillSettings() {
         revalidate: false,
       });
       await mutateDefaults();
-      toast.success("删除成功", { description: `Skill「${skill.name}」已移除。` });
+      toast.success(txt("m0437"), {
+        description: txt("m0491", {
+          p0: skill.name,
+        }),
+      });
     } catch (err) {
-      toast.error("删除失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0049"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setDeletingId(null);
     }
   }
-
   async function handleDefaultChange(scene: "polish" | "chat" | "generate", value: string) {
-    await updateAiSkillDefaults({ [scene]: value === "none" ? null : value });
+    await updateAiSkillDefaults({
+      [scene]: value === "none" ? null : value,
+    });
     await mutateDefaults();
   }
-
   const skillOptions = data ?? [];
   const filteredSkills = useMemo(
     () =>
@@ -175,17 +206,21 @@ export function AiSkillSettings() {
         (skill) =>
           (!filters.enabled || String(skill.enabled) === filters.enabled) &&
           (!filters.is_builtin || String(skill.is_builtin) === filters.is_builtin) &&
-          matchQuery(search, skill.name, skill.description, skill.is_builtin ? "内置" : "自定义"),
+          matchQuery(
+            search,
+            skill.name,
+            getSkillDescription(skill),
+            skill.is_builtin ? txt("m0492") : txt("m0493"),
+          ),
       ),
-    [skillOptions, search, filters],
+    [skillOptions, search, filters, txt],
   );
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(filteredSkills.length / pageSize)));
   const visibleRows = filteredSkills.slice((page - 1) * pageSize, page * pageSize);
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => setCreateOpen(true)}>新建 Skill</Button>
+        <Button onClick={() => setCreateOpen(true)}>{txt("m0494")}</Button>
         <Upload
           accept=".zip,application/zip"
           showUploadList={false}
@@ -194,33 +229,37 @@ export function AiSkillSettings() {
             return false;
           }}
         >
-          <Button variant="outline">上传 zip</Button>
+          <Button variant="outline">{txt("m0495")}</Button>
         </Upload>
       </div>
 
-      {error ? <p className="text-sm text-destructive">加载失败</p> : null}
+      {error ? <p className="text-sm text-destructive">{txt("m0448")}</p> : null}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">场景默认 Skill</CardTitle>
-          <CardDescription>未手动选择时，按场景使用默认 Skill 或 description 推荐。</CardDescription>
+          <CardTitle className="text-base">{txt("m0496")}</CardTitle>
+          <CardDescription>{txt("m0497")}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           {(["polish", "chat", "generate"] as const).map((scene) => (
             <Field key={scene}>
-              <FieldLabel>{scene}</FieldLabel>
+              <FieldLabel>{t(scene)}</FieldLabel>
               <Select
                 value={defaults?.[scene] ?? "none"}
                 onValueChange={(value) => void handleDefaultChange(scene, value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="无" />
+                  <SelectValue placeholder={txt("m0498")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">无</SelectItem>
+                  <SelectItem value="none">{txt("m0498")}</SelectItem>
                   {skillOptions.map((skill) => (
                     <SelectItem key={skill.id} value={skill.id}>
-                      {skill.is_builtin ? `${skill.name}（内置）` : skill.name}
+                      {skill.is_builtin
+                        ? txt("m0499", {
+                            p0: skill.name,
+                          })
+                        : skill.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -234,28 +273,40 @@ export function AiSkillSettings() {
         <AdminListSearch
           value={search}
           onChange={changeSearch}
-          placeholder="搜索 name、description…"
+          placeholder={txt("m0500")}
           className="w-72 max-w-full shrink-0"
         />
 
         <AdminListFilter
-          label="启用状态"
+          label={txt("m0293")}
           value={filters.enabled}
           options={ACTIVE_FILTER_OPTIONS}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, enabled: value }));
+            setFilters((current) => ({
+              ...current,
+              enabled: value,
+            }));
             setPage(1);
           }}
         />
         <AdminListFilter
-          label="来源"
+          label={txt("m0501")}
           value={filters.is_builtin}
           options={[
-            { value: "true", label: "内置" },
-            { value: "false", label: "自定义" },
+            {
+              value: "true",
+              label: txt("m0492"),
+            },
+            {
+              value: "false",
+              label: txt("m0493"),
+            },
           ]}
           onChange={(value) => {
-            setFilters((current) => ({ ...current, is_builtin: value }));
+            setFilters((current) => ({
+              ...current,
+              is_builtin: value,
+            }));
             setPage(1);
           }}
         />
@@ -263,24 +314,22 @@ export function AiSkillSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Skill 列表</CardTitle>
-          <CardDescription>
-            内置 Skill 随系统提供、仅可查看；自定义 Skill 须符合 agentskills.io 规范。
-          </CardDescription>
+          <CardTitle className="text-base">{txt("m0502")}</CardTitle>
+          <CardDescription>{txt("m0503")}</CardDescription>
         </CardHeader>
         <CardContent className="min-w-0">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">加载中…</p>
+            <p className="text-sm text-muted-foreground">{txt("m0222")}</p>
           ) : (
             <>
               <Table className="admin-ai-list-table">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>name</TableHead>
-                    <TableHead>来源</TableHead>
-                    <TableHead>description</TableHead>
-                    <TableHead>启用</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>{txt("m0792")}</TableHead>
+                    <TableHead>{txt("m0501")}</TableHead>
+                    <TableHead>{txt("m0793")}</TableHead>
+                    <TableHead>{txt("m0313")}</TableHead>
+                    <TableHead className="text-right">{txt("m0063")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -288,15 +337,11 @@ export function AiSkillSettings() {
                     <TableRow key={skill.id}>
                       <TableCell className="font-mono text-sm">{skill.name}</TableCell>
                       <TableCell>
-                        <Switch
-                          disabled
-                          checked={skill.is_builtin}
-                          aria-label="内置 Skill"
-                          checkedChildren="内置"
-                          unCheckedChildren="自定义"
-                        />
+                        <Badge variant={skill.is_builtin ? "default" : "secondary"}>
+                          {skill.is_builtin ? txt("m0492") : txt("m0493")}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="max-w-md truncate">{skill.description}</TableCell>
+                      <TableCell className="max-w-md truncate">{getSkillDescription(skill)}</TableCell>
                       <TableCell>
                         <Switch
                           checked={skill.enabled}
@@ -306,8 +351,10 @@ export function AiSkillSettings() {
                       </TableCell>
                       <TableCell className="space-x-2 text-right">
                         <Button
-                          aria-label={`查看 ${skill.name}`}
-                          title="查看"
+                          aria-label={txt("m0504", {
+                            p0: skill.name,
+                          })}
+                          title={txt("m0505")}
                           variant="ghost"
                           size="icon"
                           onClick={() => openViewer(skill)}
@@ -317,8 +364,10 @@ export function AiSkillSettings() {
                         {!skill.is_builtin ? (
                           <>
                             <Button
-                              aria-label={`编辑 ${skill.name}`}
-                              title="编辑"
+                              aria-label={txt("m0065", {
+                                p0: skill.name,
+                              })}
+                              title={txt("m0039")}
                               variant="ghost"
                               size="icon"
                               onClick={() => openEditor(skill)}
@@ -326,8 +375,10 @@ export function AiSkillSettings() {
                               <Pencil />
                             </Button>
                             <Button
-                              aria-label={`删除 ${skill.name}`}
-                              title="删除"
+                              aria-label={txt("m0066", {
+                                p0: skill.name,
+                              })}
+                              title={txt("m0067")}
                               variant="ghost"
                               className="text-destructive"
                               size="icon"
@@ -348,14 +399,14 @@ export function AiSkillSettings() {
                   {!skillOptions.length ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        暂无 Skill
+                        {txt("m0506")}
                       </TableCell>
                     </TableRow>
                   ) : null}
                   {skillOptions.length > 0 && !filteredSkills.length ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        无匹配结果
+                        {txt("m0056")}
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -379,12 +430,12 @@ export function AiSkillSettings() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新建 Skill</DialogTitle>
-            <DialogDescription>name 仅允许小写字母、数字与连字符。</DialogDescription>
+            <DialogTitle>{txt("m0494")}</DialogTitle>
+            <DialogDescription>{txt("m0507")}</DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <Field>
-              <FieldLabel>name</FieldLabel>
+              <FieldLabel>{txt("m0792")}</FieldLabel>
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -392,22 +443,22 @@ export function AiSkillSettings() {
               />
             </Field>
             <Field>
-              <FieldLabel>description</FieldLabel>
+              <FieldLabel>{txt("m0793")}</FieldLabel>
               <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
             </Field>
           </FieldGroup>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              取消
+              {txt("m0217")}
             </Button>
             <Button disabled={saving} onClick={handleCreate}>
               {saving ? (
                 <>
                   <Loader2Icon className="animate-spin" />
-                  创建中…
+                  {txt("m0464")}
                 </>
               ) : (
-                "创建"
+                txt("m0466")
               )}
             </Button>
           </DialogFooter>
@@ -417,15 +468,15 @@ export function AiSkillSettings() {
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>查看 SKILL.md</DialogTitle>
+            <DialogTitle>{txt("m0508")}</DialogTitle>
             <DialogDescription>
-              {editing?.name} {editing?.is_builtin ? <Badge variant="secondary">内置 · 只读</Badge> : null}
+              {editing?.name} {editing?.is_builtin ? <Badge variant="secondary">{txt("m0509")}</Badge> : null}
             </DialogDescription>
           </DialogHeader>
           <Textarea value={skillContent} readOnly className="min-h-[360px] font-mono text-sm" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewOpen(false)}>
-              关闭
+              {txt("m0510")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -434,7 +485,7 @@ export function AiSkillSettings() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>编辑 SKILL.md</DialogTitle>
+            <DialogTitle>{txt("m0511")}</DialogTitle>
             <DialogDescription>
               {editing?.name} <Badge variant="secondary">agentskills.io</Badge>
             </DialogDescription>
@@ -446,16 +497,16 @@ export function AiSkillSettings() {
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>
-              取消
+              {txt("m0217")}
             </Button>
             <Button disabled={saving} onClick={handleSaveContent}>
               {saving ? (
                 <>
                   <Loader2Icon className="animate-spin" />
-                  保存中…
+                  {txt("m0015")}
                 </>
               ) : (
-                "保存"
+                txt("m0465")
               )}
             </Button>
           </DialogFooter>

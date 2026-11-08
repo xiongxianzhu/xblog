@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "check": "biome check .",
-    "test": "node scripts/test-boundaries.cjs && node scripts/test-markdown-headings.cjs"
+    "test": "node scripts/test-boundaries.cjs && node scripts/test-markdown-headings.cjs && node scripts/test-profile-i18n.cjs && node scripts/test-admin-i18n.cjs"
   },
   "dependencies": {
     "@xblog/contracts": "workspace:*",

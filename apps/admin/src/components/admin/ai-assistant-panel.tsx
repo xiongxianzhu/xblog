@@ -7,7 +7,6 @@ import {
   adminBorderlessControlClass,
   adminBorderlessFocusClass,
 } from "@/components/admin/ai-assistant-form-styles";
-
 import { AiComposer, type AiComposerSendPayload } from "@/components/admin/ai-composer";
 import { AiThinkingPanel } from "@/components/admin/ai-thinking-panel";
 import Link from "@/components/link";
@@ -17,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { localizeAdminNotice } from "@/lib/admin-messages";
 import {
   type AiSkill,
   getAiSkillRecommend,
@@ -25,6 +26,7 @@ import {
   listAiSkills,
   streamAiComplete,
 } from "@/lib/ai-api";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type ChatMessage = {
@@ -32,11 +34,8 @@ type ChatMessage = {
   content: string;
   thinking?: string;
 };
-
 type TabKey = "chat" | "generate";
-
 const generateFieldClass = "shrink-0 gap-2";
-
 type Props = {
   className?: string;
   onClose: () => void;
@@ -46,7 +45,6 @@ type Props = {
   onReplaceContent: (text: string) => void;
   onUpdateExcerpt?: (text: string) => void;
 };
-
 function SkillSelect({
   skillMode,
   recommendedName,
@@ -58,12 +56,16 @@ function SkillSelect({
   enabledSkills: AiSkill[];
   onChange: (value: string) => void;
 }) {
+  const txt = useAdminMessages();
   return (
     <Field className={generateFieldClass}>
       <FieldLabel className="flex items-center gap-2">
-        Skill
+        {txt("m0796")}
         {skillMode === "auto" && recommendedName ? (
-          <span className="text-xs font-normal text-muted-foreground">推荐：{recommendedName}</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {txt("m0386")}
+            {recommendedName}
+          </span>
         ) : null}
       </FieldLabel>
       <Select
@@ -76,10 +78,10 @@ function SkillSelect({
         }}
       >
         <SelectTrigger className={cn(adminBorderlessControlClass, adminBorderlessFocusClass, "h-10 w-full")}>
-          <SelectValue placeholder="自动推荐" />
+          <SelectValue placeholder={txt("m0387")} />
         </SelectTrigger>
         <AiAssistantSelectContent>
-          <AiAssistantSelectItem value="auto">自动（推荐）</AiAssistantSelectItem>
+          <AiAssistantSelectItem value="auto">{txt("m0388")}</AiAssistantSelectItem>
           {enabledSkills.map((skill) => (
             <AiAssistantSelectItem key={skill.id} value={skill.id}>
               {skill.name}
@@ -90,7 +92,6 @@ function SkillSelect({
     </Field>
   );
 }
-
 export function AiAssistantPanel({
   className,
   onClose,
@@ -100,41 +101,34 @@ export function AiAssistantPanel({
   onReplaceContent,
   onUpdateExcerpt,
 }: Props) {
+  const txt = useAdminMessages();
   const { data: status } = useSWR("ai-status", getAiStatus);
   const { data: skills } = useSWR("ai-skills-assistant", listAiSkills);
   const { data: providers } = useSWR("ai-providers-assistant", listAiProviders);
-
   const [tab, setTab] = useState<TabKey>("chat");
   const [skillMode, setSkillMode] = useState<"auto" | string>("auto");
   const [recommendedName, setRecommendedName] = useState<string | null>(null);
-
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [lastAssistant, setLastAssistant] = useState("");
   const [lastThinking, setLastThinking] = useState("");
-
   const [topic, setTopic] = useState("");
   const [outline, setOutline] = useState("");
   const [generatePreview, setGeneratePreview] = useState("");
   const [generateThinking, setGenerateThinking] = useState("");
-
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const aiReady = (status?.enabled_providers ?? 0) > 0;
   const enabledSkills = useMemo(() => (skills ?? []).filter((skill: AiSkill) => skill.enabled), [skills]);
   const enabledProviders = useMemo(
     () => (providers ?? []).filter((provider) => provider.enabled && provider.has_api_key),
     [providers],
   );
-
   const generateContext = useMemo(() => [topic, outline, title].join(" "), [topic, outline, title]);
-
   useEffect(() => {
     if (tab !== "generate" || !title) return;
     setTopic((prev) => (prev === "" ? title : prev));
   }, [tab, title]);
-
   useEffect(() => {
     if (skillMode !== "auto" || !aiReady || tab !== "generate") {
       return;
@@ -149,22 +143,27 @@ export function AiAssistantPanel({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Scroll the external DOM when streamed content changes.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, streaming, lastAssistant]);
-
   async function runChat(payload: AiComposerSendPayload) {
     if (streaming || !aiReady) return;
-
     const userText = payload.text.trim();
     if (!userText) return;
-
-    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: userText }];
+    const nextMessages: ChatMessage[] = [
+      ...messages,
+      {
+        role: "user",
+        content: userText,
+      },
+    ];
     setMessages(nextMessages);
     setError(null);
     setLastAssistant("");
     setLastThinking("");
     setStreaming(true);
-
     try {
       let assistant = "";
       let thinking = "";
@@ -172,9 +171,16 @@ export function AiAssistantPanel({
         {
           action: "chat",
           provider_id: payload.providerId,
-          ...(payload.skillIds.length > 0 ? { skill_ids: payload.skillIds } : {}),
+          ...(payload.skillIds.length > 0
+            ? {
+                skill_ids: payload.skillIds,
+              }
+            : {}),
           messages: nextMessages,
-          document: { title, content_md: content },
+          document: {
+            title,
+            content_md: content,
+          },
         },
         {
           onDelta: (chunk) => {
@@ -185,36 +191,35 @@ export function AiAssistantPanel({
             thinking += chunk;
             setLastThinking(thinking);
           },
-          onError: (message) => setError(message),
+          onError: (message) => setError(getAdminErrorMessage(message, "aiFailed")),
         },
       );
-
       const result = assistant.trim();
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: result, thinking: thinking || undefined },
+        {
+          role: "assistant",
+          content: result,
+          thinking: thinking || undefined,
+        },
       ]);
       setLastAssistant("");
       setLastThinking("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "对话失败");
+      setError(getAdminErrorMessage(err));
     } finally {
       setStreaming(false);
     }
   }
-
   async function handleGenerate() {
     const subject = topic.trim();
     if (!subject || streaming || !aiReady) return;
-
     setError(null);
     setGeneratePreview("");
     setGenerateThinking("");
     setStreaming(true);
-
     const defaultProvider =
       enabledProviders.find((provider) => provider.is_default) ?? enabledProviders[0] ?? null;
-
     try {
       let draft = "";
       let thinking = "";
@@ -223,8 +228,14 @@ export function AiAssistantPanel({
           action: "generate",
           provider_id: defaultProvider?.id ?? null,
           skill_id: skillMode === "auto" ? null : skillMode,
-          document: { title, content_md: content },
-          generate: { topic: subject, outline: outline.trim() },
+          document: {
+            title,
+            content_md: content,
+          },
+          generate: {
+            topic: subject,
+            outline: outline.trim(),
+          },
         },
         {
           onDelta: (chunk) => {
@@ -240,28 +251,25 @@ export function AiAssistantPanel({
               setRecommendedName(meta.skill_name);
             }
           },
-          onError: (message) => setError(message),
+          onError: (message) => setError(getAdminErrorMessage(message, "aiFailed")),
         },
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "生成失败");
+      setError(getAdminErrorMessage(err));
     } finally {
       setStreaming(false);
     }
   }
-
   function handleCopy(text: string) {
     void navigator.clipboard.writeText(text);
   }
-
   function handleOverwriteFull() {
     if (!generatePreview.trim()) return;
-    if (content.trim() && !window.confirm("将用生成的 Markdown 覆盖当前正文，此操作不可撤销。继续？")) {
+    if (content.trim() && !window.confirm(txt("m0391"))) {
       return;
     }
     onReplaceContent(generatePreview);
   }
-
   return (
     <aside
       className={cn(
@@ -271,8 +279,8 @@ export function AiAssistantPanel({
     >
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/60 px-4 py-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold tracking-tight">AI 助手</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">输入 / 选择 Skill，或使用快捷操作。</p>
+          <h3 className="text-sm font-semibold tracking-tight">{txt("m0392")}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{txt("m0393")}</p>
         </div>
         <Button
           type="button"
@@ -280,7 +288,7 @@ export function AiAssistantPanel({
           size="sm"
           className="size-8 shrink-0 px-0"
           onClick={onClose}
-          aria-label="关闭 AI 助手"
+          aria-label={txt("m0394")}
         >
           <XIcon />
         </Button>
@@ -289,11 +297,11 @@ export function AiAssistantPanel({
       <div className="flex min-h-0 flex-1 flex-col p-4">
         {!aiReady ? (
           <p className="text-sm text-muted-foreground">
-            请先在{" "}
+            {txt("m0395")}{" "}
             <Link href="/admin/ai/models" className="underline">
-              设置 → AI 模型
+              {txt("m0396")}
             </Link>{" "}
-            配置并激活提供商。
+            {txt("m0397")}
           </p>
         ) : (
           <Tabs
@@ -302,8 +310,8 @@ export function AiAssistantPanel({
             className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
           >
             <TabsList className="grid w-full shrink-0 grid-cols-2">
-              <TabsTrigger value="chat">Agent</TabsTrigger>
-              <TabsTrigger value="generate">全文生成</TabsTrigger>
+              <TabsTrigger value="chat">{txt("m0797")}</TabsTrigger>
+              <TabsTrigger value="generate">{txt("m0398")}</TabsTrigger>
             </TabsList>
 
             <TabsContent
@@ -315,7 +323,7 @@ export function AiAssistantPanel({
                 className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-md border bg-background/50 p-3"
               >
                 {!messages.length && !lastAssistant ? (
-                  <p className="text-sm text-muted-foreground">例如：输入 /blog-polish-zh 后描述改稿需求</p>
+                  <p className="text-sm text-muted-foreground">{txt("m0399")}</p>
                 ) : null}
                 {messages.map((msg, index) => (
                   <div
@@ -327,9 +335,7 @@ export function AiAssistantPanel({
                       <AiThinkingPanel thinking={msg.thinking} className="mb-2" />
                     ) : null}
                     <div
-                      className={`inline-block max-w-full rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-                        msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                      }`}
+                      className={`inline-block max-w-full rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                     >
                       {msg.content}
                     </div>
@@ -341,7 +347,7 @@ export function AiAssistantPanel({
                           size="sm"
                           onClick={() => onInsertAtCursor(msg.content)}
                         >
-                          插入光标
+                          {txt("m0400")}
                         </Button>
                         <Button
                           type="button"
@@ -349,7 +355,7 @@ export function AiAssistantPanel({
                           size="sm"
                           onClick={() => handleCopy(msg.content)}
                         >
-                          复制
+                          {txt("m0401")}
                         </Button>
                       </div>
                     ) : null}
@@ -394,27 +400,25 @@ export function AiAssistantPanel({
               />
 
               <Field className={generateFieldClass}>
-                <FieldLabel>主题</FieldLabel>
+                <FieldLabel>{txt("m0402")}</FieldLabel>
                 <Input
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="文章或页面主题"
+                  placeholder={txt("m0403")}
                   className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
                 />
               </Field>
 
               <div className="flex min-h-[180px] flex-1 flex-col gap-2">
                 <FieldLabel htmlFor="ai-generate-outline" className="shrink-0">
-                  大纲（可选）
+                  {txt("m0404")}
                 </FieldLabel>
-                <FieldDescription className="m-0 shrink-0">
-                  列出章节与要点，结构越清晰，生成效果越好。
-                </FieldDescription>
+                <FieldDescription className="m-0 shrink-0">{txt("m0405")}</FieldDescription>
                 <Textarea
                   id="ai-generate-outline"
                   value={outline}
                   onChange={(e) => setOutline(e.target.value)}
-                  placeholder={"# 一、开篇\n引入主题\n\n# 二、核心内容\n- 要点 A"}
+                  placeholder={txt("m0406")}
                   className={cn(
                     "min-h-[120px] flex-1 resize-y px-4 py-3 text-sm leading-relaxed sm:min-h-[180px]",
                     adminBorderlessControlClass,
@@ -429,12 +433,12 @@ export function AiAssistantPanel({
                 disabled={streaming || !topic.trim()}
                 onClick={() => void handleGenerate()}
               >
-                {streaming ? "输出中…" : "生成草稿"}
+                {streaming ? txt("m0407") : txt("m0408")}
               </Button>
 
               {(generatePreview || generateThinking || streaming) && (
                 <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-                  <FieldLabel>预览</FieldLabel>
+                  <FieldLabel>{txt("m0138")}</FieldLabel>
                   {generateThinking || (streaming && !generatePreview) ? (
                     <AiThinkingPanel thinking={generateThinking} streaming={streaming && !generatePreview} />
                   ) : null}
@@ -445,7 +449,7 @@ export function AiAssistantPanel({
                         ▍
                       </span>
                     ) : null}
-                    {!generatePreview && streaming ? "等待模型响应…" : null}
+                    {!generatePreview && streaming ? txt("m0409") : null}
                   </pre>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -455,7 +459,7 @@ export function AiAssistantPanel({
                       disabled={streaming || !generatePreview.trim()}
                       onClick={() => onInsertAtCursor(generatePreview)}
                     >
-                      插入光标
+                      {txt("m0400")}
                     </Button>
                     <Button
                       type="button"
@@ -464,7 +468,7 @@ export function AiAssistantPanel({
                       disabled={streaming || !generatePreview.trim()}
                       onClick={handleOverwriteFull}
                     >
-                      覆盖全文
+                      {txt("m0410")}
                     </Button>
                     <Button
                       type="button"
@@ -473,14 +477,14 @@ export function AiAssistantPanel({
                       disabled={!generatePreview.trim()}
                       onClick={() => handleCopy(generatePreview)}
                     >
-                      复制
+                      {txt("m0401")}
                     </Button>
                   </div>
                 </div>
               )}
             </TabsContent>
 
-            {error ? <p className="shrink-0 text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="shrink-0 text-sm text-destructive">{localizeAdminNotice(error)}</p> : null}
           </Tabs>
         )}
       </div>

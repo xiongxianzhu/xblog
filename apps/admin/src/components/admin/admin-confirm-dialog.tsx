@@ -1,5 +1,4 @@
 import { AlertTriangleIcon, Loader2Icon } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { adminText } from "@/lib/admin-messages";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type AdminConfirmDialogProps = {
@@ -22,18 +23,18 @@ type AdminConfirmDialogProps = {
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
 };
-
 export function AdminConfirmDialog({
   open,
   onOpenChange,
   title,
   description,
-  confirmLabel = "确认",
-  cancelLabel = "取消",
+  confirmLabel = adminText("m0308"),
+  cancelLabel = adminText("m0217"),
   variant = "default",
   loading = false,
   onConfirm,
 }: AdminConfirmDialogProps) {
+  const txt = useAdminMessages();
   return (
     <Dialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <DialogContent className="max-w-md gap-5">
@@ -63,7 +64,7 @@ export function AdminConfirmDialog({
             {loading ? (
               <>
                 <Loader2Icon className="animate-spin" />
-                处理中…
+                {txt("m0309")}
               </>
             ) : (
               confirmLabel

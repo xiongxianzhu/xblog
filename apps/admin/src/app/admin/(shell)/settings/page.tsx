@@ -11,19 +11,74 @@ import { useAdminTheme } from "@/components/admin/theme-provider";
 import Link from "@/components/link";
 import { AdminThemeSettingsPanel } from "@/components/theme/theme-settings-panel";
 import { Button } from "@/components/ui/button";
+import { adminText } from "@/lib/admin-messages";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 
 const sections = [
-  { key: "site", href: "#settings-site", title: "公开站设置" },
-  { key: "header-link", href: "#settings-header-link", title: "顶栏快捷入口" },
-  { key: "sharing", href: "#settings-sharing", title: "文章分享" },
-  { key: "copyright", href: "#settings-copyright", title: "文章版权声明" },
-  { key: "auth", href: "#settings-auth", title: "登录与验证" },
-  { key: "appearance", href: "#settings-appearance", title: "后台外观" },
-  { key: "writing", href: "#settings-writing", title: "AI 写作" },
-  { key: "account", href: "#settings-account", title: "账号安全" },
-  { key: "content", href: "#settings-content", title: "站点内容" },
+  {
+    key: "site",
+    href: "#settings-site",
+    get title() {
+      return adminText("m0225");
+    },
+  },
+  {
+    key: "header-link",
+    href: "#settings-header-link",
+    get title() {
+      return adminText("m0226");
+    },
+  },
+  {
+    key: "sharing",
+    href: "#settings-sharing",
+    get title() {
+      return adminText("m0227");
+    },
+  },
+  {
+    key: "copyright",
+    href: "#settings-copyright",
+    get title() {
+      return adminText("m0228");
+    },
+  },
+  {
+    key: "auth",
+    href: "#settings-auth",
+    get title() {
+      return adminText("m0229");
+    },
+  },
+  {
+    key: "appearance",
+    href: "#settings-appearance",
+    get title() {
+      return adminText("m0230");
+    },
+  },
+  {
+    key: "writing",
+    href: "#settings-writing",
+    get title() {
+      return adminText("m0231");
+    },
+  },
+  {
+    key: "account",
+    href: "#settings-account",
+    get title() {
+      return adminText("m0232");
+    },
+  },
+  {
+    key: "content",
+    href: "#settings-content",
+    get title() {
+      return adminText("m0233");
+    },
+  },
 ];
-
 function SettingsSection({
   id,
   title,
@@ -39,6 +94,7 @@ function SettingsSection({
   children?: ReactNode;
   footer?: ReactNode;
 }) {
+  useAdminMessages();
   return (
     <section id={id} className="admin-settings-section" aria-labelledby={`${id}-title`}>
       <header className="admin-settings-section-header">
@@ -55,14 +111,14 @@ function SettingsSection({
     </section>
   );
 }
-
 export default function AdminSettingsPage() {
+  const txt = useAdminMessages();
   const { mode, palette, setMode, setPalette } = useAdminTheme();
   return (
     <div>
-      <AdminPageHeader title="设置" description="管理站点外观、登录方式与个人偏好。" />
+      <AdminPageHeader title={txt("m0234")} description={txt("m0235")} />
       <div className="admin-settings-layout">
-        <nav className="admin-settings-nav" aria-label="设置分区">
+        <nav className="admin-settings-nav" aria-label={txt("m0236")}>
           <Anchor
             affix={false}
             offsetTop={88}
@@ -72,52 +128,47 @@ export default function AdminSettingsPage() {
           />
         </nav>
         <div className="admin-settings-sections">
-          <SettingsSection
-            id="settings-site"
-            title="公开站设置"
-            description="管理站点品牌、备案信息、文章列表与公开站主题。"
-            icon={Globe}
-          >
+          <SettingsSection id="settings-site" title={txt("m0225")} description={txt("m0237")} icon={Globe}>
             <PublicSiteThemeSettings />
           </SettingsSection>
           <SettingsSection
             id="settings-header-link"
-            title="顶栏快捷入口"
-            description="配置管理后台右上角快捷链接的名称、地址与显示状态。"
+            title={txt("m0226")}
+            description={txt("m0238")}
             icon={Globe}
           >
             <HeaderLinkSettingsPanel />
           </SettingsSection>
           <SettingsSection
             id="settings-sharing"
-            title="文章分享"
-            description="控制公开文章详情页的分享入口与二维码。"
+            title={txt("m0227")}
+            description={txt("m0239")}
             icon={Share2}
           >
             <ArticleShareSettingsPanel />
           </SettingsSection>
           <SettingsSection
             id="settings-copyright"
-            title="文章版权声明"
-            description="配置文章正文下方的转载说明与授权协议。"
+            title={txt("m0228")}
+            description={txt("m0240")}
             icon={FileText}
           >
             <CopyrightSettingsPanel />
           </SettingsSection>
           <SettingsSection
             id="settings-auth"
-            title="登录与验证"
-            description="选择可用的登录方式及人机验证保护。开关修改后立即保存。"
+            title={txt("m0229")}
+            description={txt("m0241")}
             icon={ShieldCheck}
           >
             <AuthSettingsPanel />
           </SettingsSection>
           <SettingsSection
             id="settings-appearance"
-            title="后台外观"
-            description="仅影响当前浏览器中的管理后台，与公开站主题独立。"
+            title={txt("m0230")}
+            description={txt("m0242")}
             icon={Palette}
-            footer={<span className="admin-settings-save-hint">选择后自动保存到当前浏览器</span>}
+            footer={<span className="admin-settings-save-hint">{txt("m0243")}</span>}
           >
             <AdminThemeSettingsPanel
               mode={mode}
@@ -128,51 +179,51 @@ export default function AdminSettingsPage() {
           </SettingsSection>
           <SettingsSection
             id="settings-writing"
-            title="AI 写作"
-            description="管理写作模型与 Skills，供文章编辑器调用。"
+            title={txt("m0231")}
+            description={txt("m0244")}
             icon={Bot}
             footer={
               <>
                 <Button asChild variant="outline">
-                  <Link href="/admin/ai/skills">管理 Skills</Link>
+                  <Link href="/admin/ai/skills">{txt("m0245")}</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/admin/ai/models">管理 AI 模型</Link>
+                  <Link href="/admin/ai/models">{txt("m0246")}</Link>
                 </Button>
               </>
             }
           />
           <SettingsSection
             id="settings-account"
-            title="账号安全"
-            description="维护个人资料、联系方式与登录密码。"
+            title={txt("m0232")}
+            description={txt("m0247")}
             icon={UserRound}
             footer={
               <>
                 <Button asChild variant="outline">
-                  <Link href="/admin/profile">个人资料</Link>
+                  <Link href="/admin/profile">{txt("m0248")}</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/admin/password">修改密码</Link>
+                  <Link href="/admin/password">{txt("m0157")}</Link>
                 </Button>
               </>
             }
           />
           <SettingsSection
             id="settings-content"
-            title="站点内容"
-            description="编辑固定页面和友情链接，更新公开站展示内容。"
+            title={txt("m0233")}
+            description={txt("m0249")}
             icon={FileText}
             footer={
               <>
                 <Button asChild variant="outline">
-                  <Link href="/admin/about">关于</Link>
+                  <Link href="/admin/about">{txt("m0018")}</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/admin/projects">作品集</Link>
+                  <Link href="/admin/projects">{txt("m0223")}</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/admin/links">友链</Link>
+                  <Link href="/admin/links">{txt("m0050")}</Link>
                 </Button>
               </>
             }

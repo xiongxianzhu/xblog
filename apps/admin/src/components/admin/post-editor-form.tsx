@@ -20,10 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { adminText } from "@/lib/admin-messages";
 import { listAiProviders, listAiSkills, streamAiComplete } from "@/lib/ai-api";
 import { ApiError } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { discardManagedPostCover } from "@/lib/pending-upload-cleanup";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type PostFormValues = {
@@ -36,20 +39,32 @@ type PostFormValues = {
   tags: string[];
   is_pinned: boolean;
 };
-
 const metadataFields = {
-  title: { label: "标题", instruction: "生成一个准确、简洁的文章标题，使用文章的语言。" },
-  slug: { label: "Slug", instruction: "生成一个简洁的英文 URL slug，只用小写英文字母、数字和连字符。" },
-  excerpt: { label: "摘要", instruction: "用文章的语言写一段简洁摘要，只概括已有信息，约 80 至 120 字。" },
+  title: {
+    get label() {
+      return adminText("m0208");
+    },
+    instruction: "生成一个准确、简洁的文章标题，使用文章的语言。",
+  },
+  slug: {
+    get label() {
+      return adminText("m0178");
+    },
+    instruction: "生成一个简洁的英文 URL slug，只用小写英文字母、数字和连字符。",
+  },
+  excerpt: {
+    get label() {
+      return adminText("m0630");
+    },
+    instruction: "用文章的语言写一段简洁摘要，只概括已有信息，约 80 至 120 字。",
+  },
 };
 type MetadataField = keyof typeof metadataFields;
-
 type Props = {
   initial?: Partial<PostFormValues>;
   onSubmit: (values: Record<string, unknown>) => Promise<void>;
   onSuccess?: (status: "draft" | "published") => void;
 };
-
 const defaultValues: PostFormValues = {
   title: "",
   slug: "",
@@ -60,18 +75,20 @@ const defaultValues: PostFormValues = {
   tags: [],
   is_pinned: false,
 };
-
 export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
+  const txt = useAdminMessages();
   const tFeedback = useTranslations("admin.feedback");
   const { collapsed } = useAdminSidebar();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [values, setValues] = useState<PostFormValues>({ ...defaultValues, ...initial });
+  const [values, setValues] = useState<PostFormValues>({
+    ...defaultValues,
+    ...initial,
+  });
   const [savedCoverUrl, setSavedCoverUrl] = useState((initial?.cover_url ?? "").trim());
   const savedCoverUrlRef = useRef((initial?.cover_url ?? "").trim());
   const coverUrlRef = useRef((initial?.cover_url ?? "").trim());
   coverUrlRef.current = values.cover_url;
   savedCoverUrlRef.current = savedCoverUrl;
-
   useEffect(() => {
     return () => {
       void discardManagedPostCover(coverUrlRef.current, savedCoverUrlRef.current);
@@ -80,15 +97,12 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [activeSubmit, setActiveSubmit] = useState<"draft" | "published" | null>(null);
-
   const submitting = activeSubmit !== null;
-
   const { data: providers } = useSWR("ai-providers", listAiProviders);
   const available = providers?.filter((provider) => provider.enabled && provider.has_api_key);
   const provider = available?.find((item) => item.is_default) ?? available?.[0];
   const [generating, setGenerating] = useState<MetadataField | null>(null);
   const hasContext = Boolean(values.title.trim() || values.excerpt.trim() || values.content_md.trim());
-
   async function generateField(field: MetadataField) {
     if (generating || !hasContext || !provider) return;
     setGenerating(field);
@@ -105,7 +119,10 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
           action: "chat",
           provider_id: provider.id,
           skill_id: excerptSkill?.id,
-          document: { title: values.title, content_md: values.content_md.slice(0, 4000) },
+          document: {
+            title: values.title,
+            content_md: values.content_md.slice(0, 4000),
+          },
           messages: [
             {
               role: "user",
@@ -125,7 +142,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
           },
         },
       );
-      if (failure || !complete) throw new Error(failure || "模型响应中断，请重试。");
+      if (failure || !complete) throw new Error(failure || txt("m0633"));
       let text = result.trim();
       if (field === "slug")
         text = text
@@ -133,17 +150,18 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
           .replace(/[^a-z0-9]+/g, "-")
           .slice(0, 200)
           .replace(/^-+|-+$/g, "");
-      if (!text) throw new Error("模型未返回可用文本，请重试。");
-      if (field !== "excerpt" && text.length > 200) throw new Error("结果超过 200 字，请重试。");
+      if (!text) throw new Error(txt("m0634"));
+      if (field !== "excerpt" && text.length > 200) throw new Error(txt("m0635"));
       updateField(field, text);
       if (field === "excerpt" && Array.from(text).length > 500) setShowValidation(true);
     } catch (err) {
-      toast.error("生成失败", { description: err instanceof Error ? err.message : "请稍后重试" });
+      toast.error(txt("m0390"), {
+        description: getAdminErrorMessage(err),
+      });
     } finally {
       setGenerating(null);
     }
   }
-
   function metadataLabel(field: MetadataField) {
     const { label } = metadataFields[field];
     return (
@@ -154,8 +172,16 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
             type="button"
             variant="ghost"
             size="sm"
-            aria-label={`AI 生成${label}`}
-            title={hasContext ? `根据文章内容生成${label}` : "请先填写标题、摘要或正文"}
+            aria-label={txt("m0636", {
+              p0: label,
+            })}
+            title={
+              hasContext
+                ? txt("m0637", {
+                    p0: label,
+                  })
+                : txt("m0638")
+            }
             disabled={submitting || generating !== null || !hasContext}
             onClick={() => void generateField(field)}
           >
@@ -164,35 +190,41 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
             ) : (
               <SparklesIcon className="size-4" />
             )}
-            <span>{generating === field ? "生成中…" : "AI 生成"}</span>
+            <span>{generating === field ? txt("m0639") : txt("m0640")}</span>
           </Button>
         )}
       </div>
     );
   }
-
   function preventEnterSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
     if (event.key !== "Enter") return;
     if (event.target instanceof HTMLTextAreaElement) return;
     event.preventDefault();
   }
-
   function updateField<K extends keyof PostFormValues>(key: K, value: PostFormValues[K]) {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    setValues((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   }
-
   const [showValidation, setShowValidation] = useState(false);
   const [takenSlug, setTakenSlug] = useState<string | null>(null);
   const errors: Partial<Record<"title" | "slug" | "excerpt" | "cover_url", string>> = {};
   for (const key of ["title", "slug"] as const) {
     const value = values[key].trim();
     const label = metadataFields[key].label;
-    if (!value) errors[key] = `请填写${label}。`;
-    else if (Array.from(value).length > 200) errors[key] = `${label}最多 200 个字符。`;
+    if (!value)
+      errors[key] = txt("m0641", {
+        p0: label,
+      });
+    else if (Array.from(value).length > 200)
+      errors[key] = txt("m0642", {
+        p0: label,
+      });
   }
-  if (takenSlug === values.slug.trim()) errors.slug = "这个 Slug 已被使用，请换一个。";
-  if (Array.from(values.excerpt).length > 500) errors.excerpt = "摘要最多 500 个字符，请缩短后提交。";
-  if (Array.from(values.cover_url.trim()).length > 500) errors.cover_url = "封面地址最多 500 个字符。";
+  if (takenSlug === values.slug.trim()) errors.slug = txt("m0643");
+  if (Array.from(values.excerpt).length > 500) errors.excerpt = txt("m0644");
+  if (Array.from(values.cover_url.trim()).length > 500) errors.cover_url = txt("m0645");
   function fieldHint(key: keyof typeof errors) {
     return showValidation && errors[key] ? (
       <span id={`${key}-error`} className="text-xs text-destructive" role="alert">
@@ -200,7 +232,6 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
       </span>
     ) : null;
   }
-
   async function handleSubmit(status: "draft" | "published") {
     setShowValidation(true);
     const firstInvalid = Object.keys(errors)[0];
@@ -222,10 +253,20 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
       });
       savedCoverUrlRef.current = values.cover_url.trim();
       setSavedCoverUrl(values.cover_url.trim());
-      setValues((prev) => ({ ...prev, status }));
-      const title = values.title.trim() || "未命名";
+      setValues((prev) => ({
+        ...prev,
+        status,
+      }));
+      const title = values.title.trim() || txt("m0646");
       toast.success(status === "published" ? tFeedback("published") : tFeedback("draftSaved"), {
-        description: status === "published" ? `文章「${title}」已发布。` : `文章「${title}」已保存为草稿。`,
+        description:
+          status === "published"
+            ? txt("m0188", {
+                p0: title,
+              })
+            : txt("m0647", {
+                p0: title,
+              }),
       });
       onSuccess?.(status);
     } catch (err) {
@@ -235,14 +276,19 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
         return;
       }
       toast.error(status === "published" ? tFeedback("publishFailed") : tFeedback("saveFailed"), {
-        description: err instanceof Error ? err.message : "请稍后重试",
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setActiveSubmit(null);
     }
   }
-
-  function applyAiSelection(next: string, range: { start: number; end: number }) {
+  function applyAiSelection(
+    next: string,
+    range: {
+      start: number;
+      end: number;
+    },
+  ) {
     const current = values.content_md;
     const updated = current.slice(0, range.start) + next + current.slice(range.end);
     updateField("content_md", updated);
@@ -254,7 +300,6 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
       el.setSelectionRange(cursor, cursor);
     });
   }
-
   function insertAtCursor(text: string) {
     const el = textareaRef.current;
     if (!el) return;
@@ -270,19 +315,16 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
       el.setSelectionRange(cursor, cursor);
     });
   }
-
   function replaceContent(text: string) {
     updateField("content_md", text);
     requestAnimationFrame(() => textareaRef.current?.focus());
   }
-
   const adminFieldClass = cn(adminBorderlessControlClass, adminBorderlessFocusClass);
-
   return (
     <Card className="border-border/80">
       <CardHeader>
-        <CardTitle>{initial?.title ? "编辑文章" : "新建文章"}</CardTitle>
-        <CardDescription>支持 Markdown 语法，保存后可在前台预览。</CardDescription>
+        <CardTitle>{initial?.title ? txt("m0167") : txt("m0025")}</CardTitle>
+        <CardDescription>{txt("m0648")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={(event) => event.preventDefault()} onKeyDown={preventEnterSubmit} className="pb-20">
@@ -313,7 +355,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                   className={adminFieldClass}
                 />
                 {fieldHint("slug")}
-                <FieldDescription>URL 路径，如 my-first-post</FieldDescription>
+                <FieldDescription>{txt("m0649")}</FieldDescription>
               </Field>
             </div>
 
@@ -341,12 +383,16 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                 {fieldHint("cover_url")}
               </div>
               <Field>
-                <FieldLabel htmlFor="tags">标签</FieldLabel>
+                <FieldLabel htmlFor="tags">{txt("m0650")}</FieldLabel>
                 <PostTagInput id="tags" value={tags} onChange={setTags} disabled={submitting} />
                 <FieldDescription>
                   {tags.length >= POST_TAG_INPUT_MAX_TAGS
-                    ? `已达 ${POST_TAG_INPUT_MAX_TAGS} 个标签上限`
-                    : `还可添加 ${POST_TAG_INPUT_MAX_TAGS - tags.length} 个标签；按 Enter 创建`}
+                    ? txt("m0651", {
+                        p0: POST_TAG_INPUT_MAX_TAGS,
+                      })
+                    : txt("m0652", {
+                        p0: POST_TAG_INPUT_MAX_TAGS - tags.length,
+                      })}
                 </FieldDescription>
               </Field>
             </div>
@@ -355,9 +401,9 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
               <div className="space-y-1">
                 <FieldLabel htmlFor="is-pinned" className="flex items-center gap-2">
                   <PinIcon className="size-4 text-primary" />
-                  置顶文章
+                  {txt("m0653")}
                 </FieldLabel>
-                <FieldDescription>置顶后将在公开站博客列表与标签页优先展示。</FieldDescription>
+                <FieldDescription>{txt("m0654")}</FieldDescription>
               </div>
               <Switch
                 id="is-pinned"
@@ -371,7 +417,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
 
             <Field>
               <div className="admin-editor-heading mb-2 flex flex-wrap items-center justify-between gap-3">
-                <FieldLabel htmlFor="content_md">Markdown 正文</FieldLabel>
+                <FieldLabel htmlFor="content_md">{txt("m0655")}</FieldLabel>
                 <Button
                   type="button"
                   variant="outline"
@@ -385,7 +431,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                   ) : (
                     <SparklesIcon aria-hidden className="size-4" />
                   )}
-                  <span>{assistantOpen ? "收起 AI 助手" : "AI 助手"}</span>
+                  <span>{assistantOpen ? txt("m0622") : txt("m0392")}</span>
                 </Button>
               </div>
               <EditorAiAssistantLayout
@@ -404,7 +450,7 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
                       value={values.content_md}
                       onChange={(next) => updateField("content_md", next)}
                       required
-                      placeholder={"# 标题\n\n正文段落…\n\n- 列表项\n\n> 引用"}
+                      placeholder={txt("m0656")}
                     />
                   </>
                 }
@@ -438,20 +484,20 @@ export function PostEditorForm({ initial, onSubmit, onSuccess }: Props) {
               {activeSubmit === "draft" ? (
                 <>
                   <Loader2Icon className="animate-spin" />
-                  保存中…
+                  {txt("m0015")}
                 </>
               ) : (
-                "保存草稿"
+                txt("m0657")
               )}
             </Button>
             <Button type="button" disabled={submitting} onClick={() => void handleSubmit("published")}>
               {activeSubmit === "published" ? (
                 <>
                   <Loader2Icon className="animate-spin" />
-                  发布中…
+                  {txt("m0658")}
                 </>
               ) : (
-                "发布"
+                txt("m0659")
               )}
             </Button>
           </div>

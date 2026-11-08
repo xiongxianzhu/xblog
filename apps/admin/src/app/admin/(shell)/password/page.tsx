@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { changePassword, logout } from "@/lib/api";
 import { useRouter } from "@/lib/navigation";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 const adminFieldClass = cn(adminBorderlessControlClass, adminBorderlessFocusClass);
-
 export default function AdminPasswordPage({ requiredChange = false }: { requiredChange?: boolean }) {
+  const txt = useAdminMessages();
   const { mutate } = useSWRConfig();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -24,53 +26,47 @@ export default function AdminPasswordPage({ requiredChange = false }: { required
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
     setSuccess("");
-
     if (newPassword.length < 8) {
-      setError("新密码至少 8 个字符");
+      setError(txt("m0150"));
       return;
     }
     if (!requiredChange && newPassword === currentPassword) {
-      setError("新密码不能与当前密码相同");
+      setError(txt("m0151"));
       return;
     }
     if (new TextEncoder().encode(newPassword).length > 72) {
-      setError("密码 UTF-8 编码不得超过 72 字节");
+      setError(txt("m0152"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("两次输入的新密码不一致");
+      setError(txt("m0153"));
       return;
     }
-
     setLoading(true);
     try {
       await changePassword(requiredChange ? undefined : currentPassword, newPassword);
-      setSuccess("新密码已设置");
+      setSuccess(txt("m0154"));
       await Promise.all([mutate("auth-me"), mutate("admin-me")]);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       router.replace(requiredChange ? "/admin/dashboard" : "/admin/profile");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "修改失败";
-      setError(message === "Current password is incorrect" ? "当前密码不正确" : message);
+      const message = getAdminErrorMessage(err);
+      setError(message === "Current password is incorrect" ? txt("m0156") : message);
     } finally {
       setLoading(false);
     }
   }
-
   return (
     <div>
       <AdminPageHeader
-        title={requiredChange ? "设置新密码" : "修改密码"}
-        description={
-          requiredChange ? "首次登录或密码被重置后，需先设置新密码才能进入后台。" : "更新管理员登录密码。"
-        }
+        title={requiredChange ? txt("m0011") : txt("m0157")}
+        description={requiredChange ? txt("m0158") : txt("m0159")}
       />
 
       <Card className="max-w-md">
@@ -79,7 +75,7 @@ export default function AdminPasswordPage({ requiredChange = false }: { required
             <FieldGroup>
               {!requiredChange ? (
                 <Field>
-                  <FieldLabel htmlFor="current-password">当前密码</FieldLabel>
+                  <FieldLabel htmlFor="current-password">{txt("m0160")}</FieldLabel>
                   <PasswordInput
                     id="current-password"
                     value={currentPassword}
@@ -91,7 +87,7 @@ export default function AdminPasswordPage({ requiredChange = false }: { required
                 </Field>
               ) : null}
               <Field>
-                <FieldLabel htmlFor="new-password">新密码</FieldLabel>
+                <FieldLabel htmlFor="new-password">{txt("m0013")}</FieldLabel>
                 <PasswordInput
                   id="new-password"
                   value={newPassword}
@@ -103,7 +99,7 @@ export default function AdminPasswordPage({ requiredChange = false }: { required
                 />
               </Field>
               <Field data-invalid={error ? true : undefined}>
-                <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
+                <FieldLabel htmlFor="confirm-password">{txt("m0014")}</FieldLabel>
                 <PasswordInput
                   id="confirm-password"
                   value={confirmPassword}
@@ -118,7 +114,7 @@ export default function AdminPasswordPage({ requiredChange = false }: { required
               </Field>
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Button type="submit" disabled={loading}>
-                  {loading ? "保存中…" : "保存密码"}
+                  {loading ? txt("m0015") : txt("m0161")}
                 </Button>
                 {requiredChange ? (
                   <Button
@@ -130,11 +126,11 @@ export default function AdminPasswordPage({ requiredChange = false }: { required
                         await logout();
                         router.replace("/admin");
                       } catch {
-                        setError("退出失败，请重试");
+                        setError(txt("m0162"));
                       }
                     }}
                   >
-                    退出登录
+                    {txt("m0163")}
                   </Button>
                 ) : null}
               </div>

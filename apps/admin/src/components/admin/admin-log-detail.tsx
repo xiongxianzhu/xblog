@@ -5,18 +5,27 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { loginFailureLabel, loginMethodLabel, operationActionLabel } from "@/lib/admin-log-labels";
 import type { LoginLogAdmin, OperationLogAdmin } from "@/lib/api";
 import { useRouter } from "@/lib/navigation";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
 
-type Props = { kind: "login"; row: LoginLogAdmin } | { kind: "operation"; row: OperationLogAdmin };
-
+type Props =
+  | {
+      kind: "login";
+      row: LoginLogAdmin;
+    }
+  | {
+      kind: "operation";
+      row: OperationLogAdmin;
+    };
 export function AdminLogDetail(props: Props) {
+  const txt = useAdminMessages();
   const { row } = props;
   const router = useRouter();
   const title =
     props.kind === "login"
       ? props.row.success
-        ? "登录成功"
-        : "登录失败"
+        ? txt("m0317")
+        : txt("m0318")
       : operationActionLabel(props.row.action);
   const failed = props.kind === "login" && !props.row.success;
   const StatusIcon = props.kind === "operation" ? FileText : failed ? CircleX : CheckCircle2;
@@ -31,14 +40,15 @@ export function AdminLogDetail(props: Props) {
           <div className="min-w-0">
             <h2 className="m-0 break-words text-xl font-semibold">{title}</h2>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <Tag>{props.kind === "login" ? loginMethodLabel(props.row.method) : "操作记录"}</Tag>
+              <Tag>{props.kind === "login" ? loginMethodLabel(props.row.method) : txt("m0102")}</Tag>
               <span className="flex items-center gap-1.5">
                 <Clock3 size={14} />
                 {formatDateTime(row.created_at)}
               </span>
               <span>
-                记录 #{row.id}
-                <CopyFieldButton value={row.id} label="记录 ID" />
+                {txt("m0319")}
+                {row.id}
+                <CopyFieldButton value={row.id} label={txt("m0320")} />
               </span>
             </div>
           </div>
@@ -47,14 +57,14 @@ export function AdminLogDetail(props: Props) {
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         <Card>
           <CardHeader>
-            <CardTitle>{props.kind === "login" ? "登录信息" : "事件内容"}</CardTitle>
+            <CardTitle>{props.kind === "login" ? txt("m0321") : txt("m0322")}</CardTitle>
           </CardHeader>
           {props.kind === "login" ? (
             <div className="space-y-6">
               <div>
-                <p className="mb-2 text-sm text-muted-foreground">{failed ? "失败原因" : "结果说明"}</p>
+                <p className="mb-2 text-sm text-muted-foreground">{failed ? txt("m0084") : txt("m0323")}</p>
                 <p className="m-0 break-words font-medium">
-                  {failed ? loginFailureLabel(props.row.failure_reason) : "本次登录验证通过。"}
+                  {failed ? loginFailureLabel(props.row.failure_reason) : txt("m0324")}
                 </p>
                 {props.row.failure_reason ? (
                   <p className="mb-0 mt-2 break-all font-mono text-xs text-muted-foreground">
@@ -64,7 +74,7 @@ export function AdminLogDetail(props: Props) {
               </div>
               <div className="border-t pt-6">
                 <h3 className="mb-3 mt-0 text-sm font-semibold">
-                  浏览器与设备 · User-Agent
+                  {txt("m0325")}
                   <CopyFieldButton value={props.row.user_agent} label="User-Agent" />
                 </h3>
                 <p className="m-0 whitespace-pre-wrap break-all rounded border bg-muted/30 p-4 font-mono text-xs leading-6">
@@ -76,31 +86,32 @@ export function AdminLogDetail(props: Props) {
             <div className="flex flex-col gap-8">
               <dl className="m-0 grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                  <dt className="text-sm text-muted-foreground">对象类型</dt>
+                  <dt className="text-sm text-muted-foreground">{txt("m0100")}</dt>
                   <dd className="m-0 mt-2 font-medium">
-                    {props.row.resource_type === "user" ? "用户" : props.row.resource_type || "-"}
+                    {props.row.resource_type === "user" ? txt("m0101") : props.row.resource_type || "-"}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-muted-foreground">对象 ID</dt>
+                  <dt className="text-sm text-muted-foreground">{txt("m0326")}</dt>
                   <dd className="m-0 mt-2 break-all font-mono">
                     {props.row.resource_id || "-"}
-                    <CopyFieldButton value={props.row.resource_id} label="对象 ID" />
+                    <CopyFieldButton value={props.row.resource_id} label={txt("m0326")} />
                   </dd>
                 </div>
               </dl>
               <div className="border-t pt-6">
                 <h3 className="mb-3 mt-0 text-sm font-semibold">
-                  操作详情
-                  <CopyFieldButton value={props.row.detail} label="操作详情" />
+                  {txt("m0327")}
+                  <CopyFieldButton value={props.row.detail} label={txt("m0327")} />
                 </h3>
                 <p className="m-0 whitespace-pre-wrap break-words leading-7 [overflow-wrap:anywhere]">
                   {props.row.detail || "-"}
                 </p>
               </div>
               <p className="m-0 break-all font-mono text-xs text-muted-foreground">
-                操作标识：{props.row.action}
-                <CopyFieldButton value={props.row.action} label="操作标识" />
+                {txt("m0328")}
+                {props.row.action}
+                <CopyFieldButton value={props.row.action} label={txt("m0329")} />
               </p>
             </div>
           )}
@@ -110,32 +121,33 @@ export function AdminLogDetail(props: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound size={18} />
-                {props.kind === "login" ? "登录账号" : "操作者"}
+                {props.kind === "login" ? txt("m0330") : txt("m0105")}
               </CardTitle>
             </CardHeader>
             <p className="mb-1 break-all text-lg font-medium">
               {row.username || "-"}
-              <CopyFieldButton value={row.username} label="用户名" />
+              <CopyFieldButton value={row.username} label={txt("m0091")} />
             </p>
             <p className="mb-4 text-sm text-muted-foreground">
-              用户 ID：{row.user_id ?? "-"}
-              <CopyFieldButton value={row.user_id} label="用户 ID" />
+              {txt("m0331")}
+              {row.user_id ?? "-"}
+              <CopyFieldButton value={row.user_id} label={txt("m0259")} />
             </p>
             {row.user_id !== null && row.user_id !== undefined ? (
-              <Button onClick={() => router.push(`/admin/users/${row.user_id}`)}>查看用户详情</Button>
+              <Button onClick={() => router.push(`/admin/users/${row.user_id}`)}>{txt("m0332")}</Button>
             ) : null}
           </Card>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe size={18} />
-                访问来源
+                {txt("m0333")}
               </CardTitle>
             </CardHeader>
-            <p className="mb-2 text-sm text-muted-foreground">IP 地址</p>
+            <p className="mb-2 text-sm text-muted-foreground">{txt("m0334")}</p>
             <p className="m-0 break-all font-mono">
               {row.ip_address || "-"}
-              <CopyFieldButton value={row.ip_address} label="IP 地址" />
+              <CopyFieldButton value={row.ip_address} label={txt("m0334")} />
             </p>
           </Card>
         </div>

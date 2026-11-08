@@ -1,37 +1,63 @@
+import { adminText } from "@/lib/admin-messages";
 export const LOGIN_METHOD_LABELS: Record<string, string> = {
-  password: "密码",
-  sms: "短信",
+  get password() {
+    return adminText("m0751");
+  },
+  get sms() {
+    return adminText("m0752");
+  },
   oauth_github: "GitHub",
-  oauth_wechat: "微信",
+  get oauth_wechat() {
+    return adminText("m0753");
+  },
 };
-
 export const LOGIN_FAILURE_LABELS: Record<string, string> = {
-  invalid_credentials: "账号或密码错误",
-  invalid_code: "验证码无效",
-  user_disabled: "账号已禁用",
-  oauth_failed: "OAuth 失败",
-  oauth_not_linked: "未绑定管理员",
-  oauth_already_linked: "已绑定其他账号",
+  get invalid_credentials() {
+    return adminText("m0754");
+  },
+  get invalid_code() {
+    return adminText("m0755");
+  },
+  get user_disabled() {
+    return adminText("m0262");
+  },
+  get oauth_failed() {
+    return adminText("m0756");
+  },
+  get oauth_not_linked() {
+    return adminText("m0757");
+  },
+  get oauth_already_linked() {
+    return adminText("m0758");
+  },
 };
-
 export const OPERATION_ACTION_LABELS: Record<string, string> = {
-  "user.create": "创建用户",
-  "user.update": "编辑用户",
-  "user.reset_password": "重置密码",
-  "user.enable": "启用用户",
-  "user.disable": "禁用用户",
-  "user.delete": "删除用户",
+  get "user.create"() {
+    return adminText("m0280");
+  },
+  get "user.update"() {
+    return adminText("m0279");
+  },
+  get "user.reset_password"() {
+    return adminText("m0010");
+  },
+  get "user.enable"() {
+    return adminText("m0759");
+  },
+  get "user.disable"() {
+    return adminText("m0760");
+  },
+  get "user.delete"() {
+    return adminText("m0306");
+  },
 };
-
 export function loginMethodLabel(method: string) {
   return LOGIN_METHOD_LABELS[method] ?? method;
 }
-
 export function loginFailureLabel(reason: string | null | undefined) {
   if (!reason) return "-";
   return LOGIN_FAILURE_LABELS[reason] ?? reason;
 }
-
 export function operationActionLabel(action: string) {
   return OPERATION_ACTION_LABELS[action] ?? action;
 }

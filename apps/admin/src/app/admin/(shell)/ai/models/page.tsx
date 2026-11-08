@@ -1,13 +1,11 @@
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AiProviderSettings } from "@/components/admin/ai-provider-settings";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export default function AdminAiModelsPage() {
+  const txt = useAdminMessages();
   return (
     <div>
-      <AdminPageHeader
-        title="AI 模型"
-        description="管理 LLM 提供商：新增、编辑、激活与设置默认模型。API Key 仅保存在服务端。"
-      />
+      <AdminPageHeader title={txt("m0020")} description={txt("m0021")} />
       <AiProviderSettings />
     </div>
   );

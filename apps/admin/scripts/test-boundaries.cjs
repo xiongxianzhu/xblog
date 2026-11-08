@@ -63,6 +63,7 @@ for (const site of ["zh-CN", "zh-TW", "en"]) {
           useState: (init) => [init(), () => {}],
         },
         "use-intl": { IntlProvider: "intl" },
+        "@/lib/admin-messages": { setAdminMessageLocale: () => {} },
         "@/messages/en.json": {},
         "@/messages/zh-CN.json": {},
         "@/messages/zh-TW.json": {},

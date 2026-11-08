@@ -29,6 +29,8 @@ export function SiteChrome({ children, siteTheme }: SiteChromeProps) {
         siteName={siteTheme.site_name}
         siteTagline={siteTheme.site_tagline}
         siteLogoUrl={siteTheme.site_logo_url}
+        githubLinkEnabled={siteTheme.github_link_enabled}
+        githubLinkUrl={siteTheme.github_link_url}
       />
       <main className="min-w-0 flex-1">{children}</main>
       <SiteFooter

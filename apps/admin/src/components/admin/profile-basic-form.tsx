@@ -1,5 +1,6 @@
 import { Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "use-intl";
 import {
   adminBorderlessControlClass,
   adminBorderlessFocusClass,
@@ -11,13 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type AdminUserMe, type ProfileGender, updateProfile } from "@/lib/api";
 import { toast } from "@/lib/feedback";
+import { profileErrorKey } from "@/lib/profile-errors";
 import { cn } from "@/lib/utils";
 
-const GENDER_OPTIONS: { value: ProfileGender; label: string }[] = [
-  { value: "male", label: "男" },
-  { value: "female", label: "女" },
-  { value: "other", label: "其他" },
-];
+const GENDER_OPTIONS: ProfileGender[] = ["male", "female", "other"];
 
 const GENDER_NONE = "__none__";
 
@@ -28,6 +26,8 @@ type ProfileBasicFormProps = {
 };
 
 export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileBasicFormProps) {
+  const t = useTranslations("admin.profile");
+  const tGender = useTranslations("admin.gender");
   const [nickname, setNickname] = useState(user.nickname ?? "");
   const [birthDate, setBirthDate] = useState(user.birth_date ?? "");
   const [gender, setGender] = useState<ProfileGender | "">(user.gender ?? "");
@@ -48,10 +48,10 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
         gender: gender || null,
       });
       onUpdated(updated);
-      toast.success("资料已保存");
+      toast.success(t("saved"));
     } catch (err) {
-      toast.error("保存失败", {
-        description: err instanceof Error ? err.message : "请稍后重试",
+      toast.error(t("saveFailed"), {
+        description: t(profileErrorKey(err)),
       });
     } finally {
       setSaving(false);
@@ -62,23 +62,23 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
     <>
       <FieldGroup className={cn("gap-4", embedded && "md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-4")}>
         <Field className={embedded ? "md:col-span-2" : undefined}>
-          <FieldLabel htmlFor="profile-nickname">昵称</FieldLabel>
+          <FieldLabel htmlFor="profile-nickname">{t("nickname")}</FieldLabel>
           <Input
             id="profile-nickname"
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            placeholder="展示用昵称，可留空"
+            placeholder={t("nicknameHint")}
             maxLength={50}
             autoComplete="nickname"
             className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="profile-birth-date">出生日期</FieldLabel>
+          <FieldLabel htmlFor="profile-birth-date">{t("birthDate")}</FieldLabel>
           <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="profile-gender">性别</FieldLabel>
+          <FieldLabel htmlFor="profile-gender">{tGender("label")}</FieldLabel>
           <Select
             value={gender || GENDER_NONE}
             onValueChange={(value) => setGender(value === GENDER_NONE ? "" : (value as ProfileGender))}
@@ -87,13 +87,13 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
               id="profile-gender"
               className={cn(adminBorderlessControlClass, adminBorderlessFocusClass)}
             >
-              <SelectValue placeholder="请选择" />
+              <SelectValue placeholder={tGender("select")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={GENDER_NONE}>未设置</SelectItem>
+              <SelectItem value={GENDER_NONE}>{tGender("unset")}</SelectItem>
               {GENDER_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                <SelectItem key={option} value={option}>
+                  {tGender(option)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -105,10 +105,10 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
           {saving ? (
             <>
               <Loader2Icon className="size-4 animate-spin" />
-              保存中…
+              {t("saving")}
             </>
           ) : (
-            "保存基本信息"
+            t("saveBasic")
           )}
         </Button>
       </div>
@@ -120,8 +120,8 @@ export function ProfileBasicForm({ user, onUpdated, embedded = false }: ProfileB
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
       <div>
-        <p className="text-sm font-medium">基本信息</p>
-        <p className="mt-1 text-xs text-muted-foreground">昵称、出生日期与性别将显示在用户列表中。</p>
+        <p className="text-sm font-medium">{t("basic")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("basicHint")}</p>
       </div>
       {form}
     </div>

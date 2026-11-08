@@ -5,61 +5,67 @@ import Link from "@/components/link";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { resetPassword } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { useRouter, useSearchParams } from "@/lib/navigation";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 function ResetPasswordForm() {
+  const txt = useAdminMessages();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!token) {
-      toast.error("链接无效", { description: "缺少重置令牌，请重新申请找回密码。" });
+      toast.error(txt("m0001"), {
+        description: txt("m0002"),
+      });
       return;
     }
     if (password.length < 8) {
-      toast.error("密码太短", { description: "新密码至少需要 8 位。" });
+      toast.error(txt("m0003"), {
+        description: txt("m0004"),
+      });
       return;
     }
     if (password !== confirmPassword) {
-      toast.error("两次密码不一致");
+      toast.error(txt("m0005"));
       return;
     }
-
     setLoading(true);
     try {
       await resetPassword(token, password);
-      toast.success("密码已重置", { description: "请使用新密码登录。" });
+      toast.success(txt("m0006"), {
+        description: txt("m0007"),
+      });
       router.replace("/admin");
     } catch (err) {
-      toast.error("重置失败", {
-        description: err instanceof Error ? err.message : "链接可能已过期，请重新申请。",
+      toast.error(txt("m0008"), {
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setLoading(false);
     }
   }
-
   return (
     <div className="admin-login-screen relative z-10 w-full max-w-[26rem]">
-      <AdminLoginBrand subtitle="重置密码" />
+      <AdminLoginBrand subtitle={txt("m0010")} />
 
       <div className="admin-login-panel">
         <div className="border-b border-border/70 px-6 py-5">
-          <h1 className="text-lg font-semibold tracking-tight">设置新密码</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">请输入新的管理员密码</p>
+          <h1 className="text-lg font-semibold tracking-tight">{txt("m0011")}</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">{txt("m0012")}</p>
         </div>
         <form className="px-6 py-6" onSubmit={handleSubmit}>
           <FieldGroup className="gap-5">
             <Field>
-              <FieldLabel htmlFor="new-password">新密码</FieldLabel>
+              <FieldLabel htmlFor="new-password">{txt("m0013")}</FieldLabel>
               <Input
                 id="new-password"
                 type="password"
@@ -71,7 +77,7 @@ function ResetPasswordForm() {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
+              <FieldLabel htmlFor="confirm-password">{txt("m0014")}</FieldLabel>
               <Input
                 id="confirm-password"
                 type="password"
@@ -90,16 +96,16 @@ function ResetPasswordForm() {
               {loading ? (
                 <>
                   <Loader2Icon className="size-4 animate-spin" />
-                  保存中…
+                  {txt("m0015")}
                 </>
               ) : (
-                "保存新密码"
+                txt("m0016")
               )}
             </Button>
             <Button type="button" variant="ghost" className="h-10 w-full rounded-[2px]" asChild>
               <Link href="/admin">
                 <ArrowLeftIcon className="size-4" />
-                返回登录
+                {txt("m0017")}
               </Link>
             </Button>
           </FieldGroup>
@@ -108,8 +114,8 @@ function ResetPasswordForm() {
     </div>
   );
 }
-
 export default function AdminResetPasswordPage() {
+  useAdminMessages();
   return (
     <Suspense fallback={null}>
       <ResetPasswordForm />

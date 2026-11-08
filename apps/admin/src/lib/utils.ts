@@ -19,9 +19,9 @@ export function formatIsoDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function formatDate(value: string | null | undefined): string {
+export function formatDate(value: string | null | undefined, locale = "zh-CN"): string {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("zh-CN", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Shanghai",
     year: "numeric",
     month: "long",

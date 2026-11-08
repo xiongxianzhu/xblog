@@ -2,9 +2,10 @@ import { Button, Modal } from "antd";
 import { Download } from "lucide-react";
 import { CopyFieldButton } from "@/components/admin/copy-field-button";
 import { formatMediaSize, type MediaAsset } from "@/lib/media-api";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
-
 export function MediaPreview({ asset, onClose }: { asset: MediaAsset; onClose: () => void }) {
+  const txt = useAdminMessages();
   const url = new URL(asset.url, window.location.origin).href;
   return (
     <Modal
@@ -15,7 +16,7 @@ export function MediaPreview({ asset, onClose }: { asset: MediaAsset; onClose: (
       onCancel={onClose}
       footer={
         <Button href={`/api/v1/admin/media/${asset.id}/download`} icon={<Download size={16} />}>
-          下载原文件
+          {txt("m0141")}
         </Button>
       }
     >
@@ -45,9 +46,7 @@ export function MediaPreview({ asset, onClose }: { asset: MediaAsset; onClose: (
           />
         )}
       </div>
-      {asset.kind !== "image" ? (
-        <p className="text-xs text-muted-foreground">若浏览器不支持此文件的编码，可下载原文件后播放。</p>
-      ) : null}
+      {asset.kind !== "image" ? <p className="text-xs text-muted-foreground">{txt("m0615")}</p> : null}
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
         <span>{asset.mime_type}</span>
         <span>{formatMediaSize(asset.size_bytes)}</span>
@@ -55,7 +54,7 @@ export function MediaPreview({ asset, onClose }: { asset: MediaAsset; onClose: (
       </div>
       <p className="mb-0 mt-3 flex items-center gap-1 text-xs text-muted-foreground">
         <span className="min-w-0 break-all">{url}</span>
-        <CopyFieldButton label="素材链接" value={url} />
+        <CopyFieldButton label={txt("m0140")} value={url} />
       </p>
     </Modal>
   );

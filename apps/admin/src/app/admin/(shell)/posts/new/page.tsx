@@ -5,23 +5,22 @@ import Link from "@/components/link";
 import { Button } from "@/components/ui/button";
 import { createPost } from "@/lib/api";
 import { useRouter } from "@/lib/navigation";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export default function NewPostPage() {
+  const txt = useAdminMessages();
   const router = useRouter();
   const createdPostId = useRef<number | null>(null);
-
   async function handleSubmit(values: Record<string, unknown>) {
     const post = await createPost(values);
     createdPostId.current = post.id;
   }
-
   return (
     <div>
       <AdminPageHeader
-        title="新建文章"
+        title={txt("m0025")}
         actions={
           <Button asChild variant="outline">
-            <Link href="/admin/posts">返回列表</Link>
+            <Link href="/admin/posts">{txt("m0186")}</Link>
           </Button>
         }
       />

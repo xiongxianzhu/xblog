@@ -4,6 +4,7 @@ import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { loginWithSms, sendSmsLoginCode } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
@@ -32,11 +33,11 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
     setSending(true);
     try {
       const result = await sendSmsLoginCode(phone.trim());
-      toast.success(t("codeSent"), { description: result.message });
+      toast.success(t("codeSent"), { description: getAdminErrorMessage(result.message) });
       setCountdown(60);
     } catch (err) {
       toast.error(t("sendFailed"), {
-        description: err instanceof Error ? err.message : t("retry"),
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setSending(false);
@@ -51,7 +52,7 @@ export function AdminSmsLoginForm({ onSuccess, className }: Props) {
       onSuccess(user.username);
     } catch (err) {
       toast.error(t("failed"), {
-        description: err instanceof Error ? err.message : t("invalidCode"),
+        description: getAdminErrorMessage(err),
       });
     } finally {
       setLoggingIn(false);

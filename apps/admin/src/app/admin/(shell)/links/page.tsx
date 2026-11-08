@@ -12,14 +12,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { deleteAdminLink, listAdminLinks } from "@/lib/api";
 import { matchQuery } from "@/lib/match-query";
 import { useRouter } from "@/lib/navigation";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
 import type { FriendLinkPublic } from "@/lib/types";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
-
 export default function AdminLinksPage() {
+  const txt = useAdminMessages();
   const router = useRouter();
   const { data: links, error, isLoading, mutate } = useSWR("admin-links", listAdminLinks);
   const [search, setSearch] = useState("");
@@ -30,8 +32,11 @@ export default function AdminLinksPage() {
     variant: AdminFeedbackVariant;
     title: string;
     message?: string;
-  }>({ open: false, variant: "success", title: "" });
-
+  }>({
+    open: false,
+    variant: "success",
+    title: "",
+  });
   const filtered = useMemo(
     () =>
       (links ?? []).filter((link) =>
@@ -39,7 +44,6 @@ export default function AdminLinksPage() {
       ),
     [links, search],
   );
-
   async function confirmDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -47,34 +51,38 @@ export default function AdminLinksPage() {
       await deleteAdminLink(deleteTarget.id);
       await mutate();
       setDeleteTarget(null);
-      setFeedback({ open: true, variant: "success", title: "已删除", message: "友链已移除。" });
+      setFeedback({
+        open: true,
+        variant: "success",
+        title: txt("m0047"),
+        message: txt("m0048"),
+      });
     } catch (err) {
       setFeedback({
         open: true,
         variant: "error",
-        title: "删除失败",
-        message: err instanceof Error ? err.message : "请稍后重试",
+        title: txt("m0049"),
+        message: getAdminErrorMessage(err),
       });
     } finally {
       setDeleting(false);
     }
   }
-
   return (
     <div>
       <AdminPageHeader
-        title="友链"
-        description="维护公开页 /links 展示的友情链接，按排序值升序排列。"
+        title={txt("m0050")}
+        description={txt("m0051")}
         actions={
           <Button onClick={() => router.push("/admin/links/new")} className={adminFlatButtonClass}>
             <PlusIcon data-icon="inline-start" />
-            添加友链
+            {txt("m0041")}
           </Button>
         }
       />
 
       <div className="mb-4">
-        <AdminListSearch value={search} onChange={setSearch} placeholder="搜索名称、URL、简介…" />
+        <AdminListSearch value={search} onChange={setSearch} placeholder={txt("m0052")} />
       </div>
 
       {isLoading ? (
@@ -84,32 +92,32 @@ export default function AdminLinksPage() {
         </div>
       ) : null}
 
-      {error ? <p className="text-sm text-destructive">加载失败，请刷新页面。</p> : null}
+      {error ? <p className="text-sm text-destructive">{txt("m0053")}</p> : null}
 
       {!isLoading && !error && (links ?? []).length === 0 ? (
-        <EmptyState title="暂无友链" description="点击「添加友链」创建第一条。" />
+        <EmptyState title={txt("m0054")} description={txt("m0055")} />
       ) : null}
 
       {!isLoading && !error && (links ?? []).length > 0 && filtered.length === 0 ? (
-        <EmptyState title="无匹配结果" description="试试其他关键词。" />
+        <EmptyState title={txt("m0056")} description={txt("m0057")} />
       ) : null}
 
       {!isLoading && filtered.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>友链列表</CardTitle>
-            <CardDescription>管理友链信息与展示顺序，保存后同步到公开站。</CardDescription>
+            <CardTitle>{txt("m0058")}</CardTitle>
+            <CardDescription>{txt("m0059")}</CardDescription>
           </CardHeader>
           <CardContent className="min-w-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">排序</TableHead>
-                  <TableHead className="w-16">LOGO</TableHead>
-                  <TableHead>名称</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>简介</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="w-16">{txt("m0060")}</TableHead>
+                  <TableHead className="w-16">{txt("m0799")}</TableHead>
+                  <TableHead>{txt("m0061")}</TableHead>
+                  <TableHead>{txt("m0569")}</TableHead>
+                  <TableHead>{txt("m0062")}</TableHead>
+                  <TableHead className="text-right">{txt("m0063")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -132,7 +140,7 @@ export default function AdminLinksPage() {
                       <TableCell className="max-w-xs text-muted-foreground">
                         <div className="flex items-center justify-center gap-1">
                           <span className="min-w-0 truncate">{link.url}</span>
-                          <CopyFieldButton value={link.url} label="友链地址" />
+                          <CopyFieldButton value={link.url} label={txt("m0064")} />
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[12rem] truncate text-muted-foreground">
@@ -141,8 +149,10 @@ export default function AdminLinksPage() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button
-                            aria-label={`编辑 ${link.name}`}
-                            title="编辑"
+                            aria-label={txt("m0065", {
+                              p0: link.name,
+                            })}
+                            title={txt("m0039")}
                             variant="ghost"
                             size="icon"
                             className={adminFlatButtonClass}
@@ -151,8 +161,10 @@ export default function AdminLinksPage() {
                             <PencilIcon data-icon="inline-start" />
                           </Button>
                           <Button
-                            aria-label={`删除 ${link.name}`}
-                            title="删除"
+                            aria-label={txt("m0066", {
+                              p0: link.name,
+                            })}
+                            title={txt("m0067")}
                             variant="ghost"
                             size="icon"
                             className={cn("text-destructive", adminFlatButtonClass)}
@@ -174,9 +186,15 @@ export default function AdminLinksPage() {
       <AdminConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="删除友链"
-        description={deleteTarget ? `确定删除「${deleteTarget.name}」吗？此操作不可撤销。` : ""}
-        confirmLabel="确认删除"
+        title={txt("m0068")}
+        description={
+          deleteTarget
+            ? txt("m0069", {
+                p0: deleteTarget.name,
+              })
+            : ""
+        }
+        confirmLabel={txt("m0070")}
         variant="destructive"
         loading={deleting}
         onConfirm={confirmDelete}
@@ -184,7 +202,12 @@ export default function AdminLinksPage() {
 
       <AdminFeedbackDialog
         open={feedback.open}
-        onOpenChange={(open) => setFeedback((prev) => ({ ...prev, open }))}
+        onOpenChange={(open) =>
+          setFeedback((prev) => ({
+            ...prev,
+            open,
+          }))
+        }
         variant={feedback.variant}
         title={feedback.title}
         message={feedback.message}

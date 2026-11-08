@@ -30,6 +30,9 @@ export const DEFAULT_SITE_THEME: SitePublicTheme = {
   site_logo_url: null,
   site_icp_number: null,
   posts_per_page: 10,
+  site_base_url: "",
+  github_link_enabled: false,
+  github_link_url: "",
   article_share_enabled: false,
   copyright_enabled: false,
   copyright_content:

@@ -1,6 +1,7 @@
 import { Link2Icon, MailIcon, PhoneIcon, UserRoundIcon } from "lucide-react";
 import { Suspense, useEffect } from "react";
 import useSWR from "swr";
+import { useTranslations } from "use-intl";
 import { AdminOAuthButtons } from "@/components/admin/admin-oauth-buttons";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { EmailBinder } from "@/components/admin/email-binder";
@@ -15,12 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getMe, getOAuthLinks, getOAuthProviders } from "@/lib/api";
 import { toast } from "@/lib/feedback";
 import { useRouter, useSearchParams } from "@/lib/navigation";
-
-const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  oauth_failed: "第三方绑定失败，请稍后重试。",
-
-  oauth_already_linked: "该 GitHub / 微信账号已绑定其他管理员。",
-};
 
 function ProfileSkeleton() {
   return (
@@ -41,6 +36,7 @@ function ProfileSkeleton() {
 }
 
 function ProfileContent() {
+  const t = useTranslations("admin.profile");
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -57,26 +53,28 @@ function ProfileContent() {
     const oauthError = searchParams.get("error");
 
     if (oauth === "bound") {
-      toast.success("绑定成功", { description: "下次可使用第三方账号登录。" });
+      toast.success(t("linked"), { description: t("linkedDescription") });
 
       void mutateLinks();
-    } else if (oauthError && OAUTH_ERROR_MESSAGES[oauthError]) {
-      toast.error("绑定失败", { description: OAUTH_ERROR_MESSAGES[oauthError] });
+    } else if (oauthError) {
+      toast.error(t("linkFailed"), {
+        description: t(oauthError === "oauth_already_linked" ? "oauthAlreadyLinked" : "oauthFailed"),
+      });
     }
 
     if (oauth || oauthError) {
       router.replace("/admin/profile");
     }
-  }, [searchParams, mutateLinks, router]);
+  }, [searchParams, mutateLinks, router, t]);
 
   return (
     <div className="admin-profile-page">
       <AdminPageHeader
-        title="个人资料"
-        description="头像、基本信息与登录方式分栏管理，信息更集中、更易维护。"
+        title={t("title")}
+        description={t("description")}
         actions={
           <Button asChild variant="outline" className="rounded-[2px]">
-            <Link href="/admin/users">用户列表</Link>
+            <Link href="/admin/users">{t("users")}</Link>
           </Button>
         }
       />
@@ -84,17 +82,13 @@ function ProfileContent() {
       {isLoading ? (
         <ProfileSkeleton />
       ) : error ? (
-        <p className="text-sm text-destructive">加载失败，请刷新页面。</p>
+        <p className="text-sm text-destructive">{t("loadFailed")}</p>
       ) : user ? (
         <div className="admin-profile-layout grid gap-6 lg:grid-cols-[minmax(260px,300px)_1fr] xl:gap-8">
           <ProfileHero user={user} oauthLinked={links} className="lg:sticky lg:top-[4.5rem] lg:self-start" />
 
           <div className="admin-profile-sections flex min-w-0 flex-col gap-5">
-            <ProfileSection
-              icon={UserRoundIcon}
-              title="基本信息"
-              description="昵称、出生日期与性别会同步到用户列表与右上角展示。"
-            >
+            <ProfileSection icon={UserRoundIcon} title={t("basic")} description={t("basicDescription")}>
               <ProfileBasicForm
                 embedded
                 user={user}
@@ -107,8 +101,8 @@ function ProfileContent() {
             <div className="grid gap-5 md:grid-cols-2">
               <ProfileSection
                 icon={MailIcon}
-                title="邮箱"
-                description="用于邮箱 + 密码登录与找回密码（需配置 SMTP）。"
+                title={t("email")}
+                description={t("emailDescription")}
                 className="h-full"
               >
                 <EmailBinder
@@ -122,8 +116,8 @@ function ProfileContent() {
 
               <ProfileSection
                 icon={PhoneIcon}
-                title="手机号"
-                description="绑定后可在登录页使用短信验证码；需在设置中开启。"
+                title={t("phone")}
+                description={t("phoneDescription")}
                 className="h-full"
               >
                 <PhoneBinder
@@ -137,12 +131,13 @@ function ProfileContent() {
             </div>
 
             {providers && (providers.github || providers.wechat) ? (
-              <ProfileSection
-                icon={Link2Icon}
-                title="第三方登录"
-                description="绑定 GitHub 或微信后，可在登录页快捷登录。"
-              >
-                <AdminOAuthButtons providers={providers} mode="bind" links={links} className="max-w-md" />
+              <ProfileSection icon={Link2Icon} title={t("oauth")} description={t("oauthDescription")}>
+                <AdminOAuthButtons
+                  providers={providers}
+                  mode="bind"
+                  links={links}
+                  className="mx-auto w-full max-w-md"
+                />
               </ProfileSection>
             ) : null}
           </div>

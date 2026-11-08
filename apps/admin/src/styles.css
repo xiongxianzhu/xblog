@@ -1131,42 +1131,36 @@ body.mermaid-fullscreen-open {
   max-width: none;
   line-height: 1.8;
 }
-.prose h1,
-.prose h2,
-.prose h3 {
-  font-weight: 600;
-  margin: 1.2em 0 0.6em;
-}
 .prose p {
   margin: 0.8em 0;
 }
-.admin-markdown-editor .prose :is(h1, h2, h3, h4, h5, h6) {
+.prose :is(h1, h2, h3, h4, h5, h6) {
   font-weight: 600;
   line-height: 1.3;
   margin-block: 1em 0.5em;
 }
-.admin-markdown-editor .prose h1 {
+.prose h1 {
   font-size: 2rem;
 }
-.admin-markdown-editor .prose h2 {
+.prose h2 {
   font-size: 1.5rem;
 }
-.admin-markdown-editor .prose h3 {
+.prose h3 {
   font-size: 1.25rem;
 }
-.admin-markdown-editor .prose h4 {
+.prose h4 {
   font-size: 1.125rem;
 }
-.admin-markdown-editor .prose h5 {
+.prose h5 {
   font-size: 1rem;
 }
-.admin-markdown-editor .prose h6 {
+.prose h6 {
   font-size: 0.9375rem;
 }
-.admin-markdown-editor .prose p[align="center" i] {
+.prose p[align="center" i] {
   text-align: center;
 }
-.admin-markdown-editor .prose img {
+.prose img {
   display: inline-block;
   max-width: 100%;
   vertical-align: middle;

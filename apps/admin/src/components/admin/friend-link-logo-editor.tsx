@@ -1,8 +1,6 @@
 import { Upload } from "antd";
-
 import { ImagePlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-
 import {
   adminBorderlessControlClass,
   adminBorderlessFocusClass,
@@ -11,14 +9,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
+import { localizeAdminNotice } from "@/lib/admin-messages";
 import { uploadFriendLinkLogo } from "@/lib/api";
 import { discardManagedFriendLinkLogo } from "@/lib/pending-upload-cleanup";
 import { resolveAdminAssetPreviewUrl } from "@/lib/public-asset-url";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 const adminFieldClass = cn(adminBorderlessControlClass, adminBorderlessFocusClass);
 const MAX_FRIEND_LINK_LOGO_BYTES = 5 * 1024 * 1024;
-
 type FriendLinkLogoEditorProps = {
   value: string;
   savedLogoUrl?: string;
@@ -26,7 +26,6 @@ type FriendLinkLogoEditorProps = {
   disabled?: boolean;
   onUploadingChange?: (uploading: boolean) => void;
 };
-
 export function FriendLinkLogoEditor({
   value,
   savedLogoUrl = "",
@@ -34,28 +33,25 @@ export function FriendLinkLogoEditor({
   disabled,
   onUploadingChange,
 }: FriendLinkLogoEditorProps) {
+  const txt = useAdminMessages();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const displayUrl = resolveAdminAssetPreviewUrl(previewUrl ?? (value || null));
-
   async function handleFileChange(file: File) {
     if (!file.type.startsWith("image/")) {
-      setError("请选择图片文件");
+      setError(txt("m0554"));
       return;
     }
     if (file.size > MAX_FRIEND_LINK_LOGO_BYTES) {
-      setError("图片不能超过 5MB");
+      setError(txt("m0555"));
       return;
     }
-
     setError("");
     setLoading(true);
     onUploadingChange?.(true);
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
-
     try {
       const previous = value.trim();
       const result = await uploadFriendLinkLogo(file);
@@ -68,20 +64,18 @@ export function FriendLinkLogoEditor({
     } catch (err) {
       setPreviewUrl(null);
       URL.revokeObjectURL(localPreview);
-      setError(err instanceof Error ? err.message : "上传失败");
+      setError(getAdminErrorMessage(err));
     } finally {
       setLoading(false);
       onUploadingChange?.(false);
     }
   }
-
   async function handleRemove() {
     await discardManagedFriendLinkLogo(value, savedLogoUrl);
     onChange("");
     setPreviewUrl(null);
     setError("");
   }
-
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
       <div className="flex size-16 shrink-0 items-center justify-center">
@@ -89,7 +83,7 @@ export function FriendLinkLogoEditor({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={displayUrl} alt="" className="max-h-16 max-w-16 object-contain" />
         ) : (
-          <span className="text-xs text-muted-foreground">无 LOGO</span>
+          <span className="text-xs text-muted-foreground">{txt("m0556")}</span>
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -119,7 +113,7 @@ export function FriendLinkLogoEditor({
               disabled={disabled || loading}
             >
               <ImagePlusIcon data-icon="inline-start" />
-              {loading ? "上传中…" : "上传 LOGO"}
+              {loading ? txt("m0557") : txt("m0558")}
             </Button>
           </Upload>
           {value ? (
@@ -132,12 +126,12 @@ export function FriendLinkLogoEditor({
               onClick={() => void handleRemove()}
             >
               <Trash2Icon data-icon="inline-start" />
-              移除
+              {txt("m0559")}
             </Button>
           ) : null}
         </div>
-        <FieldDescription>必填。支持 JPG、PNG、WebP、GIF，最大 5MB；也可粘贴外链 URL。</FieldDescription>
-        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        <FieldDescription>{txt("m0560")}</FieldDescription>
+        {error ? <p className="text-xs text-destructive">{localizeAdminNotice(error)}</p> : null}
       </div>
     </div>
   );

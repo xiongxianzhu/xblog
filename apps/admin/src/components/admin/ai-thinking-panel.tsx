@@ -1,3 +1,4 @@
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { cn } from "@/lib/utils";
 
 type AiThinkingPanelProps = {
@@ -5,10 +6,9 @@ type AiThinkingPanelProps = {
   streaming?: boolean;
   className?: string;
 };
-
 export function AiThinkingPanel({ thinking, streaming = false, className }: AiThinkingPanelProps) {
+  const txt = useAdminMessages();
   if (!thinking && !streaming) return null;
-
   return (
     <details
       open={streaming || undefined}
@@ -18,8 +18,8 @@ export function AiThinkingPanel({ thinking, streaming = false, className }: AiTh
       )}
     >
       <summary className="cursor-pointer select-none text-xs font-medium text-muted-foreground">
-        思考过程
-        {streaming && !thinking ? "（等待模型…）" : null}
+        {txt("m0512")}
+        {streaming && !thinking ? txt("m0513") : null}
       </summary>
       {thinking ? (
         <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-muted-foreground">

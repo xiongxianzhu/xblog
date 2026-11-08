@@ -1,5 +1,4 @@
 import { Tabs as AntTabs } from "antd";
-
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
@@ -11,6 +10,7 @@ import { AdminTurnstile } from "@/components/admin/admin-turnstile";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import {
   ApiError,
   forgotPassword,
@@ -39,10 +39,10 @@ function getLoginErrorMessage(error: unknown, t: (key: string) => string): strin
       "登录尝试过于频繁，请稍后再试": t("loginLimit"),
       "请求过于频繁，请稍后再试": t("rateLimit"),
     };
-    return (messageMap[error.message] ?? error.message) || t("failed");
+    return messageMap[error.message] ?? getAdminErrorMessage(error);
   }
   if (error instanceof Error) {
-    return error.message || t("failed");
+    return getAdminErrorMessage(error);
   }
   return t("failed");
 }
@@ -167,7 +167,7 @@ export function AdminLoginScreen() {
     setLoading(true);
     try {
       const result = await forgotPassword(username, turnstileToken ?? undefined);
-      toast.success(t("submitted"), { description: result.message });
+      toast.success(t("submitted"), { description: getAdminErrorMessage(result.message) });
       setView("login");
       setTurnstileToken(null);
       setTurnstileKey((value) => value + 1);

@@ -1,6 +1,7 @@
 import { Alert } from "antd";
 import { EyeIcon, FileTextIcon, PlusIcon } from "lucide-react";
 import useSWR from "swr";
+import { useLocale } from "use-intl";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminPanel } from "@/components/admin/admin-panel";
 import Link from "@/components/link";
@@ -8,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdminPostStats, listAdminPosts, listPageViewStats } from "@/lib/api";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDate } from "@/lib/utils";
-
 export default function AdminDashboardPage() {
+  const txt = useAdminMessages();
+  const locale = useLocale();
   const {
     data: postStats,
     error: statsError,
@@ -29,22 +32,20 @@ export default function AdminDashboardPage() {
     isLoading: viewsLoading,
     mutate: retryViews,
   } = useSWR("admin-pageviews", listPageViewStats);
-
   const recentPosts = recentData?.items ?? [];
   const totalViews = (pageviews ?? []).reduce((sum, row) => sum + row.count, 0);
   const statsPending = statsLoading || viewsLoading;
   const statsFailed = statsError || viewsError;
-
   return (
     <div className="admin-dashboard">
       <AdminPageHeader
-        title="仪表盘"
-        description="站点内容与健康概览"
+        title={txt("m0023")}
+        description={txt("m0024")}
         actions={
           <Button asChild>
             <Link href="/admin/posts/new">
               <PlusIcon data-icon="inline-start" />
-              新建文章
+              {txt("m0025")}
             </Link>
           </Button>
         }
@@ -53,8 +54,8 @@ export default function AdminDashboardPage() {
       {statsFailed ? (
         <Alert
           type="error"
-          title="统计加载失败"
-          description="请重试获取最新数据。"
+          title={txt("m0026")}
+          description={txt("m0027")}
           action={
             <Button
               variant="outline"
@@ -64,7 +65,7 @@ export default function AdminDashboardPage() {
                 void retryViews();
               }}
             >
-              重试
+              {txt("m0028")}
             </Button>
           }
         />
@@ -80,34 +81,37 @@ export default function AdminDashboardPage() {
             <>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">文章总数</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{txt("m0029")}</CardTitle>
                   <FileTextIcon className="size-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <p className="tabular-nums text-3xl font-semibold">{postStats?.total ?? 0}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    已发布 {postStats?.published ?? 0} · 草稿 {postStats?.draft ?? 0}
+                    {txt("articleCounts", {
+                      published: postStats?.published ?? 0,
+                      draft: postStats?.draft ?? 0,
+                    })}
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">累计访问</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{txt("m0032")}</CardTitle>
                   <EyeIcon className="size-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <p className="tabular-nums text-3xl font-semibold">{totalViews}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">来自 PageView 统计</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{txt("m0033")}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">热门路径</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{txt("m0034")}</CardTitle>
                   <EyeIcon className="size-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <p className="tabular-nums text-3xl font-semibold">{(pageviews ?? []).length}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">已记录的不同页面</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{txt("m0035")}</p>
                 </CardContent>
               </Card>
             </>
@@ -116,7 +120,7 @@ export default function AdminDashboardPage() {
       )}
 
       <section className="mt-8">
-        <h2 className="mb-4 font-serif text-lg font-semibold">最近更新</h2>
+        <h2 className="mb-4 font-serif text-lg font-semibold">{txt("m0036")}</h2>
         {recentLoading ? (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-16 w-full" />
@@ -125,15 +129,15 @@ export default function AdminDashboardPage() {
         ) : recentError ? (
           <Alert
             type="error"
-            title="最近更新加载失败"
+            title={txt("m0037")}
             action={
               <Button variant="outline" size="sm" onClick={() => void retryRecent()}>
-                重试
+                {txt("m0028")}
               </Button>
             }
           />
         ) : recentPosts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">还没有文章，去写一篇吧。</p>
+          <p className="text-sm text-muted-foreground">{txt("m0038")}</p>
         ) : (
           <AdminPanel>
             <ul className="divide-y divide-border">
@@ -144,11 +148,11 @@ export default function AdminDashboardPage() {
                       {post.title}
                     </p>
                     {post.updated_at ? (
-                      <p className="text-xs text-muted-foreground">{formatDate(post.updated_at)}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(post.updated_at, locale)}</p>
                     ) : null}
                   </div>
                   <Button asChild variant="ghost" size="sm">
-                    <Link href={`/admin/posts/${post.id}/edit`}>编辑</Link>
+                    <Link href={`/admin/posts/${post.id}/edit`}>{txt("m0039")}</Link>
                   </Button>
                 </li>
               ))}

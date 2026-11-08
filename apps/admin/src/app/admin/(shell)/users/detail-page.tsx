@@ -5,12 +5,16 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { CopyFieldButton } from "@/components/admin/copy-field-button";
 import { UserAvatar } from "@/components/admin/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { getAdminUser } from "@/lib/api";
 import { useParams, useRouter } from "@/lib/navigation";
+import { useAdminMessages } from "@/lib/use-admin-messages";
 import { formatDateTime } from "@/lib/utils";
-
 export default function UserDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const txt = useAdminMessages();
+  const { id } = useParams<{
+    id: string;
+  }>();
   const router = useRouter();
   const userId = Number(id);
   const validId = Number.isSafeInteger(userId) && userId > 0;
@@ -20,22 +24,26 @@ export default function UserDetailPage() {
     isLoading,
     mutate,
   } = useSWR(validId ? ["admin-user", userId] : null, () => getAdminUser(userId));
-  const gender = { male: "男", female: "女", other: "其他" };
+  const gender = {
+    male: txt("m0250"),
+    female: txt("m0251"),
+    other: txt("m0252"),
+  };
   return (
     <div>
       <AdminPageHeader
-        title="用户详情"
-        description="查看管理员账号的完整资料与状态。"
-        actions={<Button onClick={() => router.push("/admin/users")}>返回用户列表</Button>}
+        title={txt("m0253")}
+        description={txt("m0254")}
+        actions={<Button onClick={() => router.push("/admin/users")}>{txt("m0255")}</Button>}
       />
       {!validId ? (
-        <Alert type="error" title="用户编号无效" />
+        <Alert type="error" title={txt("m0256")} />
       ) : error ? (
         <Alert
           type="error"
-          title="无法加载用户"
-          description={error instanceof Error ? error.message : "请稍后重试"}
-          action={<Button onClick={() => void mutate()}>重试</Button>}
+          title={txt("m0257")}
+          description={getAdminErrorMessage(error)}
+          action={<Button onClick={() => void mutate()}>{txt("m0028")}</Button>}
         />
       ) : isLoading || !user ? (
         <Spin />
@@ -48,19 +56,21 @@ export default function UserDetailPage() {
                 <div className="min-w-0">
                   <h2 className="m-0 break-words text-xl font-semibold">{user.nickname || user.username}</h2>
                   <p className="mb-0 mt-1 break-all text-sm text-muted-foreground">
-                    @{user.username} · 用户 #{user.id}
-                    <CopyFieldButton value={user.id} label="用户 ID" />
+                    @{user.username}
+                    {txt("m0258")}
+                    {user.id}
+                    <CopyFieldButton value={user.id} label={txt("m0259")} />
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Tag>管理员</Tag>
+                    <Tag>{txt("m0260")}</Tag>
                     <Tag color={user.is_active ? "success" : "default"}>
-                      {user.is_active ? "账号已启用" : "账号已禁用"}
+                      {user.is_active ? txt("m0261") : txt("m0262")}
                     </Tag>
                   </div>
                 </div>
               </div>
               <Button icon={<Pencil size={16} />} onClick={() => router.push(`/admin/users/${user.id}/edit`)}>
-                编辑资料
+                {txt("m0263")}
               </Button>
             </div>
           </Card>
@@ -69,40 +79,40 @@ export default function UserDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserRound size={18} />
-                  个人资料
+                  {txt("m0248")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="m-0 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
                   {[
-                    ["用户名", user.username],
-                    ["昵称", user.nickname || "-"],
-                    ["性别", user.gender ? gender[user.gender] : "-"],
-                    ["出生日期", user.birth_date || "-"],
+                    [txt("m0091"), user.username],
+                    [txt("m0264"), user.nickname || "-"],
+                    [txt("m0265"), user.gender ? gender[user.gender] : "-"],
+                    [txt("m0266"), user.birth_date || "-"],
                   ].map(([label, value]) => (
                     <div key={label}>
                       <dt className="text-sm text-muted-foreground">{label}</dt>
                       <dd className="m-0 mt-2 flex items-center gap-1 font-medium">
                         <span className="min-w-0 break-words">{value}</span>
-                        {label === "用户名" ? (
-                          <CopyFieldButton value={value} label={label ?? "字段"} />
+                        {label === txt("m0091") ? (
+                          <CopyFieldButton value={value} label={label ?? txt("m0267")} />
                         ) : null}
                       </dd>
                     </div>
                   ))}
                 </dl>
                 <div className="mt-7 border-t pt-6">
-                  <h3 className="mb-5 mt-0 text-sm font-semibold">联系方式</h3>
+                  <h3 className="mb-5 mt-0 text-sm font-semibold">{txt("m0268")}</h3>
                   <dl className="m-0 grid grid-cols-1 gap-6 sm:grid-cols-2">
                     {[
-                      ["邮箱", user.email],
-                      ["手机号", user.phone],
+                      [txt("m0269"), user.email],
+                      [txt("m0270"), user.phone],
                     ].map(([label, value]) => (
                       <div key={label}>
                         <dt className="text-sm text-muted-foreground">{label}</dt>
                         <dd className="m-0 mt-2 flex items-center gap-1 font-medium">
                           <span className="min-w-0 break-all">{value || "-"}</span>
-                          <CopyFieldButton value={value} label={label ?? "联系方式"} />
+                          <CopyFieldButton value={value} label={label ?? txt("m0268")} />
                         </dd>
                       </div>
                     ))}
@@ -115,40 +125,36 @@ export default function UserDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <KeyRound size={18} />
-                    登录与密码
+                    {txt("m0271")}
                   </CardTitle>
                 </CardHeader>
-                <p className="mb-2 font-medium">
-                  {user.must_change_password ? "等待设置新密码" : "无需强制改密"}
-                </p>
+                <p className="mb-2 font-medium">{user.must_change_password ? txt("m0272") : txt("m0273")}</p>
                 <p className="mb-0 text-sm leading-6 text-muted-foreground">
-                  {user.must_change_password
-                    ? "该账号下次登录后，需先设置新密码才能进入后台。"
-                    : "该账号没有待完成的强制改密要求。"}
+                  {user.must_change_password ? txt("m0274") : txt("m0275")}
                 </p>
                 {!user.is_active ? (
-                  <p className="mb-0 mt-3 text-sm text-muted-foreground">账号当前已禁用，无法登录。</p>
+                  <p className="mb-0 mt-3 text-sm text-muted-foreground">{txt("m0276")}</p>
                 ) : null}
               </Card>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock3 size={18} />
-                    账号记录
+                    {txt("m0277")}
                   </CardTitle>
                 </CardHeader>
                 <dl className="m-0 space-y-5">
                   <div>
                     <dt className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CalendarDays size={15} />
-                      创建时间
+                      {txt("m0180")}
                     </dt>
                     <dd className="m-0 mt-2 pl-6 tabular-nums">{formatDateTime(user.created_at)}</dd>
                   </div>
                   <div>
                     <dt className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock3 size={15} />
-                      最近登录
+                      {txt("m0278")}
                     </dt>
                     <dd className="m-0 mt-2 pl-6 tabular-nums">
                       {user.last_login_at ? formatDateTime(user.last_login_at) : "-"}

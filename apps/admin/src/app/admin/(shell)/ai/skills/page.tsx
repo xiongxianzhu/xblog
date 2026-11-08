@@ -1,13 +1,11 @@
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AiSkillSettings } from "@/components/admin/ai-skill-settings";
-
+import { useAdminMessages } from "@/lib/use-admin-messages";
 export default function AdminAiSkillsPage() {
+  const txt = useAdminMessages();
   return (
     <div>
-      <AdminPageHeader
-        title="Agent Skills"
-        description="查看内置与用户自定义 Skill；内置 Skill 只读，自定义 Skill 可新建、编辑与删除。"
-      />
+      <AdminPageHeader title={txt("m0791")} description={txt("m0022")} />
       <AiSkillSettings />
     </div>
   );
