@@ -1,103 +1,78 @@
 # xblog
 
-> 自托管个人博客 Monorepo：FastAPI 后端 API + Next.js 公开站（RSC/ISR/i18n）与独立 React/Vite/Ant Design 后台。PostgreSQL 存储，nginx 同域反代，支持 AI 写作助手（Composer 多 Skill）、Skill、短信/OAuth 登录、Turnstile 防刷、文章封面与友链 LOGO 本地上传、上传孤儿清理 CLI、审计日志、Giscus 评论、备案号与双轨主题，MIT 开源。
+> 可自托管的个人博客 Monorepo，由 Next.js 公开站、React/Vite/Ant Design 管理端和 FastAPI API 组成。使用 PostgreSQL 保存内容与系统配置，支持 Markdown 写作、AI 流式辅助、标签、固定页、素材库、友链和 Giscus 评论。
 
-本仓库为 **Monorepo**：`apps/api/`（Python 3.14 · FastAPI · SQLModel）、`apps/web/`（Next.js 16 · React 19 · next-intl · pnpm）、`apps/admin/`（Vite · Ant Design）、`deploy/`（nginx · systemd）。产品需求与验收以 PRD 为准；协作规范见 CONTRIBUTING 与 Git 工作流文档。AI 助手请先读 `AGENTS.md`。
+本文件是仓库导航，链接相对仓库根目录解析；不等同于公开博客的文章目录，也不会自动发布为网站的 `/llms.txt`。
 
-关键约定：`/` → Next.js；`/admin/` → 静态后台；`/api/` → FastAPI。公开站路由在 `app/[locale]/`（next-intl）；`/admin` 无 locale 前缀，语言存 cookie。公开站主题与品牌（名称、副标题、LOGO、备案号、7 款 palette）存数据库；后台 UI 主题存 localStorage。本地上传目录：`uploads/covers/`、`uploads/link-logos/`；未保存文件由前端即时 DELETE，服务端 `cleanup-uploads` CLI 按 cron 兜底。勿提交 `.env`、密钥或用户上传文件。
+先阅读协作规范与对应应用说明。需求文档描述目标与验收标准；实际行为、依赖版本以当前源码、清单和锁文件为准，历史设计不代表全部已上线。生产入口由 nginx 分发：`/` 为公开站，`/admin/` 为静态后台，`/api/` 为 API。公开语言与后台语言、主题相互独立。
 
-## Documentation
+开发和生产使用 PostgreSQL；数据库验收不能仅依赖 SQLite 测试。认证使用 HttpOnly Cookie，模型密钥留在后端。环境示例仅含配置模板，不代表可用的外部服务；当前短信发送仍有开发日志模式及未实现的生产发送限制。不要将本地配置、密钥、用户数据或上传文件作为公开资料。
 
-- [README](README.md): 项目概览、快速开始、技术栈、文档索引与参与贡献
-- [AGENT](AGENTS.md): AI 编码助手与贡献者速查（目录、API 分层、主题 ISR、环境变量、Git 规范）
-- [CONTRIBUTING](CONTRIBUTING.md): 开源贡献入口（分支、Commit、PR、提交前检查）
-- [Git 工作流](docs/git-workflow.md): 详细 Git 协作规范（Fork、Review、Squash merge、禁止事项）
-- [后端 README](apps/api/README.md): FastAPI API 开发、迁移、`cleanup-uploads` 维护命令、部署与排错
-- [前端 README](apps/web/README.md): Next.js 页面结构、主题系统、i18n 路由与构建
-- [部署说明 systemd](deploy/systemd/README.md): 生产环境 systemd 守护 uvicorn 与 next start
-- [部署说明 nginx](deploy/nginx/README.md): 生产 nginx 同域反代、HTTPS 与 SSE 配置
+## 核心文档
 
-## Specifications
+- [项目概览](README.md): 功能范围、仓库结构、快速开始与文档索引。
+- [协作规范](AGENTS.md): 开发边界、检查命令、数据迁移、主题隔离、缓存刷新及 Git 约定。
+- [产品需求](docs/prd.md): 用户故事、功能目标与验收标准；结合实际实现判断完成情况。
+- [技术栈](docs/tech-stack.md): 三应用职责、依赖和运行环境说明。
+- [API 契约](docs/api.md): public、auth、admin 接口，参数、响应、Cookie 与错误约定。
+- [数据库设计](docs/database.md): 表结构、关系、系统配置键、迁移历史与已知差异。
+- [部署指南](docs/deployment.md): 同域 nginx、静态后台、服务进程、迁移、备份及生产验收。
+- [管理端设计规范](DESIGN.md): 管理端视觉和交互规则，以及公开站样式隔离约束。
 
-- [产品需求文档 PRD](docs/prd.md): 功能范围、用户故事、验收标准、数据模型、API 与 Non-Goals（权威来源）
-- [AI 写作 Skill 设计](docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md): AI 助手、Skill 推荐、流式 SSE 与内置 Skill 设计说明
-- [AI 写作 Skill 实施计划](docs/superpowers/plans/2026-07-05-ai-writing-skills-plan.md): AI 功能分阶段落地计划与任务拆分
-- [AI 编辑器 Composer 设计](docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md): 多 Skill Chip、`/` 唤起、快捷按钮与模型选择（已实现）
-- [登录限流与 Turnstile 设计](docs/superpowers/specs/2026-07-05-login-captcha-design.md): 密码登录失败渐进验证码、找回密码防刷与 siteverify
-- [登录限流与 Turnstile 实施计划](docs/superpowers/plans/2026-07-05-login-captcha-plan.md): login_guard、Turnstile 组件与测试落地步骤
-- [上传孤儿文件清理设计](docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md): 扫指定目录 + DB 引用、1h TTL、`cleanup-uploads` CLI（已实现）
-- [上传孤儿文件清理实施计划](docs/superpowers/plans/2026-07-05-upload-orphan-cleanup-plan.md): 服务层、CLI、测试与 cron 部署步骤
-- [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md): 提 PR 时的变更说明与测试清单
-- [LICENSE](LICENSE): MIT 许可证
+## 应用与接口入口
 
-## Configuration
+- [公开站说明](apps/web/README.md): Next.js 路由、服务端渲染、SEO、主题缓存和构建检查。
+- [管理端说明](apps/admin/README.md): React Router、Ant Design、认证、编辑器和静态部署。
+- [API 说明](apps/api/README.md): FastAPI 开发、管理员初始化、数据库迁移与维护命令。
+- [共享数据契约](packages/contracts/src/index.ts): 双前端共享的业务 DTO，不包含页面或框架逻辑。
+- [API 路由注册](apps/api/app/api/v1/router.py): 查找公开查询、认证及管理端写入接口。
+- [API 应用入口](apps/api/app/main.py): 中间件、异常处理、路由与上传文件挂载。
+- [管理端入口](apps/admin/src/main.tsx): 后台应用启动与 Provider 组织。
+- [公开站语言路由](apps/web/i18n/routing.ts): URL locale、默认语言和独立语言 Cookie。
+- [公开站请求代理](apps/web/proxy.ts): 语言重写、内部请求处理和旧后台路径重定向。
 
-- [后端环境变量示例](apps/api/.env.example): SECRET_KEY、DATABASE_URL、CORS、AI 提供商、短信/OAuth、Turnstile、ISR revalidate 等占位配置
-- [前端环境变量示例](apps/web/.env.example): 复制为 `apps/web/.env`；含 BACKEND_URL、站点 URL、Turnstile、Giscus、REVALIDATE_SECRET
-- [后端依赖与工具链](apps/api/pyproject.toml): Python 包、ruff、mypy、pytest、FastAPI entrypoint
-- [前端依赖](apps/web/package.json): Next.js、React、next-intl、Tailwind、shadcn/ui 脚本与版本
-- [nginx 站点示例](deploy/nginx/xblog.conf): 生产同域反代 `/` 与 `/api/` 的完整 server 块
-- [CLI 维护命令](apps/api/app/cli.py): `create-admin`、`reset-password`、`seed-pages`、`cleanup-uploads`
+## 内容、AI 与公开发现
 
-## Code entry points
+- [文章服务](apps/api/app/services/posts.py): 文章、标签、发布状态和公开内容转换。
+- [Markdown 渲染](apps/api/app/services/markdown.py): 服务端正文 HTML、代码语言标记与语法高亮。
+- [AI 网关](apps/api/app/services/ai/gateway.py): 模型请求、多 Skill 组合和 SSE 输出。
+- [Skill 读写](apps/api/app/services/ai/skills_io.py): 内置与自定义 Skill 的文件访问与校验。
+- [登录方式配置](apps/api/app/services/auth_settings.py): 数据库存储的登录方式及密码登录手机二次验证开关。
+- [密码登录二次验证](apps/api/app/services/password_sms.py): 短期挑战、验证码消费与尝试次数限制。
+- [公开站主题](apps/web/lib/site-theme.ts): 从 API 获取品牌、主题和公开基础地址，按 tag 管理缓存。
+- [SEO 地址与输出](apps/web/lib/seo.ts): 后台域名优先级、canonical、语言关联和安全转义。
+- [Sitemap](apps/web/app/sitemap.ts): 已发布文章、固定路径和非空标签的发现入口。
+- [抓取规则](apps/web/app/robots.ts): 公开内容与上传资源的抓取边界。
+- [RSS](apps/web/app/rss.xml/route.ts): 最近文章订阅源与 XML 输出。
+- [公开缓存刷新](apps/web/app/api/revalidate/route.ts): 带密钥的路径与主题缓存失效入口。
+- [后端刷新通知](apps/api/app/services/revalidate.py): 内容提交后通知公开站，并记录回调失败。
 
-- [API 路由聚合](apps/api/app/api/v1/router.py): public / auth / admin 路由注册（含 AI、OAuth、SMS、站点主题、审计日志）
-- [FastAPI 应用入口](apps/api/app/main.py): 应用实例、静态上传挂载
-- [登录限流与 Turnstile](apps/api/app/services/login_guard.py): 密码失败计数、siteverify、找回密码 IP 限流
-- [审计日志服务](apps/api/app/services/audit_logs.py): 登录/操作日志写入与分页查询
-- [管理后台日志 API](apps/api/app/api/v1/endpoints/admin/logs.py): 登录与操作日志分页列表
-- [文章与标签服务](apps/api/app/services/posts.py): CRUD、标签 get_or_create、封面 URL 清理
-- [上传与封面/友链 LOGO](apps/api/app/services/uploads.py): 文章封面与友链 LOGO 本地上传路径与删除
-- [上传孤儿清理](apps/api/app/services/upload_cleanup.py): 对比 DB 引用集，删除超时未引用 managed 文件
-- [AI 网关与 SSE](apps/api/app/services/ai/gateway.py): 流式对话/生成、thinking 事件、多 Skill 合并 prompt
-- [AI Skill 读写](apps/api/app/services/ai/skills_io.py): Skill 上传校验、内置/自定义 Skill 目录
-- [Next.js 配置](apps/web/next.config.ts): `/api/*` 代理到 BACKEND_URL
-- [i18n 路由与 locale cookie](apps/web/i18n/routing.ts): 公开站 locale 定义
-- [i18n 请求配置](apps/web/i18n/request.ts): 公开站服务端 locale 解析
-- [next-intl 中间件](apps/web/proxy.ts): 公开站 locale 路由；`/admin` 请求头与错误前缀重定向
-- [路由参数解码](apps/web/lib/utils.ts): 标签 slug 等 URL 编码中文路径解码
-- [公开站主题拉取](apps/web/lib/site-theme.ts): 服务端主题、备案号与 ISR cache tag
-- [主题 palette 元数据](apps/web/lib/themes.ts): 公开站与后台 7 款配色定义
-- [未保存上传清理](apps/admin/src/lib/pending-upload-cleanup.ts): 取消/关闭/卸载时 DELETE 封面与友链 LOGO
-- [正文代码块语言标签](apps/web/lib/prose-code-blocks.ts): 从 `data-code-language` 读取语言名
-- [ISR 刷新路由](apps/web/app/api/revalidate/route.ts): revalidateTag / revalidatePath 入口
-- [管理端入口](apps/admin/src/main.tsx): React Router、Ant Design 与独立语言/主题 Provider
-- [管理端说明](apps/admin/README.md): 认证、编辑器、静态部署与检查
-- [文章编辑表单](apps/admin/src/components/admin/post-editor-form.tsx): Markdown 编辑、封面、固定底栏保存/发布
-- [文章封面上传](apps/admin/src/components/admin/post-cover-editor.tsx): 管理后台封面选择与本地预览
-- [友链 LOGO 上传](apps/admin/src/components/admin/friend-link-logo-editor.tsx): 外链或本地上传、必填校验
-- [AI Composer 输入区](apps/admin/src/components/admin/ai-composer.tsx): Skill Chip、`/` 列表、快捷按钮与模型选择
-- [编辑器 AI 布局](apps/admin/src/components/admin/editor-ai-assistant-layout.tsx): 三栏编辑页右侧 AI 面板容器
-- [后台分页组件](apps/admin/src/components/admin/admin-pagination.tsx): 日志等列表页码与页大小切换
-- [Turnstile 组件](apps/admin/src/components/admin/admin-turnstile.tsx): 登录与找回密码 Cloudflare 验证码
-- [AI 助手内嵌面板](apps/admin/src/components/admin/ai-assistant-panel.tsx): 对话/全文生成、思考过程展示
-- [公开站页脚](apps/web/components/site-footer.tsx): 备案号与公安图标展示
-- [Giscus 评论组件](apps/web/components/giscus.tsx): 文章详情 GitHub Discussions；iframe 外层 wrapper 布局
-- [文章目录 TOC](apps/web/components/article-toc.tsx): 详情页固定侧栏锚点导航
-- [文章卡片](apps/web/components/post-card.tsx): 列表 4:3 封面、标签与摘要布局
-- [文章封面展示](apps/web/components/article-cover.tsx): 详情页封面图渲染
+## 配置与运行
+
+- [根脚本与运行约束](package.json): 前端工作区命令和 packageManager 配置。
+- [工作区定义](pnpm-workspace.yaml): apps 与 packages 的组织范围。
+- [公开站依赖](apps/web/package.json): Next.js、国际化、样式及公开站检查脚本。
+- [管理端依赖](apps/admin/package.json): Vite、Ant Design、SWR、编辑器及后台检查脚本。
+- [API 依赖与检查](apps/api/pyproject.toml): Python 依赖、Ruff、mypy 和 pytest 配置。
+- [API 维护命令](apps/api/Makefile): 安装、启动、迁移和检查命令。
+- [代码格式规范](biome.json): 前端格式、lint 与导入规则。
+- [公开站环境示例](apps/web/.env.example): API 地址、站点地址回退、Giscus 与缓存刷新配置。
+- [管理端环境示例](apps/admin/.env.example): 后台构建及公开客户端配置。
+- [API 环境示例](apps/api/.env.example): 数据库、认证、上传、模型加密、外部服务与缓存通知配置。
+- [统一 nginx 配置](deploy/nginx/xblog.conf): 公开站、后台 SPA、API 与静态资源的同域路由。
+- [API 服务单元](deploy/systemd/xblog-api.service): uvicorn 进程的生产运行示例。
+- [公开站服务单元](deploy/systemd/xblog-web.service): Next.js 生产运行示例；管理端不启动 Vite preview。
+- [数据库迁移环境](apps/api/alembic/env.py): Alembic 与模型元数据连接；增量迁移位于同目录的 versions 下。
 
 ## Optional
 
-- [Issue：Bug 报告模板](.github/ISSUE_TEMPLATE/bug_report.yml): GitHub Issue 表单
-- [Issue：功能建议模板](.github/ISSUE_TEMPLATE/feature_request.yml): GitHub Issue 表单
-- [nginx 后端片段参考](apps/api/deploy/nginx/backend.conf): 仅 API 反代参考（完整站点见 deploy/nginx/xblog.conf）
-- [systemd API 单元](deploy/systemd/xblog-api.service): uvicorn 进程示例
-- [systemd Web 单元](deploy/systemd/xblog-web.service): next start 进程示例
-- [Alembic 初始迁移](apps/api/alembic/versions/001_xblog_initial.py): 数据库表结构起点
-- [站点设置迁移](apps/api/alembic/versions/004_site_settings.py): 公开站主题与品牌字段
-- [AI 表迁移](apps/api/alembic/versions/005_ai_tables.py): AI 提供商、Skill、用量日志
-- [短信与 OAuth 迁移](apps/api/alembic/versions/007_phone_sms_auth.py): 手机验证码与登录方式配置
-- [用户资料迁移](apps/api/alembic/versions/011_user_profile_fields.py): 昵称、生日等扩展字段
-- [审计日志迁移](apps/api/alembic/versions/012_audit_logs.py): 登录与操作审计表
-- [友链简介迁移](apps/api/alembic/versions/013_friend_link_description.py): 友链 `description` 字段
-- [上传清理测试](apps/api/tests/test_upload_cleanup.py): 孤儿文件 CLI 逻辑单元测试
-- [内置 Skill：对话](apps/api/app/data/builtin_skills/blog-chat-zh/SKILL.md): 默认中文博客对话 Skill
-- [内置 Skill：润色](apps/api/app/data/builtin_skills/blog-polish-zh/SKILL.md): 选区改写/扩写 Skill
-- [内置 Skill：生成](apps/api/app/data/builtin_skills/blog-generate-zh/SKILL.md): 全文生成 Skill
-- [内置 Skill：排版](apps/api/app/data/builtin_skills/blog-format-zh/SKILL.md): 智能排版 Skill
-- [内置 Skill：摘要](apps/api/app/data/builtin_skills/blog-excerpt-zh/SKILL.md): 提取摘要 Skill
-- [i18n 文案 zh-CN](apps/web/messages/zh-CN.json): 公开站与管理后台简体中文
-- [i18n 文案 zh-TW](apps/web/messages/zh-TW.json): 公开站与管理后台繁体中文
-- [i18n 文案 en](apps/web/messages/en.json): 公开站与管理后台英文
-- [全局样式与主题变量](apps/web/app/globals.css): CSS 变量、7 款 palette、Giscus 与编辑器底栏样式
+- [贡献指南](CONTRIBUTING.md): 分支、提交、PR 与贡献流程。
+- [Git 工作流](docs/git-workflow.md): 评审和合并约定。
+- [PR 模板](.github/PULL_REQUEST_TEMPLATE.md): 变更说明与验证清单。
+- [任务记录](docs/tasks.md): 历史实施与待办线索，需结合源码核实。
+- [应用拆分设计](docs/superpowers/specs/2026-11-01-apps-stack-migration-design.md): 三应用架构调整的历史背景。
+- [AI 写作设计](docs/superpowers/specs/2026-07-05-ai-writing-skills-design.md): Skill 及辅助写作的设计背景。
+- [AI Composer 设计](docs/superpowers/specs/2026-07-05-ai-editor-composer-design.md): 编辑器与 AI 面板交互背景。
+- [上传清理设计](docs/superpowers/specs/2026-07-05-upload-orphan-cleanup-design.md): 封面和友链 LOGO 临时文件清理范围。
+- [内置润色 Skill 示例](apps/api/app/data/builtin_skills/blog-polish-zh/SKILL.md): 随仓库分发的写作 Skill 格式示例。
+- [MIT 许可证](LICENSE): 使用、分发和修改许可。

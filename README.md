@@ -223,6 +223,14 @@ xblog/
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献者 | 分支、Commit、PR 流程 |
 | [docs/git-workflow.md](docs/git-workflow.md) | 维护者 / 贡献者 | Git 协作规范详解 |
 
+### LLM 文档入口：llms.txt
+
+根目录的 [llms.txt](llms.txt) 为 AI 编码助手和其他 LLM 工具提供精简的仓库导航，按核心文档、应用与接口入口、内容与 AI、配置部署、可选参考组织链接。所有文件链接均相对仓库根目录解析。
+
+使用 AI 理解或修改项目时，可先让它阅读 `llms.txt`，再按任务读取相关文件；编码约束仍以 [AGENTS.md](AGENTS.md) 为准。`Optional` 部分是补充资料，可在上下文有限时跳过。文件移动、应用结构或核心文档发生变化后，应同步更新索引并检查链接。
+
+这份文件面向仓库源码与文档，不是公开博客的文章目录，也不会自动发布到网站的 `/llms.txt`。它不替代 `robots.txt`、sitemap 或站长平台提交，不能保证搜索排名或 AI 引用。
+
 ---
 
 ## 参与贡献
