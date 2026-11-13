@@ -289,11 +289,7 @@
   background-repeat: no-repeat;
 }
 .admin-app-content .ant-table-wrapper .ant-table-cell.ant-table-cell-fix-end {
-  border-inline-start: 1px solid hsl(var(--border) / 0.55);
   background-image: none;
-}
-.admin-app-content .ant-table-wrapper .ant-table-cell-fix-end::after {
-  box-shadow: none;
 }
 .admin-table-actions > div {
   justify-content: center;

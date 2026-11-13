@@ -96,6 +96,8 @@ export function AntProvider({ children }: { children: React.ReactNode }) {
             itemHoverBg: `color-mix(in srgb, ${surfaceTokens.colorPrimary} 6%, ${surfaceTokens.colorBgContainer})`,
           },
           Input: { activeBorderColor: surfaceTokens.colorPrimaryHover, activeShadow: "none" },
+          Select: { borderRadiusLG: 2, borderRadiusSM: 2 },
+          Dropdown: { borderRadiusLG: 2, borderRadiusSM: 2 },
           Card: { borderRadiusLG: 4 },
           Table: { cellPaddingBlock: 12, cellPaddingInline: 16 },
         },
