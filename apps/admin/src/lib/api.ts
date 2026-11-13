@@ -352,6 +352,14 @@ export function logout() {
     method: "POST",
   });
 }
+
+export function highlightMarkdownCode(code: string, language: string, signal?: AbortSignal) {
+  return fetchAuth<{ html: string }>("/admin/markdown/highlight", {
+    method: "POST",
+    body: JSON.stringify({ code, language }),
+    signal,
+  });
+}
 export function verifyPasswordSms(challengeToken: string, code: string) {
   return fetchAuth<{ username: string }>("/auth/login/sms", {
     method: "POST",

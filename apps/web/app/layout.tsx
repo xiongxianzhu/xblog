@@ -6,6 +6,7 @@ import { jsonLd, resolveSiteUrl, siteUrl } from "@/lib/seo";
 import { getPublicSiteTheme } from "@/lib/site-theme";
 
 import "./globals.css";
+import "./code-highlight.css";
 
 // Google Fonts 官方可变字体；字体文件及 OFL 许可证随项目分发。
 const notoSans = localFont({

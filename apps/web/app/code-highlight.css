@@ -1,0 +1,296 @@
+/* GitHub light/dark syntax palette, mapped to Pygments tokens.
+   Reference: https://github.com/sindresorhus/github-markdown-css
+   Unknown tokens deliberately remain plain text rather than error indicators. */
+
+[data-site-shell]:not(.dark) .prose {
+  --code-bg: #f6f8fa;
+  --code-text: #1f2328;
+  --code-muted: #59636e;
+  --code-toolbar: #ffffff;
+  --code-border: #d1d9e0;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .w,
+[data-site-shell]:not(.dark) .prose .highlight .esc,
+[data-site-shell]:not(.dark) .prose .highlight .x,
+[data-site-shell]:not(.dark) .prose .highlight .n,
+[data-site-shell]:not(.dark) .prose .highlight .no,
+[data-site-shell]:not(.dark) .prose .highlight .ni,
+[data-site-shell]:not(.dark) .prose .highlight .py,
+[data-site-shell]:not(.dark) .prose .highlight .nl,
+[data-site-shell]:not(.dark) .prose .highlight .nn,
+[data-site-shell]:not(.dark) .prose .highlight .nx,
+[data-site-shell]:not(.dark) .prose .highlight .l,
+[data-site-shell]:not(.dark) .prose .highlight .ld,
+[data-site-shell]:not(.dark) .prose .highlight .p,
+[data-site-shell]:not(.dark) .prose .highlight .pm,
+[data-site-shell]:not(.dark) .prose .highlight .g,
+[data-site-shell]:not(.dark) .prose .highlight .gd,
+[data-site-shell]:not(.dark) .prose .highlight .ge,
+[data-site-shell]:not(.dark) .prose .highlight .gr,
+[data-site-shell]:not(.dark) .prose .highlight .gh,
+[data-site-shell]:not(.dark) .prose .highlight .gi,
+[data-site-shell]:not(.dark) .prose .highlight .go,
+[data-site-shell]:not(.dark) .prose .highlight .gp,
+[data-site-shell]:not(.dark) .prose .highlight .gs,
+[data-site-shell]:not(.dark) .prose .highlight .gu,
+[data-site-shell]:not(.dark) .prose .highlight .ges,
+[data-site-shell]:not(.dark) .prose .highlight .gt {
+  color: #1f2328;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .k,
+[data-site-shell]:not(.dark) .prose .highlight .kd,
+[data-site-shell]:not(.dark) .prose .highlight .kn,
+[data-site-shell]:not(.dark) .prose .highlight .kp,
+[data-site-shell]:not(.dark) .prose .highlight .kr,
+[data-site-shell]:not(.dark) .prose .highlight .kt,
+[data-site-shell]:not(.dark) .prose .highlight .o,
+[data-site-shell]:not(.dark) .prose .highlight .ow {
+  color: #cf222e;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .kc,
+[data-site-shell]:not(.dark) .prose .highlight .na,
+[data-site-shell]:not(.dark) .prose .highlight .nb,
+[data-site-shell]:not(.dark) .prose .highlight .bp,
+[data-site-shell]:not(.dark) .prose .highlight .m,
+[data-site-shell]:not(.dark) .prose .highlight .mb,
+[data-site-shell]:not(.dark) .prose .highlight .mf,
+[data-site-shell]:not(.dark) .prose .highlight .mh,
+[data-site-shell]:not(.dark) .prose .highlight .mi,
+[data-site-shell]:not(.dark) .prose .highlight .il,
+[data-site-shell]:not(.dark) .prose .highlight .mo {
+  color: #0550ae;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .nc,
+[data-site-shell]:not(.dark) .prose .highlight .nd,
+[data-site-shell]:not(.dark) .prose .highlight .ne,
+[data-site-shell]:not(.dark) .prose .highlight .nf,
+[data-site-shell]:not(.dark) .prose .highlight .fm {
+  color: #6639ba;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .nt {
+  color: #0550ae;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .nv,
+[data-site-shell]:not(.dark) .prose .highlight .vc,
+[data-site-shell]:not(.dark) .prose .highlight .vg,
+[data-site-shell]:not(.dark) .prose .highlight .vi,
+[data-site-shell]:not(.dark) .prose .highlight .vm {
+  color: #953800;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .s,
+[data-site-shell]:not(.dark) .prose .highlight .sa,
+[data-site-shell]:not(.dark) .prose .highlight .sb,
+[data-site-shell]:not(.dark) .prose .highlight .sc,
+[data-site-shell]:not(.dark) .prose .highlight .dl,
+[data-site-shell]:not(.dark) .prose .highlight .sd,
+[data-site-shell]:not(.dark) .prose .highlight .s2,
+[data-site-shell]:not(.dark) .prose .highlight .se,
+[data-site-shell]:not(.dark) .prose .highlight .sh,
+[data-site-shell]:not(.dark) .prose .highlight .si,
+[data-site-shell]:not(.dark) .prose .highlight .sx,
+[data-site-shell]:not(.dark) .prose .highlight .sr,
+[data-site-shell]:not(.dark) .prose .highlight .s1,
+[data-site-shell]:not(.dark) .prose .highlight .ss {
+  color: #0a3069;
+}
+
+[data-site-shell]:not(.dark) .prose .highlight .c,
+[data-site-shell]:not(.dark) .prose .highlight .ch,
+[data-site-shell]:not(.dark) .prose .highlight .cm,
+[data-site-shell]:not(.dark) .prose .highlight .cp,
+[data-site-shell]:not(.dark) .prose .highlight .cpf,
+[data-site-shell]:not(.dark) .prose .highlight .c1,
+[data-site-shell]:not(.dark) .prose .highlight .cs {
+  color: #59636e;
+}
+
+[data-site-shell].dark .prose {
+  --code-bg: #151b23;
+  --code-text: #f0f6fc;
+  --code-muted: #9198a1;
+  --code-toolbar: #0d1117;
+  --code-border: #3d444d;
+}
+
+[data-site-shell].dark .prose .highlight .w,
+[data-site-shell].dark .prose .highlight .esc,
+[data-site-shell].dark .prose .highlight .x,
+[data-site-shell].dark .prose .highlight .n,
+[data-site-shell].dark .prose .highlight .no,
+[data-site-shell].dark .prose .highlight .ni,
+[data-site-shell].dark .prose .highlight .py,
+[data-site-shell].dark .prose .highlight .nl,
+[data-site-shell].dark .prose .highlight .nn,
+[data-site-shell].dark .prose .highlight .nx,
+[data-site-shell].dark .prose .highlight .l,
+[data-site-shell].dark .prose .highlight .ld,
+[data-site-shell].dark .prose .highlight .p,
+[data-site-shell].dark .prose .highlight .pm,
+[data-site-shell].dark .prose .highlight .g,
+[data-site-shell].dark .prose .highlight .gd,
+[data-site-shell].dark .prose .highlight .ge,
+[data-site-shell].dark .prose .highlight .gr,
+[data-site-shell].dark .prose .highlight .gh,
+[data-site-shell].dark .prose .highlight .gi,
+[data-site-shell].dark .prose .highlight .go,
+[data-site-shell].dark .prose .highlight .gp,
+[data-site-shell].dark .prose .highlight .gs,
+[data-site-shell].dark .prose .highlight .gu,
+[data-site-shell].dark .prose .highlight .ges,
+[data-site-shell].dark .prose .highlight .gt {
+  color: #f0f6fc;
+}
+
+[data-site-shell].dark .prose .highlight .k,
+[data-site-shell].dark .prose .highlight .kd,
+[data-site-shell].dark .prose .highlight .kn,
+[data-site-shell].dark .prose .highlight .kp,
+[data-site-shell].dark .prose .highlight .kr,
+[data-site-shell].dark .prose .highlight .kt,
+[data-site-shell].dark .prose .highlight .o,
+[data-site-shell].dark .prose .highlight .ow {
+  color: #ff7b72;
+}
+
+[data-site-shell].dark .prose .highlight .kc,
+[data-site-shell].dark .prose .highlight .na,
+[data-site-shell].dark .prose .highlight .nb,
+[data-site-shell].dark .prose .highlight .bp,
+[data-site-shell].dark .prose .highlight .m,
+[data-site-shell].dark .prose .highlight .mb,
+[data-site-shell].dark .prose .highlight .mf,
+[data-site-shell].dark .prose .highlight .mh,
+[data-site-shell].dark .prose .highlight .mi,
+[data-site-shell].dark .prose .highlight .il,
+[data-site-shell].dark .prose .highlight .mo {
+  color: #79c0ff;
+}
+
+[data-site-shell].dark .prose .highlight .nc,
+[data-site-shell].dark .prose .highlight .nd,
+[data-site-shell].dark .prose .highlight .ne,
+[data-site-shell].dark .prose .highlight .nf,
+[data-site-shell].dark .prose .highlight .fm {
+  color: #d2a8ff;
+}
+
+[data-site-shell].dark .prose .highlight .nt {
+  color: #7ee787;
+}
+
+[data-site-shell].dark .prose .highlight .nv,
+[data-site-shell].dark .prose .highlight .vc,
+[data-site-shell].dark .prose .highlight .vg,
+[data-site-shell].dark .prose .highlight .vi,
+[data-site-shell].dark .prose .highlight .vm {
+  color: #ffa657;
+}
+
+[data-site-shell].dark .prose .highlight .s,
+[data-site-shell].dark .prose .highlight .sa,
+[data-site-shell].dark .prose .highlight .sb,
+[data-site-shell].dark .prose .highlight .sc,
+[data-site-shell].dark .prose .highlight .dl,
+[data-site-shell].dark .prose .highlight .sd,
+[data-site-shell].dark .prose .highlight .s2,
+[data-site-shell].dark .prose .highlight .se,
+[data-site-shell].dark .prose .highlight .sh,
+[data-site-shell].dark .prose .highlight .si,
+[data-site-shell].dark .prose .highlight .sx,
+[data-site-shell].dark .prose .highlight .sr,
+[data-site-shell].dark .prose .highlight .s1,
+[data-site-shell].dark .prose .highlight .ss {
+  color: #a5d6ff;
+}
+
+[data-site-shell].dark .prose .highlight .c,
+[data-site-shell].dark .prose .highlight .ch,
+[data-site-shell].dark .prose .highlight .cm,
+[data-site-shell].dark .prose .highlight .cp,
+[data-site-shell].dark .prose .highlight .cpf,
+[data-site-shell].dark .prose .highlight .c1,
+[data-site-shell].dark .prose .highlight .cs {
+  color: #9198a1;
+}
+
+[data-site-shell] .prose pre,
+[data-site-shell] .prose .code-block-shell {
+  color: var(--code-text);
+  background: var(--code-bg);
+  border-color: var(--code-border);
+}
+
+[data-site-shell] .prose .code-block-shell .code-block-toolbar {
+  background: var(--code-toolbar);
+  border-color: var(--code-border);
+}
+
+[data-site-shell] .prose .code-block-toolbar .code-lang-label,
+[data-site-shell] .prose .code-block-toolbar .code-copy-btn {
+  color: var(--code-muted);
+}
+
+[data-site-shell] .prose .code-block-toolbar .code-copy-btn {
+  background: var(--code-bg);
+  border-color: var(--code-border);
+}
+
+[data-site-shell] .prose .highlight .err {
+  color: var(--code-text);
+  background: transparent;
+  border: 0;
+}
+
+[data-site-shell] .prose .code-block-shell,
+[data-site-shell] .prose .code-block-shell pre,
+[data-site-shell] .prose .code-block-shell .highlight {
+  border-radius: 0;
+}
+[data-site-shell] .prose .code-block-toolbar .code-copy-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 0;
+}
+
+[data-site-shell]:not(.dark) .prose {
+  --code-success: #1a7f37;
+}
+[data-site-shell].dark .prose {
+  --code-success: #3fb950;
+}
+[data-site-shell] .prose .code-block-toolbar .code-copy-btn {
+  position: relative;
+}
+[data-site-shell] .prose .code-block-toolbar .code-copy-btn[data-copied="true"] {
+  color: var(--code-success);
+  border-color: var(--code-success);
+}
+[data-site-shell] .prose .code-copy-feedback {
+  position: absolute;
+  inset-inline-end: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  border: 1px solid var(--code-border);
+  background: var(--code-toolbar);
+  color: var(--code-text);
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  pointer-events: none;
+}
+[data-site-shell] .prose .code-copy-feedback:empty {
+  display: none;
+}

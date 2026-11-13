@@ -43,7 +43,7 @@ function patchMarkdownChromeLabels(
   if (!root) return;
 
   root.querySelectorAll<HTMLButtonElement>(".code-copy-btn:not([data-copied])").forEach((button) => {
-    button.textContent = codeLabels.copy;
+    button.title = codeLabels.copy;
     button.setAttribute("aria-label", codeLabels.copyCodeAria);
   });
 

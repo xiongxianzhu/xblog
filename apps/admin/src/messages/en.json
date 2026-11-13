@@ -94,7 +94,7 @@
   },
   "common": {
     "copy": "Copy",
-    "copied": "Copied!",
+    "copied": "Copied",
     "copyCodeAria": "Copy code",
     "mermaidZoomIn": "Zoom in",
     "mermaidZoomOut": "Zoom out",

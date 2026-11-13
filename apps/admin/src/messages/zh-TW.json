@@ -94,7 +94,7 @@
   },
   "common": {
     "copy": "複製",
-    "copied": "已複製",
+    "copied": "已拷貝",
     "copyCodeAria": "複製程式碼",
     "mermaidZoomIn": "放大",
     "mermaidZoomOut": "縮小",

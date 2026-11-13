@@ -1,0 +1,296 @@
+/* GitHub light/dark syntax palette, mapped to Pygments tokens.
+   Reference: https://github.com/sindresorhus/github-markdown-css
+   Unknown tokens deliberately remain plain text rather than error indicators. */
+
+[data-admin-shell]:not(.dark) .prose {
+  --code-bg: #f6f8fa;
+  --code-text: #1f2328;
+  --code-muted: #59636e;
+  --code-toolbar: #ffffff;
+  --code-border: #d1d9e0;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .w,
+[data-admin-shell]:not(.dark) .prose .highlight .esc,
+[data-admin-shell]:not(.dark) .prose .highlight .x,
+[data-admin-shell]:not(.dark) .prose .highlight .n,
+[data-admin-shell]:not(.dark) .prose .highlight .no,
+[data-admin-shell]:not(.dark) .prose .highlight .ni,
+[data-admin-shell]:not(.dark) .prose .highlight .py,
+[data-admin-shell]:not(.dark) .prose .highlight .nl,
+[data-admin-shell]:not(.dark) .prose .highlight .nn,
+[data-admin-shell]:not(.dark) .prose .highlight .nx,
+[data-admin-shell]:not(.dark) .prose .highlight .l,
+[data-admin-shell]:not(.dark) .prose .highlight .ld,
+[data-admin-shell]:not(.dark) .prose .highlight .p,
+[data-admin-shell]:not(.dark) .prose .highlight .pm,
+[data-admin-shell]:not(.dark) .prose .highlight .g,
+[data-admin-shell]:not(.dark) .prose .highlight .gd,
+[data-admin-shell]:not(.dark) .prose .highlight .ge,
+[data-admin-shell]:not(.dark) .prose .highlight .gr,
+[data-admin-shell]:not(.dark) .prose .highlight .gh,
+[data-admin-shell]:not(.dark) .prose .highlight .gi,
+[data-admin-shell]:not(.dark) .prose .highlight .go,
+[data-admin-shell]:not(.dark) .prose .highlight .gp,
+[data-admin-shell]:not(.dark) .prose .highlight .gs,
+[data-admin-shell]:not(.dark) .prose .highlight .gu,
+[data-admin-shell]:not(.dark) .prose .highlight .ges,
+[data-admin-shell]:not(.dark) .prose .highlight .gt {
+  color: #1f2328;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .k,
+[data-admin-shell]:not(.dark) .prose .highlight .kd,
+[data-admin-shell]:not(.dark) .prose .highlight .kn,
+[data-admin-shell]:not(.dark) .prose .highlight .kp,
+[data-admin-shell]:not(.dark) .prose .highlight .kr,
+[data-admin-shell]:not(.dark) .prose .highlight .kt,
+[data-admin-shell]:not(.dark) .prose .highlight .o,
+[data-admin-shell]:not(.dark) .prose .highlight .ow {
+  color: #cf222e;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .kc,
+[data-admin-shell]:not(.dark) .prose .highlight .na,
+[data-admin-shell]:not(.dark) .prose .highlight .nb,
+[data-admin-shell]:not(.dark) .prose .highlight .bp,
+[data-admin-shell]:not(.dark) .prose .highlight .m,
+[data-admin-shell]:not(.dark) .prose .highlight .mb,
+[data-admin-shell]:not(.dark) .prose .highlight .mf,
+[data-admin-shell]:not(.dark) .prose .highlight .mh,
+[data-admin-shell]:not(.dark) .prose .highlight .mi,
+[data-admin-shell]:not(.dark) .prose .highlight .il,
+[data-admin-shell]:not(.dark) .prose .highlight .mo {
+  color: #0550ae;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .nc,
+[data-admin-shell]:not(.dark) .prose .highlight .nd,
+[data-admin-shell]:not(.dark) .prose .highlight .ne,
+[data-admin-shell]:not(.dark) .prose .highlight .nf,
+[data-admin-shell]:not(.dark) .prose .highlight .fm {
+  color: #6639ba;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .nt {
+  color: #0550ae;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .nv,
+[data-admin-shell]:not(.dark) .prose .highlight .vc,
+[data-admin-shell]:not(.dark) .prose .highlight .vg,
+[data-admin-shell]:not(.dark) .prose .highlight .vi,
+[data-admin-shell]:not(.dark) .prose .highlight .vm {
+  color: #953800;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .s,
+[data-admin-shell]:not(.dark) .prose .highlight .sa,
+[data-admin-shell]:not(.dark) .prose .highlight .sb,
+[data-admin-shell]:not(.dark) .prose .highlight .sc,
+[data-admin-shell]:not(.dark) .prose .highlight .dl,
+[data-admin-shell]:not(.dark) .prose .highlight .sd,
+[data-admin-shell]:not(.dark) .prose .highlight .s2,
+[data-admin-shell]:not(.dark) .prose .highlight .se,
+[data-admin-shell]:not(.dark) .prose .highlight .sh,
+[data-admin-shell]:not(.dark) .prose .highlight .si,
+[data-admin-shell]:not(.dark) .prose .highlight .sx,
+[data-admin-shell]:not(.dark) .prose .highlight .sr,
+[data-admin-shell]:not(.dark) .prose .highlight .s1,
+[data-admin-shell]:not(.dark) .prose .highlight .ss {
+  color: #0a3069;
+}
+
+[data-admin-shell]:not(.dark) .prose .highlight .c,
+[data-admin-shell]:not(.dark) .prose .highlight .ch,
+[data-admin-shell]:not(.dark) .prose .highlight .cm,
+[data-admin-shell]:not(.dark) .prose .highlight .cp,
+[data-admin-shell]:not(.dark) .prose .highlight .cpf,
+[data-admin-shell]:not(.dark) .prose .highlight .c1,
+[data-admin-shell]:not(.dark) .prose .highlight .cs {
+  color: #59636e;
+}
+
+[data-admin-shell].dark .prose {
+  --code-bg: #151b23;
+  --code-text: #f0f6fc;
+  --code-muted: #9198a1;
+  --code-toolbar: #0d1117;
+  --code-border: #3d444d;
+}
+
+[data-admin-shell].dark .prose .highlight .w,
+[data-admin-shell].dark .prose .highlight .esc,
+[data-admin-shell].dark .prose .highlight .x,
+[data-admin-shell].dark .prose .highlight .n,
+[data-admin-shell].dark .prose .highlight .no,
+[data-admin-shell].dark .prose .highlight .ni,
+[data-admin-shell].dark .prose .highlight .py,
+[data-admin-shell].dark .prose .highlight .nl,
+[data-admin-shell].dark .prose .highlight .nn,
+[data-admin-shell].dark .prose .highlight .nx,
+[data-admin-shell].dark .prose .highlight .l,
+[data-admin-shell].dark .prose .highlight .ld,
+[data-admin-shell].dark .prose .highlight .p,
+[data-admin-shell].dark .prose .highlight .pm,
+[data-admin-shell].dark .prose .highlight .g,
+[data-admin-shell].dark .prose .highlight .gd,
+[data-admin-shell].dark .prose .highlight .ge,
+[data-admin-shell].dark .prose .highlight .gr,
+[data-admin-shell].dark .prose .highlight .gh,
+[data-admin-shell].dark .prose .highlight .gi,
+[data-admin-shell].dark .prose .highlight .go,
+[data-admin-shell].dark .prose .highlight .gp,
+[data-admin-shell].dark .prose .highlight .gs,
+[data-admin-shell].dark .prose .highlight .gu,
+[data-admin-shell].dark .prose .highlight .ges,
+[data-admin-shell].dark .prose .highlight .gt {
+  color: #f0f6fc;
+}
+
+[data-admin-shell].dark .prose .highlight .k,
+[data-admin-shell].dark .prose .highlight .kd,
+[data-admin-shell].dark .prose .highlight .kn,
+[data-admin-shell].dark .prose .highlight .kp,
+[data-admin-shell].dark .prose .highlight .kr,
+[data-admin-shell].dark .prose .highlight .kt,
+[data-admin-shell].dark .prose .highlight .o,
+[data-admin-shell].dark .prose .highlight .ow {
+  color: #ff7b72;
+}
+
+[data-admin-shell].dark .prose .highlight .kc,
+[data-admin-shell].dark .prose .highlight .na,
+[data-admin-shell].dark .prose .highlight .nb,
+[data-admin-shell].dark .prose .highlight .bp,
+[data-admin-shell].dark .prose .highlight .m,
+[data-admin-shell].dark .prose .highlight .mb,
+[data-admin-shell].dark .prose .highlight .mf,
+[data-admin-shell].dark .prose .highlight .mh,
+[data-admin-shell].dark .prose .highlight .mi,
+[data-admin-shell].dark .prose .highlight .il,
+[data-admin-shell].dark .prose .highlight .mo {
+  color: #79c0ff;
+}
+
+[data-admin-shell].dark .prose .highlight .nc,
+[data-admin-shell].dark .prose .highlight .nd,
+[data-admin-shell].dark .prose .highlight .ne,
+[data-admin-shell].dark .prose .highlight .nf,
+[data-admin-shell].dark .prose .highlight .fm {
+  color: #d2a8ff;
+}
+
+[data-admin-shell].dark .prose .highlight .nt {
+  color: #7ee787;
+}
+
+[data-admin-shell].dark .prose .highlight .nv,
+[data-admin-shell].dark .prose .highlight .vc,
+[data-admin-shell].dark .prose .highlight .vg,
+[data-admin-shell].dark .prose .highlight .vi,
+[data-admin-shell].dark .prose .highlight .vm {
+  color: #ffa657;
+}
+
+[data-admin-shell].dark .prose .highlight .s,
+[data-admin-shell].dark .prose .highlight .sa,
+[data-admin-shell].dark .prose .highlight .sb,
+[data-admin-shell].dark .prose .highlight .sc,
+[data-admin-shell].dark .prose .highlight .dl,
+[data-admin-shell].dark .prose .highlight .sd,
+[data-admin-shell].dark .prose .highlight .s2,
+[data-admin-shell].dark .prose .highlight .se,
+[data-admin-shell].dark .prose .highlight .sh,
+[data-admin-shell].dark .prose .highlight .si,
+[data-admin-shell].dark .prose .highlight .sx,
+[data-admin-shell].dark .prose .highlight .sr,
+[data-admin-shell].dark .prose .highlight .s1,
+[data-admin-shell].dark .prose .highlight .ss {
+  color: #a5d6ff;
+}
+
+[data-admin-shell].dark .prose .highlight .c,
+[data-admin-shell].dark .prose .highlight .ch,
+[data-admin-shell].dark .prose .highlight .cm,
+[data-admin-shell].dark .prose .highlight .cp,
+[data-admin-shell].dark .prose .highlight .cpf,
+[data-admin-shell].dark .prose .highlight .c1,
+[data-admin-shell].dark .prose .highlight .cs {
+  color: #9198a1;
+}
+
+[data-admin-shell] .prose pre,
+[data-admin-shell] .prose .code-block-shell {
+  color: var(--code-text);
+  background: var(--code-bg);
+  border-color: var(--code-border);
+}
+
+[data-admin-shell] .prose .code-block-shell .code-block-toolbar {
+  background: var(--code-toolbar);
+  border-color: var(--code-border);
+}
+
+[data-admin-shell] .prose .code-block-toolbar .code-lang-label,
+[data-admin-shell] .prose .code-block-toolbar .code-copy-btn {
+  color: var(--code-muted);
+}
+
+[data-admin-shell] .prose .code-block-toolbar .code-copy-btn {
+  background: var(--code-bg);
+  border-color: var(--code-border);
+}
+
+[data-admin-shell] .prose .highlight .err {
+  color: var(--code-text);
+  background: transparent;
+  border: 0;
+}
+
+[data-admin-shell] .prose .code-block-shell,
+[data-admin-shell] .prose .code-block-shell pre,
+[data-admin-shell] .prose .code-block-shell .highlight {
+  border-radius: 0;
+}
+[data-admin-shell] .prose .code-block-toolbar .code-copy-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 0;
+}
+
+[data-admin-shell]:not(.dark) .prose {
+  --code-success: #1a7f37;
+}
+[data-admin-shell].dark .prose {
+  --code-success: #3fb950;
+}
+[data-admin-shell] .prose .code-block-toolbar .code-copy-btn {
+  position: relative;
+}
+[data-admin-shell] .prose .code-block-toolbar .code-copy-btn[data-copied="true"] {
+  color: var(--code-success);
+  border-color: var(--code-success);
+}
+[data-admin-shell] .prose .code-copy-feedback {
+  position: absolute;
+  inset-inline-end: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  border: 1px solid var(--code-border);
+  background: var(--code-toolbar);
+  color: var(--code-text);
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  pointer-events: none;
+}
+[data-admin-shell] .prose .code-copy-feedback:empty {
+  display: none;
+}

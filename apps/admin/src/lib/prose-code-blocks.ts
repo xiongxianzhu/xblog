@@ -30,6 +30,36 @@ function extractText(node: ReactNode): string {
   return "";
 }
 
+function setCopyIcon(button: HTMLButtonElement, copied: boolean, labels: ProseCodeCopyLabels) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  for (const [key, value] of Object.entries({
+    width: "16",
+    height: "16",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    "aria-hidden": "true",
+  }))
+    svg.setAttribute(key, value);
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute(
+    "d",
+    copied ? "M20 6 9 17l-5-5" : "M9 9h11v11H9z M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1",
+  );
+  svg.appendChild(path);
+  const feedback = document.createElement("span");
+  feedback.className = "code-copy-feedback";
+  feedback.setAttribute("role", "status");
+  feedback.textContent = copied ? labels.copied : "";
+  button.replaceChildren(svg, feedback);
+  button.title = copied ? labels.copied : labels.copy;
+  button.setAttribute("aria-label", copied ? labels.copied : labels.copyCodeAria);
+}
+
 export function enhanceProseCodeBlocks(root: HTMLElement, labels: ProseCodeCopyLabels) {
   const shells: HTMLDivElement[] = [];
 
@@ -66,16 +96,18 @@ export function enhanceProseCodeBlocks(root: HTMLElement, labels: ProseCodeCopyL
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "code-copy-btn";
-    btn.textContent = labels.copy;
+    setCopyIcon(btn, false, labels);
     btn.setAttribute("aria-label", labels.copyCodeAria);
 
+    let resetTimer: number | undefined;
     btn.addEventListener("click", () => {
       const text = (pre.querySelector("code") ?? pre).textContent ?? "";
       void navigator.clipboard.writeText(text).then(() => {
-        btn.textContent = labels.copied;
+        setCopyIcon(btn, true, labels);
         btn.dataset.copied = "true";
-        window.setTimeout(() => {
-          btn.textContent = labels.copy;
+        window.clearTimeout(resetTimer);
+        resetTimer = window.setTimeout(() => {
+          setCopyIcon(btn, false, labels);
           delete btn.dataset.copied;
         }, 2000);
       });
