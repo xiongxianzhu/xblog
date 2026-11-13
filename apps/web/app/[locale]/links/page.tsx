@@ -1,3 +1,4 @@
+import { pageSeo } from "@/lib/seo";
 export const revalidate = 3600;
 
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -17,10 +18,7 @@ export async function generateMetadata({ params }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "links" });
 
-  return {
-    title: t("title"),
-    description: t("metaDescription"),
-  };
+  return { ...(await pageSeo("/links", locale)), title: t("title"), description: t("metaDescription") };
 }
 
 export default async function LinksPage({ params }: Props) {

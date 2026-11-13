@@ -254,3 +254,18 @@ export async function listPostsForFeed(limit: number): Promise<PostSummary[]> {
   );
   return [first, ...remaining].flatMap((page) => page.items).slice(0, limit);
 }
+
+/** Do not publish an empty discovery feed on upstream failure. */
+export async function listPublishedPostsForSitemap(): Promise<PostSummary[]> {
+  const posts: PostSummary[] = [];
+  let page = 1;
+  let total = 0;
+  do {
+    const batch = await fetchPublic<PaginatedPostList>("/public/posts", { page, page_size: 50 });
+    total = batch.total;
+    if (!batch.items.length && posts.length < total) throw new Error("Incomplete sitemap feed");
+    posts.push(...batch.items);
+    page += 1;
+  } while (posts.length < total);
+  return posts;
+}

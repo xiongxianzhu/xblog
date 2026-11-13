@@ -36,6 +36,18 @@ export function proxy(request: NextRequest) {
     return new NextResponse(null, { status: 404 });
   }
 
+  // Preserve next-intl's internal rewrite instead of redirecting its default
+  // locale prefix back to the original URL when middleware runs again.
+  const rewrittenLocale = request.headers.get("x-next-intl-locale");
+  if (
+    locales.some(
+      (locale) =>
+        locale === rewrittenLocale && (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)),
+    )
+  ) {
+    return NextResponse.next();
+  }
+
   return handleI18nRouting(request);
 }
 

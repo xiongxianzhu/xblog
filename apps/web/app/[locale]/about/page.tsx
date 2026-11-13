@@ -1,3 +1,4 @@
+import { pageSeo } from "@/lib/seo";
 export const revalidate = 3600;
 
 import { notFound } from "next/navigation";
@@ -19,9 +20,9 @@ export async function generateMetadata({ params }: Props) {
 
   try {
     const page = await getPage("about");
-    return { title: page.title, description: page.title };
+    return { ...(await pageSeo("/about", locale)), title: page.title, description: page.title };
   } catch {
-    return { title: t("fallbackTitle") };
+    return { ...(await pageSeo("/about", locale)), title: t("fallbackTitle") };
   }
 }
 

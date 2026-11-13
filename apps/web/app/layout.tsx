@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getSiteIconDescriptor } from "@/lib/public-asset-url";
+import { jsonLd, resolveSiteUrl, siteUrl } from "@/lib/seo";
 import { getPublicSiteTheme } from "@/lib/site-theme";
 
 import "./globals.css";
@@ -45,6 +46,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteIcon = getSiteIconDescriptor(siteTheme.site_logo_url);
 
   return {
+    metadataBase: new URL(resolveSiteUrl(siteTheme.site_base_url)),
+    alternates: { types: { "application/rss+xml": `${resolveSiteUrl(siteTheme.site_base_url)}/rss.xml` } },
+    robots: { index: true, follow: true, googleBot: { "max-image-preview": "large", "max-snippet": -1 } },
     title: {
       default: siteName,
       template: `%s · ${siteName}`,
@@ -80,6 +84,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  const theme = await getPublicSiteTheme();
+  const website = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${siteUrl(resolveSiteUrl(theme.site_base_url))}#website`,
+    url: siteUrl(resolveSiteUrl(theme.site_base_url)),
+    name: theme.site_name,
+    description: theme.site_tagline,
+  };
 
   return (
     <html
@@ -88,6 +101,8 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full min-w-0 flex-col overflow-x-clip" suppressHydrationWarning>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: jsonLd escapes < in site settings before embedding JSON. */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(website) }} />
         {children}
       </body>
     </html>

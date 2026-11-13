@@ -1,25 +1,24 @@
 import type { MetadataRoute } from "next";
-
-import { listPostsForFeed } from "@/lib/api";
-
+import { listPublishedPostsForSitemap, listTags } from "@/lib/api";
+import { resolveSiteUrl, siteUrl } from "@/lib/seo";
+import { getPublicSiteTheme } from "@/lib/site-theme";
+export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:10241";
-  const posts = await listPostsForFeed(200);
-
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: siteUrl, lastModified: new Date() },
-    { url: `${siteUrl}/blog`, lastModified: new Date() },
-    { url: `${siteUrl}/tags`, lastModified: new Date() },
-    { url: `${siteUrl}/about`, lastModified: new Date() },
-    { url: `${siteUrl}/projects`, lastModified: new Date() },
-    { url: `${siteUrl}/links`, lastModified: new Date() },
-    { url: `${siteUrl}/search`, lastModified: new Date() },
-  ];
-
-  const postRoutes = posts.map((post) => ({
-    url: `${siteUrl}/blog/${post.slug}`,
-    lastModified: post.published_at ? new Date(post.published_at) : new Date(),
-  }));
-
-  return [...staticRoutes, ...postRoutes];
+  const [theme, posts, tags] = await Promise.all([
+    getPublicSiteTheme(),
+    listPublishedPostsForSitemap(),
+    listTags(),
+  ]);
+  const base = resolveSiteUrl(theme.site_base_url);
+  const routes: MetadataRoute.Sitemap = ["/", "/blog", "/tags", "/about", "/projects", "/links"].flatMap(
+    (path) => ["zh-CN", "zh-TW", "en"].map((locale) => ({ url: siteUrl(base, path, locale) })),
+  );
+  for (const post of posts) routes.push({ url: siteUrl(base, `/blog/${encodeURIComponent(post.slug)}`) });
+  for (const tag of tags) {
+    if (tag.post_count > 0)
+      for (const locale of ["zh-CN", "zh-TW", "en"])
+        routes.push({ url: siteUrl(base, `/tags/${encodeURIComponent(tag.slug)}`, locale) });
+  }
+  if (routes.length > 50000) throw new Error("Split sitemap: more than 50,000 URLs");
+  return routes;
 }

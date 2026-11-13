@@ -72,3 +72,14 @@ pnpm --filter @xblog/web build
 ### 本地直接访问后台
 
 运行 `pnpm dev:admin` 后访问 `http://localhost:10243/admin/`。公开站使用 10241；两端可分别开发，跨端导航与 OAuth 需通过同域部署入口验收。
+
+
+## 搜索与 AI 抓取
+
+- canonical、结构化数据、RSS 和 sitemap 优先使用后台“公开站设置”的基础地址；环境变量 `NEXT_PUBLIC_SITE_URL` 仅作回退。生产必须配置真实的 HTTPS 域名。
+- `/robots.txt` 允许公开内容与上传图片抓取，限制管理端和 API 路径；这是抓取提示，不替代认证。CDN/WAF 也需允许合法搜索爬虫访问。
+- `/sitemap.xml` 分页读取全部已发布文章及非空标签，不列入搜索结果页，不用当前时间冒充内容更新时间。超过 50,000 个地址时需拆分 sitemap，当前会明确报错。
+- 页面提供 canonical；界面语言页面提供语言关联，未翻译的文章正文统一指向默认语言规范地址。站内搜索页为 `noindex, follow`。
+- 服务端输出 WebSite、BlogPosting 和 BreadcrumbList JSON-LD；不虚构作者、修改日期、评分或引用。RSS 对标题、摘要和 URL 做 XML 转义。
+- 发布后在 Google Search Console、百度搜索资源平台及 Bing Webmaster Tools 验证域名并提交 sitemap；这些操作需要站点所有者账户。代码配置不会自动完成收录或保证排名、AI 引用。
+- GEO 的内容基础仍是可访问正文、清楚的标题与摘要、真实来源和作者信息。未添加声称能保证 AI 推荐的隐藏提示词或专用文件。

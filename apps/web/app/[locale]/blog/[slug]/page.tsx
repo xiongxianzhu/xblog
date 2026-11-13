@@ -17,6 +17,7 @@ import { Link } from "@/i18n/navigation";
 import { getPost } from "@/lib/api";
 import { prepareArticleContent } from "@/lib/article-headings";
 import { resolvePublicAssetUrl } from "@/lib/public-asset-url";
+import { jsonLd, resolveSiteUrl, siteUrl } from "@/lib/seo";
 import { getPublicSiteTheme } from "@/lib/site-theme";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -30,17 +31,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   try {
     const post = await getPost(slug);
+    const theme = await getPublicSiteTheme();
+    const base = resolveSiteUrl(theme.site_base_url);
+    const url = siteUrl(base, `/blog/${encodeURIComponent(post.slug)}`);
+    const cover = resolvePublicAssetUrl(post.cover_url);
+    const image = cover ? new URL(cover, `${base}/`).href : undefined;
     return {
+      alternates: { canonical: url },
       title: post.title,
       description: post.excerpt ?? post.title,
       openGraph: {
+        type: "article",
+        url,
+        siteName: theme.site_name,
+        publishedTime: post.published_at ?? undefined,
         title: post.title,
         description: post.excerpt ?? post.title,
-        ...(post.cover_url ? { images: [{ url: post.cover_url, alt: post.title }] } : {}),
+        ...(image ? { images: [{ url: image, alt: post.title }] } : {}),
+      },
+      twitter: {
+        card: image ? "summary_large_image" : "summary",
+        title: post.title,
+        description: post.excerpt ?? post.title,
+        ...(image ? { images: [image] } : {}),
       },
     };
   } catch {
-    return { title: t("postNotFound") };
+    return { title: t("postNotFound"), robots: { index: false, follow: false } };
   }
 }
 
@@ -60,16 +77,45 @@ export default async function BlogPostPage({ params }: Props) {
   const { html: contentHtml, headings } = prepareArticleContent(post.content_html);
   const hasToc = headings.length > 0;
   const coverSrc = resolvePublicAssetUrl(post.cover_url);
+  const base = resolveSiteUrl(siteTheme.site_base_url);
+  const canonical = siteUrl(base, `/blog/${encodeURIComponent(post.slug)}`);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BlogPosting",
+        "@id": `${canonical}#article`,
+        url: canonical,
+        mainEntityOfPage: canonical,
+        headline: post.title,
+        description: post.excerpt ?? post.title,
+        ...(post.published_at ? { datePublished: post.published_at } : {}),
+        ...(coverSrc ? { image: new URL(coverSrc, `${base}/`).href } : {}),
+        keywords: post.tags.map((tag) => tag.name),
+        isAccessibleForFree: true,
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: siteTheme.site_name, item: siteUrl(base) },
+          { "@type": "ListItem", position: 2, name: t("title"), item: siteUrl(base, "/blog") },
+          { "@type": "ListItem", position: 3, name: post.title, item: canonical },
+        ],
+      },
+    ],
+  };
 
   return (
     <article className="page-enter article-layout mx-auto w-full px-4 py-12 sm:px-6 lg:px-8">
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: jsonLd escapes < to prevent script termination by article content. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />
       <PageViewTracker path={`/blog/${slug}`} />
 
       <div className={cn("grid gap-8 lg:gap-10", hasToc && "xl:grid-cols-[minmax(0,1fr)_15rem]")}>
         <div className="min-w-0 flex flex-col gap-8">
           <header className="flex flex-col gap-4 border-b border-border/70 pb-8">
             {post.published_at ? (
-              <time className="text-xs uppercase tracking-[0.25em] text-primary">
+              <time dateTime={post.published_at} className="text-xs uppercase tracking-[0.25em] text-primary">
                 {formatDate(post.published_at)}
               </time>
             ) : null}

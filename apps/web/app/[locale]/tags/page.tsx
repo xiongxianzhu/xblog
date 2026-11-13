@@ -1,3 +1,4 @@
+import { pageSeo } from "@/lib/seo";
 export const revalidate = 3600;
 
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -11,7 +12,7 @@ type Props = { params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "tags" });
-  return { title: t("title"), description: t("cloudDescription") };
+  return { ...(await pageSeo("/tags", locale)), title: t("title"), description: t("cloudDescription") };
 }
 
 export default async function TagsPage({ params }: Props) {

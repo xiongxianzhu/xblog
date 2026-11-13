@@ -1,3 +1,4 @@
+import { pageSeo } from "@/lib/seo";
 export const revalidate = 3600;
 
 import { ArrowRightIcon, RssIcon, SearchIcon } from "lucide-react";
@@ -12,6 +13,10 @@ import { listPosts } from "@/lib/api";
 type Props = {
   params: Promise<{ locale: string }>;
 };
+
+export async function generateMetadata({ params }: Props) {
+  return pageSeo("/", (await params).locale);
+}
 
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;

@@ -8,7 +8,7 @@
     "start": "next start -p 10241",
     "typecheck": "next typegen && tsc --noEmit",
     "check": "biome check .",
-    "test": "node scripts/test-revalidate.cjs && node scripts/test-locale-isolation.cjs && node scripts/test-public-api.cjs && node scripts/test-dev-routing.cjs && node scripts/test-copyright.cjs"
+    "test": "node scripts/test-revalidate.cjs && node scripts/test-locale-isolation.cjs && node scripts/test-public-api.cjs && node scripts/test-dev-routing.cjs && node scripts/test-copyright.cjs && node scripts/test-seo.cjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.3.1",

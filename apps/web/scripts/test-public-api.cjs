@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const { transformSync } = require("esbuild");
 const calls = [];
+let total = 137;
 const moduleObject = { exports: {} };
 const code = transformSync(fs.readFileSync("lib/api.ts", "utf8"), {
   loader: "ts",
@@ -23,11 +24,11 @@ vm.runInNewContext(code, {
     assert(options.signal instanceof AbortSignal);
     calls.push(page);
     const start = (page - 1) * size;
-    const items = Array.from({ length: Math.min(size, 137 - start) }, (_, index) => ({
+    const items = Array.from({ length: Math.min(size, total - start) }, (_, index) => ({
       id: start + index + 1,
     }));
     return new Response(
-      JSON.stringify({ code: 0, msg: "ok", data: { items, total: 137, page, page_size: size } }),
+      JSON.stringify({ code: 0, msg: "ok", data: { items, total, page, page_size: size } }),
       { headers: { "content-type": "application/json" } },
     );
   },
@@ -44,6 +45,11 @@ vm.runInNewContext(code, {
   assert.deepEqual(calls, [1, 2, 3]);
   assert.equal(posts.length, 137);
   assert.equal(posts[136].id, 137);
+  total = 237;
+  calls.length = 0;
+  posts = await moduleObject.exports.listPublishedPostsForSitemap();
+  assert.equal(posts.length, 237);
+  assert.deepEqual(calls, [1, 2, 3, 4, 5]);
   console.log("Public API: feed pagination, order, bounds and request timeout passed.");
 })().catch((error) => {
   console.error(error);

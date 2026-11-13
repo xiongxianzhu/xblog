@@ -1,3 +1,4 @@
+import { pageSeo } from "@/lib/seo";
 export const revalidate = 3600;
 
 import { notFound } from "next/navigation";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props) {
   const slug = decodeRouteParam(rawSlug);
   const t = await getTranslations({ locale, namespace: "tags" });
 
-  return { title: t("metaTitle", { slug }) };
+  return { ...(await pageSeo(`/tags/${encodeURIComponent(slug)}`, locale)), title: t("metaTitle", { slug }) };
 }
 
 export default async function TagPage({ params }: Props) {

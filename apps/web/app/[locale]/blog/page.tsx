@@ -1,3 +1,4 @@
+import { pageSeo } from "@/lib/seo";
 export const revalidate = 3600;
 
 import { notFound } from "next/navigation";
@@ -14,11 +15,13 @@ type Props = {
   searchParams: Promise<{ page?: string }>;
 };
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params, searchParams }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "blog" });
 
+  const page = Math.max(1, Number.parseInt((await searchParams).page ?? "1", 10) || 1);
   return {
+    ...(await pageSeo(page > 1 ? `/blog?page=${page}` : "/blog", locale)),
     title: t("title"),
     description: t("metaDescription"),
   };
