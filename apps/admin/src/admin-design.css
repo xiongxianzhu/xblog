@@ -934,3 +934,16 @@
     animation: none;
   }
 }
+
+.admin-file-dropzone.ant-upload-wrapper .ant-upload-drag {
+  border-radius: 2px;
+}
+
+.media-card-checkbox.ant-checkbox-wrapper {
+  margin: -6px;
+  padding: 6px;
+}
+
+.media-card-checkbox .ant-checkbox-inner {
+  border-radius: 2px;
+}

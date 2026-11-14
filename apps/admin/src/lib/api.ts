@@ -870,3 +870,14 @@ export async function exportMarkdownPosts(postId?: number): Promise<Blob> {
   if (!response.ok) await parseResponse<never>(response);
   return response.blob();
 }
+
+export async function downloadMediaArchive(ids: number[]): Promise<Blob> {
+  const response = await fetch(buildUrl("/admin/media/archive"), {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) await parseResponse<never>(response);
+  return response.blob();
+}

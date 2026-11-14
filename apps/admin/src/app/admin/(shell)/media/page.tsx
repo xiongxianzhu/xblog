@@ -1,4 +1,4 @@
-import { Alert, Button, Empty, Progress, Skeleton, Tabs } from "antd";
+import { Alert, Upload as AntUpload, Button, Empty, Progress, Skeleton, Tabs } from "antd";
 import { AudioLines, Download, Eye, FolderCog, ImageIcon, Pencil, Play, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -10,6 +10,7 @@ import { CopyFieldButton } from "@/components/admin/copy-field-button";
 import { MediaEditor } from "@/components/admin/media-editor";
 import { MediaGroupManager } from "@/components/admin/media-group-manager";
 import { MediaPreview } from "@/components/admin/media-preview";
+import { MediaSelectableGrid } from "@/components/admin/media-selectable-grid";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminErrorMessage } from "@/lib/admin-errors";
 import { toast } from "@/lib/feedback";
@@ -49,6 +50,7 @@ export default function MediaLibraryPage() {
   const [editing, setEditing] = useState<MediaAsset | null>(null);
   const [manageGroups, setManageGroups] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploadState, setUploadState] = useState<{
     done: number;
@@ -158,7 +160,7 @@ export default function MediaLibraryPage() {
     }
   }
   return (
-    <div>
+    <div inert={bulkDeleting}>
       <AdminPageHeader
         title={txt("m0111")}
         description={txt("m0112")}
@@ -244,6 +246,26 @@ export default function MediaLibraryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="min-w-0">
+          <div className="mb-6">
+            <AntUpload.Dragger
+              className="admin-file-dropzone"
+              accept={config.accept}
+              multiple
+              disabled={!!uploadState}
+              showUploadList={false}
+              onDrop={(event) => {
+                void uploadFiles(Array.from(event.dataTransfer.files));
+              }}
+              beforeUpload={(file, files) => {
+                if (file === files[0]) void uploadFiles(files);
+                return AntUpload.LIST_IGNORE;
+              }}
+            >
+              <Upload size={24} className="mx-auto mb-2 text-primary" aria-hidden />
+              <p className="font-medium">{txt("uploadMediaDrop")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{txt("uploadMediaDropHint")}</p>
+            </AntUpload.Dragger>
+          </div>
           <fieldset
             className="m-0 mb-5 flex min-w-0 flex-wrap items-center gap-2 border-0 p-0"
             aria-label={txt("m0126")}
@@ -349,13 +371,23 @@ export default function MediaLibraryPage() {
               </Button>
             </Empty>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-4">
-              {data.items.map((asset) => (
+            <MediaSelectableGrid
+              key={`${kind}:${page}:${pageSize}:${groupId}:${query}`}
+              items={data.items}
+              disabled={!!uploadState || deleting}
+              onDeleted={refresh}
+              onBusyChange={setBulkDeleting}
+            >
+              {(asset, selected, checkbox) => (
                 <article
                   key={asset.id}
-                  className="min-w-0 overflow-hidden rounded border border-border bg-card"
+                  data-media-id={asset.id}
+                  className={`relative min-w-0 overflow-hidden rounded border bg-card ${selected ? "border-primary ring-1 ring-primary" : "border-border"}`}
                 >
+                  <div className="absolute left-2 top-2 z-10">{checkbox}</div>
                   <button
+                    data-media-preview
+                    onDragStart={(event) => event.preventDefault()}
                     type="button"
                     className="flex aspect-[4/3] w-full cursor-zoom-in items-center justify-center border-0 bg-muted/30 p-3"
                     aria-label={txt("m0137", {
@@ -365,6 +397,7 @@ export default function MediaLibraryPage() {
                   >
                     {asset.kind === "image" ? (
                       <img
+                        draggable={false}
                         loading="lazy"
                         src={asset.url}
                         alt={asset.name}
@@ -434,8 +467,8 @@ export default function MediaLibraryPage() {
                     </div>
                   </div>
                 </article>
-              ))}
-            </div>
+              )}
+            </MediaSelectableGrid>
           )}
           {data && !error ? (
             <AdminPagination

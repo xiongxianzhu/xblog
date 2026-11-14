@@ -2,6 +2,9 @@ import { adminErrorText, translatedAdminNotice } from "@/lib/admin-messages";
 
 type ErrorKey = Parameters<typeof adminErrorText>[0];
 const errors: Record<string, ErrorKey> = {
+  MEDIA_ARCHIVE_TOO_LARGE: "mediaArchiveTooLarge",
+  MEDIA_ARCHIVE_SOURCE_MISSING: "mediaArchiveMissing",
+  MEDIA_FILE_DELETE_FAILED: "mediaFileDeleteFailed",
   PASSWORD_SMS_PHONE_REQUIRED: "passwordSmsPhoneRequired",
   PASSWORD_SMS_NOT_CONFIGURED: "passwordSmsNotConfigured",
   PASSWORD_SMS_INVALID: "passwordSmsInvalid",

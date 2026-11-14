@@ -1093,7 +1093,22 @@
       "builtinExcerpt": "提取中文文章摘要：简洁、信息密度高，适合作为文章摘要或 SEO 描述。",
       "builtinFormat": "中文 Markdown 智能排版：规范标题层级、列表、空行与代码块间距，不改变语义与事实。",
       "builtinGenerate": "根据主题与大纲生成完整中文 Markdown 博客草稿，包含合理标题层级与段落结构。",
-      "builtinPolish": "中文 Markdown 润色：修正语病、统一语气、保留结构与事实，适合润色、扩写和缩写。"
+      "builtinPolish": "中文 Markdown 润色：修正语病、统一语气、保留结构与事实，适合润色、扩写和缩写。",
+      "uploadLogoDrop": "拖入一张图片，或点击选择文件",
+      "uploadLogoSingle": "站点 LOGO 只能使用一张图片，请一次选择或拖入一个文件。",
+      "uploadMediaDrop": "拖拽文件到这里，或点击选择文件",
+      "uploadMediaDropHint": "支持一次拖入多个文件，按当前类型和分组逐个上传。",
+      "mediaSelectPage": "全选当前页",
+      "mediaSelectedCount": "已选择 {count} 项",
+      "mediaClearSelection": "清空选择",
+      "mediaBatchDelete": "批量删除",
+      "mediaMarqueeHint": "从卡片间空白处拖动框选；按住 Ctrl / Command / Shift 可追加。也可逐项勾选，切换页面或筛选会清空选择。",
+      "mediaBatchResult": "已删除 {success} 项，失败 {failed} 项",
+      "mediaSelectFile": "选择 {name}",
+      "mediaBatchProgress": "正在删除 {done} / {total}",
+      "mediaBatchConfirm": "确定永久删除所选 {count} 个素材及其源文件？被引用或删除失败的素材将保留。",
+      "mediaDownloadZip": "下载 ZIP",
+      "mediaZipHint": "每次最多 100 个文件，总大小不超过 512 MB。"
     },
     "errors": {
       "requestFailed": "请求失败，请稍后重试。",
@@ -1140,7 +1155,10 @@
       "passwordSmsNotConfigured": "手机二次验证的短信发送服务尚不可用，请联系管理员。",
       "passwordSmsInvalid": "验证码错误或验证已失效，请重试或返回密码登录重新获取。",
       "passwordSmsSendLimit": "发送过于频繁，请稍后返回密码登录重新获取验证码。",
-      "passwordSmsAttemptsExceeded": "验证码尝试次数过多，请稍后重新验证密码获取新验证码。"
+      "passwordSmsAttemptsExceeded": "验证码尝试次数过多，请稍后重新验证密码获取新验证码。",
+      "mediaFileDeleteFailed": "源文件删除失败，素材记录已保留。请检查文件权限或占用后重试。",
+      "mediaArchiveTooLarge": "所选文件总大小超过 512 MB，请减少选择后重试。",
+      "mediaArchiveMissing": "部分素材或源文件不存在，请刷新列表后重新选择。"
     }
   }
 }

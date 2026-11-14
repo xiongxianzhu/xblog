@@ -2,6 +2,8 @@
 
 import asyncio
 import base64
+import io
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -68,6 +70,7 @@ def test_media_upload_download_and_delete(client: TestClient) -> None:
     assert partial.content == PNG[:8]
     assert client.delete(f"/api/v1/admin/media/{asset['id']}").status_code == 200
     assert not stored.exists()
+    assert client.get(asset["url"]).status_code == 404
     assert client.get(f"/api/v1/admin/media/{asset['id']}/download").status_code == 404
 
 
@@ -161,3 +164,57 @@ def test_failed_database_save_removes_uploaded_file(client: TestClient, monkeypa
     with pytest.raises(RuntimeError, match="test database failure"):
         upload(client)
     assert set((get_upload_root() / "media").glob("*")) == before
+
+
+def test_file_delete_failure_preserves_record_for_retry(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    sign_in(client)
+    asset = unwrap_api_response(upload(client))
+    stored = get_upload_root() / "media" / Path(asset["url"]).name
+    original_unlink = Path.unlink
+
+    def fail_unlink(path: Path, *args, **kwargs) -> None:
+        if path == stored:
+            raise PermissionError("test file is locked")
+        original_unlink(path, *args, **kwargs)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(Path, "unlink", fail_unlink)
+        response = client.delete(f"/api/v1/admin/media/{asset['id']}")
+        assert response.status_code == 503
+        assert response.json()["msg"] == "MEDIA_FILE_DELETE_FAILED"
+    assert stored.exists()
+    assert client.get(f"/api/v1/admin/media/{asset['id']}/download").status_code == 200
+    assert client.delete(f"/api/v1/admin/media/{asset['id']}").status_code == 200
+    assert not stored.exists()
+
+
+def test_missing_source_file_can_remove_stale_record(client: TestClient) -> None:
+    sign_in(client)
+    asset = unwrap_api_response(upload(client))
+    stored = get_upload_root() / "media" / Path(asset["url"]).name
+    stored.unlink()
+    assert client.delete(f"/api/v1/admin/media/{asset['id']}").status_code == 200
+    assert client.get(f"/api/v1/admin/media/{asset['id']}/download").status_code == 404
+
+
+def test_archive_requires_auth(client: TestClient) -> None:
+    assert client.post("/api/v1/admin/media/archive", json={"ids": [1]}).status_code == 401
+
+
+def test_archive_preserves_sources_and_handles_duplicate_names(client: TestClient) -> None:
+    sign_in(client)
+    first = unwrap_api_response(upload(client, "图片.png"))
+    second = unwrap_api_response(upload(client, "图片.png"))
+    response = client.post("/api/v1/admin/media/archive", json={"ids": [first["id"], second["id"], first["id"]]})
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert archive.namelist() == ["图片.png", "图片 (2).png"]
+        assert all(archive.read(name) == PNG for name in archive.namelist())
+    assert client.get(first["url"]).content == PNG
+    assert client.get(second["url"]).content == PNG
+    assert client.post("/api/v1/admin/media/archive", json={"ids": []}).status_code == 422
+    assert client.post("/api/v1/admin/media/archive", json={"ids": [first["id"]] * 101}).status_code == 422
+    assert client.post("/api/v1/admin/media/archive", json={"ids": [999999]}).status_code == 404
+    (get_upload_root() / "media" / Path(first["url"]).name).unlink()
+    assert client.post("/api/v1/admin/media/archive", json={"ids": [first["id"], second["id"]]}).status_code == 404

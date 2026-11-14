@@ -1093,7 +1093,22 @@
       "builtinExcerpt": "Extracts concise, informative summaries of Chinese articles for excerpts or SEO descriptions.",
       "builtinFormat": "Formats Chinese Markdown headings, lists, spacing and code blocks without changing meaning or facts.",
       "builtinGenerate": "Generates a complete Chinese Markdown blog draft from a topic and outline, with clear headings and paragraphs.",
-      "builtinPolish": "Polishes Chinese Markdown by correcting grammar and tone while preserving structure and facts. Supports polishing, expansion and shortening."
+      "builtinPolish": "Polishes Chinese Markdown by correcting grammar and tone while preserving structure and facts. Supports polishing, expansion and shortening.",
+      "uploadLogoDrop": "Drop one image here, or click to choose a file",
+      "uploadLogoSingle": "A site logo uses one image. Please choose or drop one file at a time.",
+      "uploadMediaDrop": "Drop files here, or click to choose files",
+      "uploadMediaDropHint": "Drop multiple files to upload them individually to the current type and group.",
+      "mediaSelectPage": "Select current page",
+      "mediaSelectedCount": "{count} selected",
+      "mediaClearSelection": "Clear selection",
+      "mediaBatchDelete": "Delete selected",
+      "mediaMarqueeHint": "Drag from the gaps between cards to select. Hold Ctrl / Command / Shift to add. Checkboxes are also available. Changing pages or filters clears selection.",
+      "mediaBatchResult": "Deleted {success}; failed {failed}",
+      "mediaSelectFile": "Select {name}",
+      "mediaBatchProgress": "Deleting {done} / {total}",
+      "mediaBatchConfirm": "Permanently delete these {count} assets and their source files? Referenced assets and failed deletions will be retained.",
+      "mediaDownloadZip": "Download ZIP",
+      "mediaZipHint": "Up to 100 files and 512 MB per download."
     },
     "errors": {
       "requestFailed": "The request failed. Please try again later.",
@@ -1140,7 +1155,10 @@
       "passwordSmsNotConfigured": "SMS delivery for phone verification is unavailable. Contact an administrator.",
       "passwordSmsInvalid": "The code is incorrect or verification is no longer valid. Retry or return to password sign-in for a new code.",
       "passwordSmsSendLimit": "Codes are being requested too frequently. Wait before returning to password sign-in to request another code.",
-      "passwordSmsAttemptsExceeded": "Too many code attempts. Wait, then verify your password again to request a new code."
+      "passwordSmsAttemptsExceeded": "Too many code attempts. Wait, then verify your password again to request a new code.",
+      "mediaFileDeleteFailed": "The source file could not be deleted. The media record was retained. Check file permissions or locks, then retry.",
+      "mediaArchiveTooLarge": "Selected files exceed 512 MB. Select fewer files and retry.",
+      "mediaArchiveMissing": "Some assets or source files are missing. Refresh the list and select again."
     }
   }
 }

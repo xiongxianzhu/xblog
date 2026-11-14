@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import re
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import BinaryIO
 from uuid import uuid4
@@ -166,8 +168,41 @@ async def delete_asset(session: AsyncSession, asset: MediaAsset) -> None:
     await ensure_not_referenced(session, asset)
     path = asset_path(asset.filename)
     await session.delete(asset)
-    await session.commit()
+    await session.flush()
     try:
         await run_in_threadpool(path.unlink, missing_ok=True)
-    except OSError:
-        logger.exception("Media record deleted but file cleanup failed: %s", asset.filename)
+    except OSError as exc:
+        logger.exception("Media file deletion failed: %s", path)
+        await session.rollback()
+        raise HTTPException(status_code=503, detail="MEDIA_FILE_DELETE_FAILED") from exc
+    # Only report success once both the source file and database row are gone.
+    # If commit fails after unlink, the retained row can be deleted again safely.
+    await session.commit()
+
+
+def build_archive(assets: list[MediaAsset]):
+    archive = tempfile.TemporaryFile()
+    try:
+        entries = [(asset, asset_path(asset.filename)) for asset in assets]
+        if sum(path.stat().st_size for _, path in entries) > 512 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="MEDIA_ARCHIVE_TOO_LARGE")
+        used: set[str] = set()
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED) as output:
+            for asset, path in entries:
+                name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", asset.original_name).strip(" .") or path.name
+                stem, suffix = Path(name).stem, Path(name).suffix
+                unique = name
+                number = 2
+                while unique.casefold() in used:
+                    unique = f"{stem[:180]} ({number}){suffix}"
+                    number += 1
+                used.add(unique.casefold())
+                output.write(path, unique)
+        archive.seek(0)
+        return archive
+    except FileNotFoundError as exc:
+        archive.close()
+        raise HTTPException(status_code=404, detail="MEDIA_ARCHIVE_SOURCE_MISSING") from exc
+    except BaseException:
+        archive.close()
+        raise

@@ -3,10 +3,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
+from starlette.background import BackgroundTask
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.core.timezone import now
@@ -25,6 +28,34 @@ from app.schemas.media import (
 from app.services import media
 
 router = APIRouter()
+
+
+class MediaArchiveRequest(BaseModel):
+    ids: list[Annotated[int, Field(gt=0)]] = Field(min_length=1, max_length=100)
+
+
+@router.post("/media/archive")
+async def download_archive(payload: MediaArchiveRequest, session: SessionDep, _: CurrentUserDep):
+    ids = list(dict.fromkeys(payload.ids))
+    assets = (await session.exec(select(MediaAsset).where(col(MediaAsset.id).in_(ids)))).all()
+    by_id = {asset.id: asset for asset in assets}
+    if len(by_id) != len(ids):
+        raise HTTPException(status_code=404, detail="MEDIA_ARCHIVE_SOURCE_MISSING")
+    archive = await run_in_threadpool(media.build_archive, [by_id[item] for item in ids])
+
+    def chunks():
+        try:
+            while chunk := archive.read(1024 * 1024):
+                yield chunk
+        finally:
+            archive.close()
+
+    return StreamingResponse(
+        chunks(),
+        media_type="application/zip",
+        background=BackgroundTask(archive.close),
+        headers={"Content-Disposition": 'attachment; filename="xblog-media.zip"', "Cache-Control": "no-store"},
+    )
 
 
 @router.get("/media/groups", response_model=MediaGroups)
